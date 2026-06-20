@@ -1,0 +1,111 @@
+// ── Tipos del dominio Nightcore AQP ──────────────────────────────────────────
+// Reflejan las tablas de supabase/schema.sql.
+
+export type UserRole = 'user' | 'dj' | 'admin';
+export type EventStatus = 'planning' | 'confirmed' | 'paused';
+export type RsvpStatus = 'interested' | 'confirmed';
+export type VoteType = 'upvote' | 'downvote';
+
+export interface Profile {
+  id: string;
+  username: string;
+  role: UserRole;
+  points: number;
+  streak_count: number;
+  last_check_in: string | null;
+  avatar_url: string | null;
+}
+
+export interface EventItem {
+  id: string;
+  title: string;
+  tagline: string | null;
+  description: string | null;
+  date: string;
+  location: string | null;
+  ticket_price: number;
+  total_tickets: number;
+  available_tickets: number;
+  status: EventStatus;
+  comments_enabled: boolean;
+}
+
+export interface Attendee {
+  id: string;
+  event_id: string;
+  user_id: string | null;
+  name: string;
+  email: string;
+  code: string | null;
+  status: RsvpStatus;
+  created_at: string;
+}
+
+export interface Song {
+  id: string;
+  event_id: string | null;
+  title: string;
+  artist: string;
+  youtube_url: string;
+  genre: string | null;
+  geek_tag: string | null;
+  suggested_by: string | null;
+  suggested_by_name: string | null;
+  votes_count: number;
+  played: boolean;
+  file_url?: string | null;   // MP4 propio (respaldo/fondo) subido por el media-service
+  userVote?: VoteType | null;
+}
+
+export interface EventComment {
+  id: string;
+  event_id: string;
+  user_id: string | null;
+  username: string;
+  content: string;
+  created_at: string;
+}
+
+export interface Costume {
+  id: string;
+  event_id: string | null;
+  user_id: string | null;
+  char_name: string;
+  anime: string;
+  photo_url: string;
+  description: string | null;
+  votes_count: number;
+  voted?: boolean;
+  comments?: CostumeComment[];
+}
+
+export interface CostumeComment {
+  id: string;
+  costume_id: string;
+  username: string;
+  content: string;
+  created_at: string;
+}
+
+export interface SurveyOption {
+  id: string;
+  survey_id: string;
+  text: string;
+  position: number;
+  votes_count: number;
+}
+
+export interface Survey {
+  id: string;
+  question: string;
+  active: boolean;
+  options: SurveyOption[];
+}
+
+export interface Theme {
+  id: string;
+  name: string;
+  suggested_by: string | null;
+  suggested_by_name: string | null;
+  clicks: number;
+}

@@ -1,0 +1,261 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import {
+  Music, Plus, ChevronUp, ChevronDown, Play, ExternalLink, Search, Music3,
+  Download, Link2, Check, AlertCircle,
+} from 'lucide-react';
+import { useAuth } from '@/lib/auth';
+import { getSongs, addSong, setSongVote } from '@/lib/data';
+import { checkVideo, downloadMedia, isMediaConfigured } from '@/lib/media';
+import type { Song, VoteType } from '@/lib/types';
+
+function getYouTubeId(url: string) {
+  const m = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
+  return m && m[2].length === 11 ? m[2] : null;
+}
+
+const tagColor: Record<string, string> = {
+  FNAF: 'badge-red', Anime: 'badge-pink', Undertale: 'badge-yellow',
+  Minecraft: 'badge-green',
+};
+
+export default function PlaylistPage() {
+  const { profile, addPoints } = useAuth();
+  const [songs, setSongs] = useState<Song[]>([]);
+  const [query, setQuery] = useState('');
+  const [playing, setPlaying] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [title, setTitle] = useState('');
+  const [artist, setArtist] = useState('');
+  const [url, setUrl] = useState('');
+  const [checking, setChecking] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const mediaOn = isMediaConfigured();
+
+  useEffect(() => { getSongs().then(setSongs); }, []);
+
+  const filtered = songs
+    .filter((s) => s.title.toLowerCase().includes(query.toLowerCase()) || s.artist.toLowerCase().includes(query.toLowerCase()))
+    .sort((a, b) => b.votes_count - a.votes_count);
+
+  const handleVote = async (id: string, type: VoteType) => {
+    let nextVote: VoteType | null = type;
+    setSongs((prev) => prev.map((s) => {
+      if (s.id !== id) return s;
+      let diff = 0;
+      if (s.userVote === type) { diff = type === 'upvote' ? -1 : 1; nextVote = null; }
+      else if (!s.userVote) diff = type === 'upvote' ? 1 : -1;
+      else diff = type === 'upvote' ? 2 : -2;
+      return { ...s, votes_count: s.votes_count + diff, userVote: nextVote };
+    }));
+    await setSongVote(id, nextVote, profile?.id ?? null);
+    if (nextVote) addPoints(2);
+  };
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title || !artist || !url) return;
+    setFormError(null);
+
+    const yt = getYouTubeId(url);
+
+    // Verificación del link. Con media-service: comprobante real (yt-dlp).
+    // Sin él: chequeo básico de que sea un enlace de YouTube válido.
+    setChecking(true);
+    const info = await checkVideo(url);
+    setChecking(false);
+    if (info) {
+      if (!info.available) {
+        setFormError('Ese link no está disponible o es privado. Prueba con otro enlace público.');
+        return;
+      }
+      if (!info.embeddable) {
+        // Disponible pero no embebible: se acepta y quedará para respaldo del DJ.
+        setFormError(null);
+      }
+    } else if (!yt) {
+      // Sin media-service y no es un YouTube válido.
+      setFormError('Por ahora solo validamos enlaces de YouTube. Usa un link de YouTube válido.');
+      return;
+    }
+
+    const row = await addSong({ title, artist, youtube_url: url }, profile?.id ?? null, profile?.username ?? 'Tú');
+    setSongs((prev) => [...prev, row]);
+    if (yt) setPlaying(yt);
+    setTitle(''); setArtist(''); setUrl(''); setShowForm(false);
+    addPoints(5);
+  };
+
+  const handleCopy = async (song: Song) => {
+    try {
+      await navigator.clipboard.writeText(song.youtube_url);
+      setCopiedId(song.id);
+      setTimeout(() => setCopiedId((c) => (c === song.id ? null : c)), 1500);
+    } catch { /* clipboard bloqueado */ }
+  };
+
+  const handleDownload = async (song: Song, format: 'mp3' | 'mp4') => {
+    setDownloadingId(song.id);
+    try {
+      await downloadMedia(song.youtube_url, format, `${song.artist} - ${song.title}`.replace(/[^a-z0-9]/gi, '_'));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error en la descarga');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  return (
+    <div className="grid lg:grid-cols-3 gap-8 items-start">
+      <div className="lg:col-span-2 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="section-title flex items-center gap-2 text-2xl">
+              <Music className="h-6 w-6 text-neon-pink" /> Playlist del DJ
+            </h1>
+            <p className="text-sm text-muted mt-1">Sugiere y vota. El Top 10 entra al setlist en vivo.</p>
+          </div>
+          <button onClick={() => setShowForm(!showForm)} className="btn btn-primary">
+            <Plus className="h-4 w-4" /> Sugerir canción
+          </button>
+        </div>
+
+        {showForm && (
+          <form onSubmit={handleAdd} className="card accent-pink p-5 space-y-4 animate-fade-in">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="label">Título</label>
+                <input className="input" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ej. Angel With A Shotgun" />
+              </div>
+              <div>
+                <label className="label">Artista / Remix</label>
+                <input className="input" required value={artist} onChange={(e) => setArtist(e.target.value)} placeholder="Ej. Nightcore (The Cab)" />
+              </div>
+            </div>
+            <div>
+              <label className="label">Enlace de YouTube</label>
+              <input className="input" type="url" required value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
+            </div>
+            {formError && (
+              <div className="badge badge-red w-full justify-start py-2 px-3 normal-case tracking-normal text-xs">
+                <AlertCircle className="h-4 w-4 shrink-0" /> <span>{formError}</span>
+              </div>
+            )}
+            <p className="text-[11px] text-muted-2">
+              {mediaOn
+                ? 'Validamos que el link sea reproducible antes de agregarlo.'
+                : 'El comprobante automático (yt-dlp) se activa al conectar el media-service.'}
+            </p>
+            <div className="flex justify-end gap-3">
+              <button type="button" onClick={() => setShowForm(false)} className="btn btn-ghost">Cancelar</button>
+              <button type="submit" disabled={checking} className="btn btn-primary">{checking ? 'Verificando…' : 'Agregar'}</button>
+            </div>
+          </form>
+        )}
+
+        <div className="relative">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-2" />
+          <input className="input pl-10" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar por título o artista…" />
+        </div>
+
+        <div className="space-y-2">
+          {filtered.length === 0 ? (
+            <div className="card p-10 text-center text-muted-2">
+              <Music3 className="h-8 w-8 mx-auto mb-2" />
+              <p className="text-sm">No hay sugerencias todavía.</p>
+            </div>
+          ) : (
+            filtered.map((song, i) => {
+              const yt = getYouTubeId(song.youtube_url);
+              const isPlaying = yt && playing === yt;
+              return (
+                <div key={song.id} className={`card card-hover flex items-center gap-3 p-3 ${isPlaying ? 'accent-pink' : ''}`}>
+                  <div className="flex flex-col items-center">
+                    <button onClick={() => handleVote(song.id, 'upvote')} className={`p-0.5 rounded ${song.userVote === 'upvote' ? 'text-neon-pink' : 'text-muted-2 hover:text-foreground'}`}>
+                      <ChevronUp className="h-5 w-5 stroke-[3]" />
+                    </button>
+                    <span className={`text-sm font-extrabold tabular-nums ${song.votes_count < 0 ? 'text-fnaf-red' : 'text-white'}`}>{song.votes_count}</span>
+                    <button onClick={() => handleVote(song.id, 'downvote')} className={`p-0.5 rounded ${song.userVote === 'downvote' ? 'text-neon-cyan' : 'text-muted-2 hover:text-foreground'}`}>
+                      <ChevronDown className="h-5 w-5 stroke-[3]" />
+                    </button>
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-mono text-muted-2">#{i + 1}</span>
+                      <h4 className="font-bold text-white truncate">{song.title}</h4>
+                      {song.geek_tag && <span className={`badge ${tagColor[song.geek_tag] ?? 'badge-cyan'}`}>{song.geek_tag}</span>}
+                    </div>
+                    <p className="text-sm text-muted truncate">{song.artist}</p>
+                    <p className="text-[11px] text-muted-2 mt-0.5">Sugerido por <span className="text-neon-pink font-semibold">{song.suggested_by_name}</span>{song.genre ? ` · ${song.genre}` : ''}</p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {yt && (
+                      <button onClick={() => setPlaying(yt)} title="Vista previa"
+                        className={`h-9 w-9 rounded-lg flex items-center justify-center border transition-colors ${isPlaying ? 'bg-neon-pink text-black border-neon-pink' : 'border-border text-muted hover:text-white'}`}>
+                        <Play className={`h-4 w-4 ${isPlaying ? 'fill-black' : ''}`} />
+                      </button>
+                    )}
+                    <a href={song.youtube_url} target="_blank" rel="noreferrer" title="Abrir en YouTube"
+                      className="h-9 w-9 rounded-lg border border-border text-muted hover:text-white flex items-center justify-center transition-colors">
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                    <button onClick={() => handleCopy(song)} title="Copiar enlace"
+                      className="h-9 w-9 rounded-lg border border-border text-muted hover:text-white flex items-center justify-center transition-colors">
+                      {copiedId === song.id ? <Check className="h-4 w-4 text-green-400" /> : <Link2 className="h-4 w-4" />}
+                    </button>
+                    {mediaOn && (
+                      <>
+                        <button onClick={() => handleDownload(song, 'mp3')} disabled={downloadingId === song.id} title="Descargar MP3"
+                          className="h-9 px-2 rounded-lg border border-border text-muted hover:text-neon-purple flex items-center gap-1 text-[10px] font-bold transition-colors">
+                          <Download className="h-3.5 w-3.5" /> MP3
+                        </button>
+                        <button onClick={() => handleDownload(song, 'mp4')} disabled={downloadingId === song.id} title="Descargar MP4"
+                          className="h-9 px-2 rounded-lg border border-border text-muted hover:text-neon-cyan flex items-center gap-1 text-[10px] font-bold transition-colors">
+                          <Download className="h-3.5 w-3.5" /> MP4
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      {/* Reproductor */}
+      <div className="space-y-6 lg:sticky lg:top-24">
+        <div className="card accent-cyan p-5 space-y-4">
+          <h3 className="section-title text-lg">Escuchar previa</h3>
+          {playing ? (
+            <div className="aspect-video rounded-xl overflow-hidden border border-border bg-black">
+              <iframe
+                src={`https://www.youtube.com/embed/${playing}?autoplay=1`}
+                title="YouTube" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen
+                className="w-full h-full border-0"
+              />
+            </div>
+          ) : (
+            <div className="aspect-video rounded-xl border border-dashed border-border flex flex-col items-center justify-center text-muted-2 text-sm gap-2">
+              <Music className="h-7 w-7" /> Elige ▶ en una canción
+            </div>
+          )}
+        </div>
+
+        <div className="card p-5 space-y-3">
+          <h4 className="font-bold text-white">Reglas</h4>
+          <ul className="text-xs text-muted space-y-1.5 list-disc list-inside">
+            <li>Solo remixes Nightcore, Eurobeat, Hardcore o Lofi Speedup.</li>
+            <li>No repitas canciones ya listadas.</li>
+            <li>Las sugerencias cierran 24h antes del evento.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,234 @@
+@import "tailwindcss";
+
+/* ════════════════════════════════════════════════════════════════════════════
+   NIGHTCORE AQP — Sistema de diseño
+   Identidad cyberpunk pero limpia: fondo profundo, acentos neón medidos,
+   tarjetas con borde fino y jerarquía tipográfica clara.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --background: #0a0a0f;
+  --surface: #12121a;
+  --surface-2: #16161f;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --foreground: #ededf2;
+  --muted: #9a9aa8;
+  --muted-2: #6b6b78;
+
+  --pink: #ff2d8f;
+  --cyan: #22d3ee;
+  --purple: #a78bfa;
+
+  /* Acentos temáticos (tags geek) — usados con moderación */
+  --miku: #39c5bb;
+  --fnaf: #ff4d4d;
+  --fernan: #4ade80;
+  --undertale: #facc15;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-2: var(--muted-2);
+  --color-border: var(--border);
+
+  --color-neon-pink: var(--pink);
+  --color-neon-cyan: var(--cyan);
+  --color-neon-purple: var(--purple);
+  --color-miku-teal: var(--miku);
+  --color-fnaf-red: var(--fnaf);
+  --color-fernan-green: var(--fernan);
+  --color-undertale-yellow: var(--undertale);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Fondo: una sola malla muy sutil + un glow tenue, en vez de tres blobs. */
+.app-bg {
+  background-image:
+    radial-gradient(900px 500px at 50% -10%, rgba(167, 139, 250, 0.10), transparent 70%),
+    linear-gradient(to right, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+  background-size: 100% 100%, 48px 48px, 48px 48px;
+  background-attachment: fixed, fixed, fixed;
+}
+
+/* ── Superficies ────────────────────────────────────────────────────────────*/
+/* Translúcidas para que el fondo de video se perciba sutilmente detrás. */
+.card {
+  background: rgba(18, 18, 26, 0.68);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+.card-hover {
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.card-hover:hover {
+  border-color: var(--border-strong);
+  background: rgba(24, 24, 34, 0.82);
+}
+
+/* Acento de borde sutil por color (sin glow pesado) */
+.accent-pink { border-color: rgba(255, 45, 143, 0.30); }
+.accent-cyan { border-color: rgba(34, 211, 238, 0.30); }
+
+/* ── Tipografía ─────────────────────────────────────────────────────────────*/
+.eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+}
+.section-title {
+  font-size: 1.5rem;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--foreground);
+}
+.text-glow-pink { text-shadow: 0 0 18px rgba(255, 45, 143, 0.45); }
+.text-glow-cyan { text-shadow: 0 0 18px rgba(34, 211, 238, 0.40); }
+
+/* ── Botones ────────────────────────────────────────────────────────────────*/
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  padding: 0.625rem 1rem;
+  transition: all 0.18s ease;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-primary {
+  background: var(--pink);
+  color: #0a0a0f;
+}
+.btn-primary:hover:not(:disabled) { background: #ff4da0; }
+
+.btn-cyan {
+  background: var(--cyan);
+  color: #06121a;
+}
+.btn-cyan:hover:not(:disabled) { background: #4fdcf2; }
+
+.btn-ghost {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--foreground);
+}
+.btn-ghost:hover:not(:disabled) { border-color: var(--border-strong); background: var(--surface-2); }
+
+/* ── Inputs ─────────────────────────────────────────────────────────────────*/
+.input {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  color: var(--foreground);
+  transition: border-color 0.18s ease;
+}
+.input::placeholder { color: var(--muted-2); }
+.input:focus { outline: none; border-color: rgba(255, 45, 143, 0.55); }
+.label {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+}
+
+/* ── Badges ─────────────────────────────────────────────────────────────────*/
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid;
+}
+.badge-green { color: #4ade80; background: rgba(74, 222, 128, 0.10); border-color: rgba(74, 222, 128, 0.25); }
+.badge-yellow { color: #facc15; background: rgba(250, 204, 21, 0.10); border-color: rgba(250, 204, 21, 0.25); }
+.badge-red { color: #ff4d4d; background: rgba(255, 77, 77, 0.10); border-color: rgba(255, 77, 77, 0.25); }
+.badge-pink { color: var(--pink); background: rgba(255, 45, 143, 0.10); border-color: rgba(255, 45, 143, 0.25); }
+.badge-cyan { color: var(--cyan); background: rgba(34, 211, 238, 0.10); border-color: rgba(34, 211, 238, 0.25); }
+
+/* ── Barras de progreso ─────────────────────────────────────────────────────*/
+.track {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+.track > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--pink), var(--purple));
+  transition: width 0.8s ease;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────────────────*/
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.22); }
+
+/* ── Animaciones (mínimas) ──────────────────────────────────────────────────*/
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fadeIn 0.4s ease both; }
+
+@keyframes softPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+.animate-soft-pulse { animation: softPulse 2s ease-in-out infinite; }
+
+/* Hero: gradiente animado lento y elegante */
+@keyframes heroShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.hero-gradient {
+  background: linear-gradient(120deg, #15041a, #0a0a18, #04141a, #0a0a0f);
+  background-size: 300% 300%;
+  animation: heroShift 18s ease infinite;
+}
