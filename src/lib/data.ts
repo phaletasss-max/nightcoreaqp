@@ -58,6 +58,31 @@ export async function deleteEvent(id: string): Promise<void> {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+//  SITE SETTINGS (Fondos dinámicos)
+// ════════════════════════════════════════════════════════════════════════════
+export async function getSiteSettings(): Promise<Record<string, string>> {
+  if (cfg()) {
+    const { data } = await supabase.from('site_settings').select('*');
+    if (data) {
+      const settings: Record<string, string> = {};
+      data.forEach(row => settings[row.key] = row.value);
+      return settings;
+    }
+  }
+  return lsGet('nq_site_settings', {});
+}
+
+export async function updateSiteSetting(key: string, value: string): Promise<void> {
+  if (cfg()) {
+    await supabase.from('site_settings').upsert({ key, value });
+    return;
+  }
+  const settings = lsGet('nq_site_settings', {} as Record<string, string>);
+  settings[key] = value;
+  lsSet('nq_site_settings', settings);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 //  RSVP / ASISTENTES
 // ════════════════════════════════════════════════════════════════════════════
 export async function getAttendees(eventId?: string): Promise<Attendee[]> {

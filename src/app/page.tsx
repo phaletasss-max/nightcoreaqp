@@ -18,9 +18,10 @@ import VideoBackground from '@/components/VideoBackground';
 import ScenecoreBackground from '@/components/ScenecoreBackground';
 import { useAuth } from '@/lib/auth';
 import {
-  getEvents, getComments, addComment, deleteComment, createRsvp, getAttendees,
+  getEvents, getComments, addComment, deleteComment, createRsvp, getAttendees, getSiteSettings
 } from '@/lib/data';
 import type { EventItem, EventComment, Attendee } from '@/lib/types';
+import BgEditor from '@/components/BgEditor';
 
 export default function Home() {
   const { profile, addPoints, isStaff } = useAuth();
@@ -37,6 +38,7 @@ export default function Home() {
   const [rsvpType, setRsvpType] = useState<'confirmed' | 'interested'>('confirmed');
   const [status, setStatus] = useState<'idle' | 'booking' | 'booked'>('idle');
   const [ticketCode, setTicketCode] = useState('');
+  const [bgs, setBgs] = useState<Record<string, string>>({});
 
   // Carga inicial
   useEffect(() => {
@@ -45,7 +47,10 @@ export default function Home() {
       const confirmed = evs.find((e) => e.status === 'confirmed');
       setSelectedId(confirmed?.id ?? evs[0]?.id ?? '');
     });
+    getSiteSettings().then(setBgs);
   }, []);
+
+  const updateBg = (key: string, url: string) => setBgs((prev) => ({ ...prev, [key]: url }));
 
   // Datos dependientes del evento seleccionado
   useEffect(() => {
@@ -88,7 +93,13 @@ export default function Home() {
 
   return (
     <div className="space-y-10 relative">
-      <Hero nextEvent={nextEvent} onCta={goToDetail} />
+      <section className="relative group overflow-hidden rounded-3xl">
+        {bgs['hero'] && <img src={bgs['hero']} className="absolute inset-0 w-full h-full object-cover opacity-30 z-0 pointer-events-none mix-blend-screen" />}
+        {isStaff && <BgEditor sectionKey="hero" currentBg={bgs['hero']} onBgUpdate={(u) => updateBg('hero', u)} />}
+        <div className="relative z-10">
+          <Hero nextEvent={nextEvent} onCta={goToDetail} />
+        </div>
+      </section>
 
       {/* DJs del evento — mostrado solo para Nightcore Fest 2.0 */}
       {selected && selected.title.includes('Cyberpunk') && (
@@ -163,8 +174,10 @@ export default function Home() {
 
       {/* Detalle del evento */}
       {selected && (
-        <section ref={detailRef} className="card p-6 sm:p-8 space-y-6">
-          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
+        <section ref={detailRef} className="card p-6 sm:p-8 space-y-6 relative group overflow-hidden">
+          {bgs['event_detail'] && <img src={bgs['event_detail']} className="absolute inset-0 w-full h-full object-cover opacity-20 z-0 pointer-events-none mix-blend-screen" />}
+          {isStaff && <BgEditor sectionKey="event_detail" currentBg={bgs['event_detail']} onBgUpdate={(u) => updateBg('event_detail', u)} />}
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-start justify-between gap-6">
             <div className="space-y-3 max-w-xl">
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">{selected.title}</h2>
               {selected.tagline && <p className="text-neon-cyan font-medium">{selected.tagline}</p>}
@@ -223,9 +236,12 @@ export default function Home() {
 
       {/* RSVP + asistentes */}
       {selected && (
-        <section className="grid md:grid-cols-2 gap-6 items-start">
+        <section className="grid md:grid-cols-2 gap-6 items-start relative group rounded-3xl overflow-hidden p-4">
+          {bgs['rsvp'] && <img src={bgs['rsvp']} className="absolute inset-0 w-full h-full object-cover opacity-20 z-0 pointer-events-none mix-blend-screen" />}
+          {isStaff && <BgEditor sectionKey="rsvp" currentBg={bgs['rsvp']} onBgUpdate={(u) => updateBg('rsvp', u)} />}
+          
           {/* Form RSVP */}
-          <div className="card p-6 space-y-5 accent-magenta">
+          <div className="card p-6 space-y-5 accent-magenta relative z-10">
             <h3 className="section-title flex items-center gap-2 text-xl">
               <Ticket className="h-5 w-5 text-neon-magenta glow-magenta" />
               {selected.status === 'planning' ? 'Registro de interés' : 'Reservar entrada'}
@@ -276,7 +292,7 @@ export default function Home() {
           </div>
 
           {/* Asistentes */}
-          <div className="card p-6 space-y-4 accent-cyan">
+          <div className="card p-6 space-y-4 h-full relative z-10 accent-cyan">
             <div className="flex items-center justify-between">
               <h3 className="section-title flex items-center gap-2 text-xl">
                 <Users className="h-5 w-5 text-neon-cyan glow-cyan" /> Asistentes
@@ -308,10 +324,13 @@ export default function Home() {
 
       {/* Muro de comentarios */}
       {selected && (
-        <section className="card p-6 sm:p-8 space-y-5">
-          <h3 className="section-title flex items-center gap-2 text-xl">
-            <MessageSquare className="h-5 w-5 text-neon-magenta glow-magenta" /> Muro de comentarios
-          </h3>
+        <section className="card p-6 sm:p-8 space-y-5 relative group overflow-hidden">
+          {bgs['wall'] && <img src={bgs['wall']} className="absolute inset-0 w-full h-full object-cover opacity-20 z-0 pointer-events-none mix-blend-screen" />}
+          {isStaff && <BgEditor sectionKey="wall" currentBg={bgs['wall']} onBgUpdate={(u) => updateBg('wall', u)} />}
+          <div className="relative z-10 space-y-5">
+            <h3 className="section-title flex items-center gap-2 text-xl">
+              <MessageSquare className="h-5 w-5 text-neon-magenta glow-magenta" /> Muro de comentarios
+            </h3>
 
           {!selected.comments_enabled ? (
             <div className="badge badge-red w-full justify-start py-3 px-4 normal-case tracking-normal text-sm">
@@ -352,25 +371,43 @@ export default function Home() {
               </div>
             </>
           )}
+          </div>
         </section>
       )}
 
       {/* Retos de la comunidad */}
-      <section className="space-y-5">
-        <div>
-          <h3 className="section-title text-xl flex items-center gap-2">
-            <Star className="h-5 w-5 text-neon-yellow glow-lime" /> Retos de la comunidad
-          </h3>
-          <p className="text-sm text-muted mt-0.5">Mantén tu racha, vota la encuesta del día y escala en el ranking.</p>
+      <section className="space-y-5 relative group p-6 rounded-3xl overflow-hidden">
+        {bgs['challenges'] && <img src={bgs['challenges']} className="absolute inset-0 w-full h-full object-cover opacity-20 z-0 pointer-events-none mix-blend-screen" />}
+        {isStaff && <BgEditor sectionKey="challenges" currentBg={bgs['challenges']} onBgUpdate={(u) => updateBg('challenges', u)} />}
+        <div className="relative z-10">
+          <div>
+            <h3 className="section-title text-xl flex items-center gap-2">
+              <Star className="h-5 w-5 text-neon-yellow glow-lime" /> Retos de la comunidad
+            </h3>
+            <p className="text-sm text-muted mt-0.5">Mantén tu racha, vota la encuesta del día y escala en el ranking.</p>
+          </div>
+          <DailyChallenges bgImage={bgs['daily_bg']} />
+          {isStaff && <div className="absolute top-2 left-2 z-50 text-xs bg-black/80 px-2 py-1 rounded text-white border border-white/10">Fondo de Racha → Usa el editor en su esquina superior derecha</div>}
         </div>
-        <DailyChallenges />
       </section>
 
       {/* Novedades de la comunidad (feed) */}
-      <CommunityFeed />
+      <section className="relative group p-6 rounded-3xl overflow-hidden">
+        {bgs['feed'] && <img src={bgs['feed']} className="absolute inset-0 w-full h-full object-cover opacity-20 z-0 pointer-events-none mix-blend-screen" />}
+        {isStaff && <BgEditor sectionKey="feed" currentBg={bgs['feed']} onBgUpdate={(u) => updateBg('feed', u)} />}
+        <div className="relative z-10">
+          <CommunityFeed />
+        </div>
+      </section>
 
       {/* Temáticas sugeridas por la comunidad */}
-      <ThemesSection />
+      <section className="relative group p-6 rounded-3xl overflow-hidden">
+        {bgs['themes'] && <img src={bgs['themes']} className="absolute inset-0 w-full h-full object-cover opacity-20 z-0 pointer-events-none mix-blend-screen" />}
+        {isStaff && <BgEditor sectionKey="themes" currentBg={bgs['themes']} onBgUpdate={(u) => updateBg('themes', u)} />}
+        <div className="relative z-10">
+          <ThemesSection />
+        </div>
+      </section>
 
       {/* Descargas (sets propios del DJ) */}
       <section className="card p-6 sm:p-8 space-y-4">
