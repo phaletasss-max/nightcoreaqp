@@ -4,9 +4,10 @@ import React, { useState, useEffect } from 'react';
 import {
   User, Flame, Coins, Ticket, Bell, Smartphone, QrCode,
   AlertCircle, CheckCircle2, Camera, MessageSquare, Heart, Medal, ShieldAlert,
+  Music, Sparkles, Plus, Trash2, ExternalLink, Check
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
-import { getAttendees, getUserActivity } from '@/lib/data';
+import { getAttendees, getUserActivity, addSong } from '@/lib/data';
 import type { UserActivity } from '@/lib/data';
 import type { Attendee } from '@/lib/types';
 
@@ -27,6 +28,14 @@ export default function PerfilPage() {
   const [notifyEvent, setNotifyEvent] = useState(true);
   const [notifySongs, setNotifySongs] = useState(false);
 
+  const [subTab, setSubTab] = useState<'tickets' | 'music'>('tickets');
+  const [spotifyUrl, setSpotifyUrl] = useState('');
+  const [savedSongs, setSavedSongs] = useState<{ id: string; title: string; artist: string; url: string }[]>([]);
+  const [newTitle, setNewTitle] = useState('');
+  const [newArtist, setNewArtist] = useState('');
+  const [newUrl, setNewUrl] = useState('');
+  const [suggestSuccess, setSuggestSuccess] = useState<string | null>(null);
+
   const [editing, setEditing] = useState(false);
   const [localAlias, setLocalAlias] = useState('');
   const [localBg, setLocalBg] = useState('');
@@ -37,6 +46,15 @@ export default function PerfilPage() {
       const suffix = profile?.id ? `_${profile.id}` : '_guest';
       setLocalAlias(localStorage.getItem(`nq_alias${suffix}`) || '');
       setLocalBg(localStorage.getItem(`nq_bg${suffix}`) || '');
+
+      if (profile?.id) {
+        setSpotifyUrl(localStorage.getItem(`nq_spotify_url_${profile.id}`) || '');
+        try {
+          setSavedSongs(JSON.parse(localStorage.getItem(`nq_fav_songs_${profile.id}`) || '[]'));
+        } catch {
+          setSavedSongs([]);
+        }
+      }
     }
     getAttendees().then((all) => {
       const uid = profile?.id;
@@ -52,6 +70,47 @@ export default function PerfilPage() {
     localStorage.setItem(`nq_bg${suffix}`, localBg);
     setEditing(false);
   };
+
+  const handleSaveSpotify = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile?.id) return;
+    localStorage.setItem(`nq_spotify_url_${profile.id}`, spotifyUrl);
+  };
+
+  const handleAddFavSong = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile?.id || !newTitle || !newArtist) return;
+    const newSong = { id: `fav-${Date.now()}`, title: newTitle, artist: newArtist, url: newUrl };
+    const updated = [...savedSongs, newSong];
+    setSavedSongs(updated);
+    localStorage.setItem(`nq_fav_songs_${profile.id}`, JSON.stringify(updated));
+    setNewTitle('');
+    setNewArtist('');
+    setNewUrl('');
+  };
+
+  const handleDeleteFavSong = (id: string) => {
+    if (!profile?.id) return;
+    const updated = savedSongs.filter(s => s.id !== id);
+    setSavedSongs(updated);
+    localStorage.setItem(`nq_fav_songs_${profile.id}`, JSON.stringify(updated));
+  };
+
+  const handleSuggestSong = async (s: { title: string; artist: string; url: string }) => {
+    try {
+      await addSong(
+        { title: s.title, artist: s.artist, youtube_url: s.url },
+        profile?.id ?? null,
+        profile?.username ?? 'Tú'
+      );
+      setSuggestSuccess(s.title);
+      setTimeout(() => setSuggestSuccess(null), 3000);
+    } catch {
+      alert('Error al sugerir la canción. Inténtalo de nuevo.');
+    }
+  };
+
+  const spotifyPlaylistId = spotifyUrl ? (spotifyUrl.match(/playlist[/:]([a-zA-Z0-9]{22})/) || [])[1] : null;
 
   const handlePush = () => {
     if (pushEnabled) return;
@@ -178,95 +237,278 @@ export default function PerfilPage() {
       </div>
 
       {/* Entradas */}
-      <div className="lg:col-span-2">
-        <div className="card accent-cyan p-6 sm:p-8 space-y-6">
-          <h2 className="section-title text-lg flex items-center gap-2"><Ticket className="h-6 w-6 text-neon-cyan" /> Mis entradas</h2>
+      {/* Entradas y Playlist Tab Panel */}
+      <div className="lg:col-span-2 space-y-6">
+        {/* Selector de Pestañas */}
+        <div className="flex border-b border-white/10 mb-6 gap-2">
+          <button 
+            onClick={() => setSubTab('tickets')} 
+            className={`px-4 py-2 font-bold text-sm border-b-2 -mb-px transition-colors flex items-center gap-2 ${
+              subTab === 'tickets' 
+                ? 'border-neon-cyan text-neon-cyan' 
+                : 'border-transparent text-muted hover:text-white'
+            }`}
+          >
+            <Ticket className="h-4 w-4" /> Entradas y Actividad
+          </button>
+          <button 
+            onClick={() => setSubTab('music')} 
+            className={`px-4 py-2 font-bold text-sm border-b-2 -mb-px transition-colors flex items-center gap-2 ${
+              subTab === 'music' 
+                ? 'border-neon-magenta text-neon-magenta font-extrabold' 
+                : 'border-transparent text-muted hover:text-white'
+            }`}
+          >
+            <Music className="h-4 w-4" /> Mi Playlist y Música
+          </button>
+        </div>
 
-          {tickets.length === 0 ? (
-            <div className="text-center py-12 border border-dashed border-border rounded-xl">
-              <AlertCircle className="h-8 w-8 text-muted-2 mx-auto mb-2" />
-              <p className="text-sm text-muted font-bold">No tienes reservas activas</p>
-              <p className="text-xs text-muted-2 mt-1">Ve a la página de inicio para reservar tu entrada.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {tickets.map((t) => (
-                <div key={t.id} className="card flex flex-col sm:flex-row overflow-hidden">
-                  <div className="p-5 flex-1 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="eyebrow">Pase de acceso</span>
-                      <span className={`badge ${t.status === 'confirmed' ? 'badge-green' : 'badge-yellow'}`}>{t.status === 'confirmed' ? 'Confirmado' : 'Interesado'}</span>
+        {subTab === 'tickets' ? (
+          <div className="space-y-6 animate-fade-in">
+            {/* Entradas */}
+            <div className="card accent-cyan p-6 sm:p-8 space-y-6">
+              <h2 className="section-title text-lg flex items-center gap-2"><Ticket className="h-6 w-6 text-neon-cyan" /> Mis entradas</h2>
+
+              {tickets.length === 0 ? (
+                <div className="text-center py-12 border border-dashed border-border rounded-xl">
+                  <AlertCircle className="h-8 w-8 text-muted-2 mx-auto mb-2" />
+                  <p className="text-sm text-muted font-bold">No tienes reservas activas</p>
+                  <p className="text-xs text-muted-2 mt-1">Ve a la página de inicio para reservar tu entrada.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {tickets.map((t) => (
+                    <div key={t.id} className="card flex flex-col sm:flex-row overflow-hidden">
+                      <div className="p-5 flex-1 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="eyebrow">Pase de acceso</span>
+                          <span className={`badge ${t.status === 'confirmed' ? 'badge-green' : 'badge-yellow'}`}>{t.status === 'confirmed' ? 'Confirmado' : 'Interesado'}</span>
+                        </div>
+                        <p className="text-lg font-extrabold text-white">Nightcore AQP</p>
+                        <p className="text-xs text-muted">Titular: {t.name}</p>
+                        <p className="text-xs text-muted">{t.email}</p>
+                      </div>
+                      <div className="border-t sm:border-t-0 sm:border-l border-dashed border-border p-5 flex flex-col items-center justify-center bg-surface-2 sm:min-w-[150px]">
+                        <QrCode className="h-14 w-14 text-white mb-2" />
+                        <span className="text-xs font-mono font-bold text-neon-cyan tracking-widest">{t.code}</span>
+                      </div>
                     </div>
-                    <p className="text-lg font-extrabold text-white">Nightcore AQP</p>
-                    <p className="text-xs text-muted">Titular: {t.name}</p>
-                    <p className="text-xs text-muted">{t.email}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Insignias de asistencia */}
+            <div className="card p-6 sm:p-8 space-y-4">
+              <h2 className="section-title text-lg flex items-center gap-2"><Medal className="h-5 w-5 text-yellow-400" /> Insignias de asistencia</h2>
+              {activity.attended.length === 0 ? (
+                <p className="text-sm text-muted-2">Aún sin insignias. Asiste a un evento para ganar la tuya.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {activity.attended.map((a) => (
+                    <span key={a.id} className={`badge ${a.status === 'confirmed' ? 'badge-yellow' : 'badge-cyan'}`}>
+                      <Medal className="h-3.5 w-3.5" /> Asistió · {a.code ?? 'Evento'}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Mi actividad */}
+            <div className="card p-6 sm:p-8 space-y-5">
+              <h2 className="section-title text-lg">Mi actividad</h2>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { icon: Camera, label: 'Publicaciones', value: activity.costumes.length, color: 'text-neon-cyan' },
+                  { icon: MessageSquare, label: 'Comentarios', value: activity.comments.length, color: 'text-neon-pink' },
+                  { icon: Heart, label: 'Likes dados', value: activity.likesGiven, color: 'text-neon-purple' },
+                ].map((s) => (
+                  <div key={s.label} className="card bg-surface-2 p-4 text-center">
+                    <s.icon className={`h-5 w-5 mx-auto mb-1 ${s.color}`} />
+                    <span className="text-xl font-extrabold text-white block">{s.value}</span>
+                    <span className="text-[10px] text-muted-2 font-bold uppercase tracking-wider">{s.label}</span>
                   </div>
-                  <div className="border-t sm:border-t-0 sm:border-l border-dashed border-border p-5 flex flex-col items-center justify-center bg-surface-2 sm:min-w-[150px]">
-                    <QrCode className="h-14 w-14 text-white mb-2" />
-                    <span className="text-xs font-mono font-bold text-neon-cyan tracking-widest">{t.code}</span>
+                ))}
+              </div>
+
+              {activity.costumes.length > 0 && (
+                <div className="space-y-2">
+                  <p className="eyebrow">Mis disfraces</p>
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {activity.costumes.map((c) => (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img key={c.id} src={c.photo_url} alt={c.char_name} title={c.char_name} className="h-20 w-16 rounded-lg object-cover border border-border shrink-0" />
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              )}
 
-        {/* Insignias de asistencia */}
-        <div className="card p-6 sm:p-8 space-y-4 mt-6">
-          <h2 className="section-title text-lg flex items-center gap-2"><Medal className="h-5 w-5 text-yellow-400" /> Insignias de asistencia</h2>
-          {activity.attended.length === 0 ? (
-            <p className="text-sm text-muted-2">Aún sin insignias. Asiste a un evento para ganar la tuya.</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {activity.attended.map((a) => (
-                <span key={a.id} className={`badge ${a.status === 'confirmed' ? 'badge-yellow' : 'badge-cyan'}`}>
-                  <Medal className="h-3.5 w-3.5" /> Asistió · {a.code ?? 'Evento'}
-                </span>
-              ))}
+              {activity.comments.length > 0 && (
+                <div className="space-y-2">
+                  <p className="eyebrow">Mis comentarios recientes</p>
+                  <div className="space-y-2">
+                    {activity.comments.slice(0, 4).map((c) => (
+                      <p key={c.id} className="text-sm text-muted bg-white/[0.03] border border-border rounded-lg p-2.5">&ldquo;{c.content}&rdquo;</p>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-
-        {/* Mi actividad */}
-        <div className="card p-6 sm:p-8 space-y-5 mt-6">
-          <h2 className="section-title text-lg">Mi actividad</h2>
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { icon: Camera, label: 'Publicaciones', value: activity.costumes.length, color: 'text-neon-cyan' },
-              { icon: MessageSquare, label: 'Comentarios', value: activity.comments.length, color: 'text-neon-pink' },
-              { icon: Heart, label: 'Likes dados', value: activity.likesGiven, color: 'text-neon-purple' },
-            ].map((s) => (
-              <div key={s.label} className="card bg-surface-2 p-4 text-center">
-                <s.icon className={`h-5 w-5 mx-auto mb-1 ${s.color}`} />
-                <span className="text-xl font-extrabold text-white block">{s.value}</span>
-                <span className="text-[10px] text-muted-2 font-bold uppercase tracking-wider">{s.label}</span>
-              </div>
-            ))}
           </div>
+        ) : (
+          /* Music Tab Content */
+          <div className="space-y-6 animate-fade-in">
+            {/* Spotify Playlist Linker */}
+            <div className="card accent-pink p-6 sm:p-8 space-y-4">
+              <h2 className="section-title text-lg flex items-center gap-2 text-neon-pink">
+                <Sparkles className="h-5 w-5" /> Playlist de Spotify
+              </h2>
+              <p className="text-xs text-muted">
+                Vincula tu playlist favorita de Spotify para tenerla integrada directamente en tu perfil.
+              </p>
+              
+              <form onSubmit={handleSaveSpotify} className="flex gap-2">
+                <input 
+                  type="text" 
+                  className="input text-xs" 
+                  value={spotifyUrl} 
+                  onChange={(e) => setSpotifyUrl(e.target.value)} 
+                  placeholder="Ej. https://open.spotify.com/playlist/37i9dQZF1DX10zKzsJ2jva..." 
+                />
+                <button type="submit" className="btn btn-primary text-xs shrink-0 py-2">
+                  Vincular Playlist
+                </button>
+              </form>
 
-          {activity.costumes.length > 0 && (
-            <div className="space-y-2">
-              <p className="eyebrow">Mis disfraces</p>
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {activity.costumes.map((c) => (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img key={c.id} src={c.photo_url} alt={c.char_name} title={c.char_name} className="h-20 w-16 rounded-lg object-cover border border-border shrink-0" />
-                ))}
-              </div>
+              {spotifyPlaylistId ? (
+                <div className="pt-2">
+                  <iframe
+                    src={`https://open.spotify.com/embed/playlist/${spotifyPlaylistId}?utm_source=generator&theme=0`}
+                    width="100%"
+                    height="380"
+                    frameBorder="0"
+                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                    loading="lazy"
+                    className="rounded-xl border border-border bg-black/40"
+                  ></iframe>
+                </div>
+              ) : (
+                <div className="text-center py-8 border border-dashed border-border rounded-xl">
+                  <Music className="h-8 w-8 text-muted-2 mx-auto mb-2 animate-pulse" />
+                  <p className="text-sm text-muted font-bold">Sin playlist vinculada</p>
+                  <p className="text-xs text-muted-2 mt-1">Inserta un enlace de compartir de Spotify arriba para reproducirla desde aquí.</p>
+                </div>
+              )}
             </div>
-          )}
 
-          {activity.comments.length > 0 && (
-            <div className="space-y-2">
-              <p className="eyebrow">Mis comentarios recientes</p>
-              <div className="space-y-2">
-                {activity.comments.slice(0, 4).map((c) => (
-                  <p key={c.id} className="text-sm text-muted bg-white/[0.03] border border-border rounded-lg p-2.5">&ldquo;{c.content}&rdquo;</p>
-                ))}
+            {/* Biblioteca de Sugerencias Rápidas */}
+            <div className="card accent-cyan p-6 sm:p-8 space-y-6">
+              <div>
+                <h2 className="section-title text-lg flex items-center gap-2 text-neon-cyan">
+                  <Music className="h-5 w-5" /> Mis canciones guardadas
+                </h2>
+                <p className="text-xs text-muted mt-1">
+                  Guarda aquí tus canciones preferidas para enviarlas sugeridas al DJ en un instante.
+                </p>
               </div>
+
+              {suggestSuccess && (
+                <div className="badge badge-green py-2 px-3 justify-start gap-2 text-xs w-full animate-pulse">
+                  <Check className="h-4 w-4 shrink-0" />
+                  <span>¡Sugerencia enviada para &ldquo;{suggestSuccess}&rdquo;!</span>
+                </div>
+              )}
+
+              {/* Formulario para Añadir Canción */}
+              <form onSubmit={handleAddFavSong} className="card bg-black/40 p-4 border-dashed border-neon-cyan/35 space-y-3">
+                <p className="text-xs font-bold text-white uppercase tracking-wider">Añadir nueva canción favorita</p>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="label text-[10px] uppercase font-bold text-muted">Título *</label>
+                    <input 
+                      type="text" 
+                      required 
+                      className="input py-1.5 text-xs" 
+                      value={newTitle} 
+                      onChange={(e) => setNewTitle(e.target.value)} 
+                      placeholder="Ej. Butterfly" 
+                    />
+                  </div>
+                  <div>
+                    <label className="label text-[10px] uppercase font-bold text-muted">Artista *</label>
+                    <input 
+                      type="text" 
+                      required 
+                      className="input py-1.5 text-xs" 
+                      value={newArtist} 
+                      onChange={(e) => setNewArtist(e.target.value)} 
+                      placeholder="Ej. Smile.dk" 
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="label text-[10px] uppercase font-bold text-muted">Enlace YouTube o Spotify (Opcional)</label>
+                  <input 
+                    type="url" 
+                    className="input py-1.5 text-xs" 
+                    value={newUrl} 
+                    onChange={(e) => setNewUrl(e.target.value)} 
+                    placeholder="https://youtube.com/watch?v=... o https://open.spotify.com/track/..." 
+                  />
+                </div>
+                <button type="submit" className="btn btn-primary text-xs w-full py-2 flex items-center justify-center gap-1.5">
+                  <Plus className="h-4 w-4" /> Guardar canción
+                </button>
+              </form>
+
+              {/* Lista de Canciones */}
+              {savedSongs.length === 0 ? (
+                <div className="text-center py-12 border border-dashed border-border rounded-xl bg-white/[0.01]">
+                  <Music className="h-8 w-8 text-muted-2 mx-auto mb-2" />
+                  <p className="text-sm text-muted font-bold">Tu biblioteca favorita está vacía</p>
+                  <p className="text-xs text-muted-2 mt-1">Completa el formulario de arriba para añadir tus primeras canciones.</p>
+                </div>
+              ) : (
+                <div className="grid gap-3">
+                  {savedSongs.map((s) => (
+                    <div key={s.id} className="card bg-white/[0.02] border border-border p-4 flex items-center justify-between gap-4 hover:border-neon-cyan/50 transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-extrabold text-white truncate text-sm sm:text-base">{s.title}</p>
+                        <p className="text-xs text-muted truncate">{s.artist}</p>
+                        {s.url && (
+                          <a 
+                            href={s.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="inline-flex items-center gap-1 text-[10px] text-neon-cyan hover:underline mt-1.5"
+                          >
+                            <ExternalLink className="h-3 w-3" /> Ver enlace original
+                          </a>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => handleSuggestSong(s)} 
+                          className="btn btn-primary text-[10px] py-1.5 px-3 uppercase tracking-wider font-extrabold flex items-center gap-1"
+                          title="Sugerir inmediatamente al DJ"
+                        >
+                          <Sparkles className="h-3 w-3" /> Sugerir al DJ
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteFavSong(s.id)} 
+                          className="p-2 text-red-400 hover:text-red-300 hover:bg-white/5 rounded-lg transition-colors"
+                          title="Eliminar de favoritos"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
     </>
