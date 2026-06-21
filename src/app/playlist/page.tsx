@@ -3,10 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import {
   Music, Plus, ChevronUp, ChevronDown, Play, ExternalLink, Search, Music3,
-  Download, Link2, Check, AlertCircle, Loader2, Video, CheckCircle2
+  Download, Link2, Check, AlertCircle, Loader2, Video, CheckCircle2, UploadCloud
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
-import { getSongs, addSong, setSongVote } from '@/lib/data';
+import { getSongs, addSong, setSongVote, uploadMediaFile } from '@/lib/data';
 import { checkVideo, downloadMedia, isMediaConfigured, type VideoInfo } from '@/lib/media';
 import type { Song, VoteType } from '@/lib/types';
 import { usePlayer, type PlayableItem } from '@/context/PlayerContext';
@@ -34,6 +34,9 @@ export default function PlaylistPage() {
   const [checking, setChecking] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [uploadMode, setUploadMode] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   // Clean url logic to strip '&list=' parameters before fetching
   const cleanUrl = (u: string) => u.split('&list=')[0].split('?list=')[0];
@@ -156,6 +159,27 @@ export default function PlaylistPage() {
     addPoints(5);
   };
 
+  const handleUploadFile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title || !file) return;
+    setFormError(null);
+    setUploading(true);
+    
+    try {
+      const publicUrl = await uploadMediaFile(file);
+      if (!publicUrl) throw new Error('Error al subir');
+      
+      const row = await addSong({ title, artist: artist || 'Local Upload', youtube_url: publicUrl, file_url: publicUrl }, profile?.id ?? null, profile?.username ?? 'Tú');
+      setSongs((prev) => [...prev, row]);
+      setTitle(''); setArtist(''); setFile(null); setShowForm(false); setUploadMode(false);
+      addPoints(5);
+    } catch {
+      setFormError('No se pudo subir el archivo. Intenta de nuevo.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleCopy = async (song: Song) => {
     try {
       await navigator.clipboard.writeText(song.youtube_url);
@@ -188,13 +212,16 @@ export default function PlaylistPage() {
             <button 
               onClick={() => {
                 if (filtered.length === 0) return;
-                const itemsToQueue = filtered.map(s => ({
-                  type: 'yt' as const,
-                  id: getYouTubeId(s.youtube_url) || '',
-                  title: s.title,
-                  artist: s.artist,
-                  url: s.youtube_url
-                })).filter(s => s.id !== '');
+                const itemsToQueue = filtered.map(s => {
+                  const isYt = s.youtube_url.includes('youtube.com') || s.youtube_url.includes('youtu.be');
+                  return {
+                    type: isYt ? 'yt' as const : 'stream' as const,
+                    id: isYt ? getYouTubeId(s.youtube_url) || '' : s.id,
+                    title: s.title,
+                    artist: s.artist,
+                    url: s.file_url || s.youtube_url
+                  }
+                }).filter(s => s.id !== '');
                 setQueue(itemsToQueue, 0);
               }}
               className="btn btn-lime text-black hover:bg-neon-lime/80"
@@ -208,7 +235,12 @@ export default function PlaylistPage() {
         </div>
 
         {showForm && (
-          <form onSubmit={handleAdd} className="card accent-pink p-5 space-y-4 animate-fade-in">
+          <form onSubmit={uploadMode ? handleUploadFile : handleAdd} className="card accent-pink p-5 space-y-4 animate-fade-in">
+            <div className="flex gap-2 mb-2 bg-black/40 p-1 rounded-lg w-fit">
+              <button type="button" onClick={() => setUploadMode(false)} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${!uploadMode ? 'bg-neon-magenta text-white' : 'text-muted-2 hover:text-white'}`}>Por Enlace</button>
+              <button type="button" onClick={() => setUploadMode(true)} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${uploadMode ? 'bg-neon-lime text-black' : 'text-muted-2 hover:text-white'}`}>Subir Archivo</button>
+            </div>
+
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className="label">Título (Auto-generado)</label>
@@ -235,23 +267,58 @@ export default function PlaylistPage() {
                 </div>
               </div>
             </div>
-            <div>
-              <label className="label">Enlace de YouTube</label>
-              <input className="input" type="url" required value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
-            </div>
-            {formError && (
-              <div className="badge badge-red w-full justify-start py-2 px-3 normal-case tracking-normal text-xs">
-                <AlertCircle className="h-4 w-4 shrink-0" /> <span>{formError}</span>
-              </div>
+            
+            {!uploadMode ? (
+              <>
+                <div>
+                  <label className="label">Enlace de YouTube</label>
+                  <input className="input" type="url" required value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
+                </div>
+                {formError && (
+                  <div className="badge badge-red w-full justify-start py-2 px-3 normal-case tracking-normal text-xs">
+                    <AlertCircle className="h-4 w-4 shrink-0" /> <span>{formError}</span>
+                  </div>
+                )}
+                <p className="text-[11px] text-muted-2">
+                  {mediaOn
+                    ? 'Validamos que el link sea reproducible antes de agregarlo.'
+                    : 'El comprobante automático (yt-dlp) se activa al conectar el media-service.'}
+                </p>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label className="label">Archivo (MP4/MP3)</label>
+                  <label className={`border-2 border-dashed ${file ? 'border-neon-lime bg-neon-lime/10' : 'border-border bg-white/[0.02] hover:border-neon-magenta hover:bg-white/[0.05]'} rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer transition-colors text-center`}>
+                    <input type="file" accept="video/mp4,audio/mp3" required onChange={(e) => setFile(e.target.files?.[0] || null)} className="hidden" />
+                    {file ? (
+                      <>
+                        <Video className="h-8 w-8 text-neon-lime mb-2" />
+                        <p className="text-sm font-bold text-neon-lime">{file.name}</p>
+                        <p className="text-xs text-muted-2 mt-1">Click para cambiar</p>
+                      </>
+                    ) : (
+                      <>
+                        <UploadCloud className="h-8 w-8 text-muted-2 mb-2" />
+                        <p className="text-sm font-bold text-white">Sube el MP4/MP3 de la canción</p>
+                        <p className="text-xs text-muted-2 mt-1">Máximo 50MB</p>
+                      </>
+                    )}
+                  </label>
+                </div>
+                {formError && (
+                  <div className="badge badge-red w-full justify-start py-2 px-3 normal-case tracking-normal text-xs">
+                    <AlertCircle className="h-4 w-4 shrink-0" /> <span>{formError}</span>
+                  </div>
+                )}
+              </>
             )}
-            <p className="text-[11px] text-muted-2">
-              {mediaOn
-                ? 'Validamos que el link sea reproducible antes de agregarlo.'
-                : 'El comprobante automático (yt-dlp) se activa al conectar el media-service.'}
-            </p>
+
             <div className="flex justify-end gap-3">
               <button type="button" onClick={() => setShowForm(false)} className="btn btn-ghost">Cancelar</button>
-              <button type="submit" disabled={checking} className="btn btn-primary">{checking ? 'Verificando…' : 'Agregar'}</button>
+              <button type="submit" disabled={checking || uploading} className="btn btn-primary">
+                {uploading ? 'Subiendo...' : checking ? 'Verificando…' : 'Agregar'}
+              </button>
             </div>
           </form>
         )}
@@ -294,23 +361,24 @@ export default function PlaylistPage() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {yt && (
-                      <button onClick={() => {
-                        const itemsToQueue = filtered.map(s => ({
-                          type: 'yt' as const,
-                          id: getYouTubeId(s.youtube_url) || '',
+                    <button onClick={() => {
+                      const itemsToQueue = filtered.map(s => {
+                        const isYt = s.youtube_url.includes('youtube.com') || s.youtube_url.includes('youtu.be');
+                        return {
+                          type: isYt ? 'yt' as const : 'stream' as const,
+                          id: isYt ? getYouTubeId(s.youtube_url) || '' : s.id,
                           title: s.title,
                           artist: s.artist,
-                          url: s.youtube_url
-                        })).filter(s => s.id !== '');
-                        
-                        const idx = itemsToQueue.findIndex(q => q.id === yt);
-                        setQueue(itemsToQueue, idx >= 0 ? idx : 0);
-                      }} title="Vista previa en fondo"
-                        className={`h-9 w-9 rounded-lg flex items-center justify-center border transition-colors ${isPlaying ? 'bg-neon-pink text-black border-neon-pink' : 'border-border text-muted hover:text-white'}`}>
-                        <Play className={`h-4 w-4 ${isPlaying ? 'fill-black' : ''}`} />
-                      </button>
-                    )}
+                          url: s.file_url || s.youtube_url
+                        }
+                      }).filter(s => s.id !== '');
+                      
+                      const idx = itemsToQueue.findIndex(q => q.id === (yt || song.id));
+                      setQueue(itemsToQueue, idx >= 0 ? idx : 0);
+                    }} title="Vista previa en fondo"
+                      className={`h-9 w-9 rounded-lg flex items-center justify-center border transition-colors ${isPlaying ? 'bg-neon-pink text-black border-neon-pink' : 'border-border text-muted hover:text-white'}`}>
+                      <Play className={`h-4 w-4 ${isPlaying ? 'fill-black' : ''}`} />
+                    </button>
                     <a href={song.youtube_url} target="_blank" rel="noreferrer" title="Abrir en YouTube"
                       className="h-9 w-9 rounded-lg border border-border text-muted hover:text-white flex items-center justify-center transition-colors">
                       <ExternalLink className="h-4 w-4" />

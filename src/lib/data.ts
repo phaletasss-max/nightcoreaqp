@@ -167,6 +167,19 @@ export async function setSongFileUrl(songId: string, fileUrl: string): Promise<v
   lsSet('nq_songs', all);
 }
 
+export async function uploadMediaFile(file: File): Promise<string | null> {
+  if (!cfg()) return URL.createObjectURL(file);
+  const ext = file.name.split('.').pop() || 'mp4';
+  const path = `uploads/${Date.now()}_${Math.random().toString(36).substring(2)}.${ext}`;
+  const { data, error } = await supabase.storage.from('media').upload(path, file);
+  if (error) {
+    console.error('Upload err:', error);
+    return null;
+  }
+  const { data: { publicUrl } } = supabase.storage.from('media').getPublicUrl(path);
+  return publicUrl;
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 //  COMENTARIOS DEL EVENTO
 // ════════════════════════════════════════════════════════════════════════════
