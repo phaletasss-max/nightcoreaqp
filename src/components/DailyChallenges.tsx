@@ -13,7 +13,7 @@ import type { Survey } from '@/lib/types';
 
 const WEEK = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
-export default function DailyChallenges() {
+export default function DailyChallenges({ bgImage }: { bgImage?: string }) {
   const { profile, addPoints, refresh } = useAuth();
   const [survey, setSurvey] = useState<Survey | null>(null);
   const [votedOption, setVotedOption] = useState<string | null>(null);
@@ -58,9 +58,9 @@ export default function DailyChallenges() {
       <div className="space-y-6">
         <div 
           className="card accent-pink p-6 space-y-5 relative overflow-hidden bg-cover bg-center"
-          style={{ backgroundImage: 'url(/mikulatas.jpg)' }}
+          style={bgImage ? { backgroundImage: `url(${bgImage})` } : { backgroundImage: "url('/mikulatas.jpg')" }}
         >
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-[2px]" />
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-0" />
           <div className="relative z-10 space-y-5">
             <div className="flex items-center gap-3">
               <div className={`p-3 rounded-xl border ${checkedIn ? 'bg-neon-pink/10 border-neon-pink text-neon-pink' : 'bg-white/5 border-border text-muted'}`}>
