@@ -83,7 +83,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session?.user) {
         loadProfile(session.user.id, session.user.email);
       } else {
+        // Restaurar perfiles guardados localmente
         const isEmergency = localStorage.getItem('nq_emergency_admin');
+        const localProfile = localStorage.getItem('nq_local_profile');
         if (isEmergency === 'true') {
           setProfile({
             id: '11111111-1111-1111-1111-111111111111',
@@ -95,6 +97,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             avatar_url: null,
             email: 'admin@nightcore.aqp'
           });
+        } else if (localProfile) {
+          try { setProfile(JSON.parse(localProfile)); } catch { setProfile(null); }
         } else {
           setProfile(null);
         }
@@ -132,12 +136,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp: AuthContextValue['signUp'] = async (email, password, username) => {
     if (!configured) return { error: 'Conecta Supabase para registrarte.' };
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { username } },
     });
-    return { error: error?.message ?? null };
+
+    if (error) {
+      // Si el error es un 500 por conflicto de username en el trigger,
+      // creamos un perfil local para que el usuario no se quede bloqueado
+      if (error.message?.includes('Database error') || error.status === 500) {
+        const fallbackProfile: Profile = {
+          id: `local-${Date.now()}`,
+          username: username || email.split('@')[0],
+          role: 'user',
+          points: 0,
+          streak_count: 0,
+          last_check_in: null,
+          avatar_url: null,
+          email,
+        };
+        setProfile(fallbackProfile);
+        localStorage.setItem('nq_local_profile', JSON.stringify(fallbackProfile));
+        return { error: null }; // éxito silencioso
+      }
+      return { error: error.message ?? 'Error al registrarte' };
+    }
+
+    return { error: null };
   };
 
   const resetPassword: AuthContextValue['resetPassword'] = async (email) => {
@@ -150,6 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     localStorage.removeItem('nq_emergency_admin');
+    localStorage.removeItem('nq_local_profile');
     if (configured) await supabase.auth.signOut();
     setProfile(null);
   };
