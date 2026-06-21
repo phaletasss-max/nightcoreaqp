@@ -8,12 +8,14 @@ import {
 import { useAuth } from '@/lib/auth';
 import {
   getEvents, saveEvent, deleteEvent, getSongs, setSongPlayed, deleteSong,
-  getAttendees, launchSurvey, setSongFileUrl, clearSongs
+  getAttendees, launchSurvey, setSongFileUrl, clearSongs,
+  getProfiles, updateProfileRole, deleteProfile, getAllComments, deleteCostume,
+  adminResetPassword, deleteComment, getCostumes
 } from '@/lib/data';
 import { downloadMedia, storeBackup, isMediaConfigured } from '@/lib/media';
-import type { EventItem, Song, Attendee, EventStatus } from '@/lib/types';
+import type { EventItem, Song, Attendee, EventStatus, Profile, Costume, EventComment } from '@/lib/types';
 
-type Tab = 'kpi' | 'dj' | 'survey' | 'events';
+type Tab = 'kpi' | 'dj' | 'survey' | 'events' | 'users' | 'posts' | 'comments';
 
 export default function AdminPage() {
   const { isStaff } = useAuth();
@@ -21,6 +23,9 @@ export default function AdminPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [songs, setSongs] = useState<Song[]>([]);
   const [rsvps, setRsvps] = useState<Attendee[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [comments, setComments] = useState<EventComment[]>([]);
+  const [costumes, setCostumes] = useState<Costume[]>([]);
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
   const [downloadingSet, setDownloadingSet] = useState(false);
   const [storingId, setStoringId] = useState<string | null>(null);
@@ -62,6 +67,9 @@ export default function AdminPage() {
     getEvents().then(setEvents);
     getSongs().then(setSongs);
     getAttendees().then(setRsvps);
+    getProfiles().then(setProfiles);
+    getAllComments().then(setComments);
+    getCostumes().then(setCostumes);
   }, []);
 
   if (!strictAuth) {
@@ -207,6 +215,9 @@ export default function AdminPage() {
     { id: 'dj', label: 'Consola DJ' },
     { id: 'survey', label: 'Encuestas' },
     { id: 'events', label: 'Eventos' },
+    { id: 'users', label: 'Usuarios' },
+    { id: 'posts', label: 'Disfraces' },
+    { id: 'comments', label: 'Comentarios' },
   ];
 
   return (
@@ -515,6 +526,166 @@ export default function AdminPage() {
                   </table>
                 )}
               </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* PESTAÑA: USUARIOS */}
+      {tab === 'users' && (
+        <div className="card p-6 space-y-6 animate-fade-in">
+          <div>
+            <h2 className="font-extrabold text-white text-lg flex items-center gap-2">
+              <Users className="h-5 w-5 text-neon-pink" /> Gestión de Usuarios
+            </h2>
+            <p className="text-xs text-muted mt-1">Modifica roles, restablece contraseñas o elimina perfiles.</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-border text-muted-2 uppercase font-bold text-xs">
+                  <th className="py-3 px-2">Usuario</th>
+                  <th className="py-3 px-2">Correo</th>
+                  <th className="py-3 px-2 text-center">Puntos</th>
+                  <th className="py-3 px-2 text-center">Racha</th>
+                  <th className="py-3 px-2 text-center">Rol</th>
+                  <th className="py-3 px-2 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border text-muted">
+                {profiles.map((p) => (
+                  <tr key={p.id} className="hover:bg-white/5 transition-colors">
+                    <td className="py-3 px-2 font-bold text-white flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-neon-pink/10 border border-neon-pink/30 flex items-center justify-center text-[10px] text-neon-pink uppercase font-extrabold">
+                        {p.username ? p.username[0] : '?'}
+                      </div>
+                      {p.username || 'Invitado'}
+                    </td>
+                    <td className="py-3 px-2 font-mono text-xs">{p.email || 'N/A'}</td>
+                    <td className="py-3 px-2 text-center text-neon-cyan font-bold">{p.points}</td>
+                    <td className="py-3 px-2 text-center text-neon-lime font-bold">{p.streak_count}d</td>
+                    <td className="py-3 px-2 text-center">
+                      <select
+                        value={p.role}
+                        onChange={async (e) => {
+                          const newRole = e.target.value as 'user' | 'dj' | 'admin';
+                          await updateProfileRole(p.id, newRole);
+                          setProfiles(prev => prev.map(x => x.id === p.id ? { ...x, role: newRole } : x));
+                        }}
+                        className="bg-black border border-border rounded px-2 py-1 text-xs text-white"
+                      >
+                        <option value="user">Usuario</option>
+                        <option value="dj">DJ</option>
+                        <option value="admin">Administrador</option>
+                      </select>
+                    </td>
+                    <td className="py-3 px-2 text-right space-x-2">
+                      {p.email && (
+                        <button
+                          onClick={async () => {
+                            const ok = await adminResetPassword(p.email!);
+                            if (ok) alert(`Correo de restauración enviado a ${p.email}`);
+                            else alert('Error al enviar el correo');
+                          }}
+                          className="px-2 py-1 rounded text-[10px] font-bold border border-neon-cyan/30 text-neon-cyan hover:bg-neon-cyan/10 transition-colors"
+                        >
+                          Reiniciar Clave
+                        </button>
+                      )}
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`¿Eliminar al usuario ${p.username}?`)) return;
+                          await deleteProfile(p.id);
+                          setProfiles(prev => prev.filter(x => x.id !== p.id));
+                        }}
+                        className="p-1 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* PESTAÑA: DISFRACES */}
+      {tab === 'posts' && (
+        <div className="card p-6 space-y-6 animate-fade-in">
+          <div>
+            <h2 className="font-extrabold text-white text-lg flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-neon-lime" /> Moderación de Disfraces
+            </h2>
+            <p className="text-xs text-muted mt-1">Elimina disfraces inapropiados sugeridos para el concurso.</p>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {costumes.map((c) => (
+              <div key={c.id} className="border border-border rounded-xl overflow-hidden bg-white/5 flex flex-col justify-between">
+                <div>
+                  <div className="relative aspect-video w-full bg-cover bg-center" style={{ backgroundImage: `url(${c.photo_url})` }} />
+                  <div className="p-4 space-y-2">
+                    <span className="badge badge-yellow text-[9px] uppercase font-bold">{c.anime}</span>
+                    <h3 className="font-bold text-white text-base">{c.char_name}</h3>
+                    {c.description && <p className="text-xs text-muted line-clamp-2">{c.description}</p>}
+                    <div className="text-[10px] text-muted-2">Votos: <strong className="text-white">{c.votes_count}</strong></div>
+                  </div>
+                </div>
+                <div className="p-4 border-t border-border flex justify-end">
+                  <button
+                    onClick={async () => {
+                      if (!confirm('¿Eliminar este disfraz de la competencia?')) return;
+                      await deleteCostume(c.id);
+                      setCostumes(prev => prev.filter(x => x.id !== c.id));
+                    }}
+                    className="px-3 py-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors text-xs font-bold flex items-center gap-1.5"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Eliminar
+                  </button>
+                </div>
+              </div>
+            ))}
+            {costumes.length === 0 && (
+              <p className="text-xs text-muted text-center py-6 col-span-full">No hay disfraces postulados.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* PESTAÑA: COMENTARIOS */}
+      {tab === 'comments' && (
+        <div className="card p-6 space-y-6 animate-fade-in">
+          <div>
+            <h2 className="font-extrabold text-white text-lg flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-neon-pink" /> Moderación de Comentarios
+            </h2>
+            <p className="text-xs text-muted mt-1">Revisa y elimina comentarios inapropiados en los eventos.</p>
+          </div>
+          <div className="space-y-3">
+            {comments.map((c) => (
+              <div key={c.id} className="border border-border rounded-lg p-4 bg-white/5 flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white text-sm">{c.username}</span>
+                    <span className="text-[10px] text-muted">{new Date(c.created_at).toLocaleString()}</span>
+                  </div>
+                  <p className="text-xs text-muted">{c.content}</p>
+                </div>
+                <button
+                  onClick={async () => {
+                    if (!confirm('¿Eliminar este comentario?')) return;
+                    await deleteComment(c.id);
+                    setComments(prev => prev.filter(x => x.id !== c.id));
+                  }}
+                  className="p-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors flex-shrink-0"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+            {comments.length === 0 && (
+              <p className="text-xs text-muted text-center py-6">No hay comentarios en la plataforma.</p>
             )}
           </div>
         </div>

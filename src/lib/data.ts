@@ -8,7 +8,7 @@ import {
   DEMO_EVENTS, DEMO_SONGS, DEMO_SURVEY, DEMO_COSTUMES, DEMO_COMMENTS, DEMO_THEMES,
 } from './demo-data';
 import type {
-  EventItem, Song, Survey, Costume, EventComment, Attendee, VoteType, Theme,
+  EventItem, Song, Survey, Costume, EventComment, Attendee, VoteType, Theme, Profile
 } from './types';
 
 const cfg = () => isSupabaseConfigured();
@@ -419,4 +419,73 @@ export async function dailyCheckIn(): Promise<{ ok: boolean; streak: number | nu
     return { ok: !error, streak: (data as number) ?? null };
   }
   return { ok: true, streak: null };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  ADMINISTRACIÓN DE USUARIOS, COMENTARIOS Y POSTS
+// ════════════════════════════════════════════════════════════════════════════
+export async function getProfiles(): Promise<Profile[]> {
+  if (cfg()) {
+    const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+    return (data as Profile[]) ?? [];
+  }
+  return lsGet<Profile[]>('nq_profiles', [
+    {
+      id: 'af46f257-2bcc-4f0b-86b2-d8047ba6a9fd',
+      username: 'manchuriam',
+      role: 'admin',
+      points: 9999,
+      streak_count: 999,
+      last_check_in: null,
+      avatar_url: null,
+      email: 'manchuria@nightcoreaqp.com'
+    }
+  ]);
+}
+
+export async function updateProfileRole(id: string, role: 'user' | 'dj' | 'admin'): Promise<void> {
+  if (cfg()) {
+    await supabase.from('profiles').update({ role }).eq('id', id);
+    return;
+  }
+  const all = lsGet<Profile[]>('nq_profiles', []);
+  const idx = all.findIndex(p => p.id === id);
+  if (idx >= 0) {
+    all[idx].role = role;
+    lsSet('nq_profiles', all);
+  }
+}
+
+export async function deleteProfile(id: string): Promise<void> {
+  if (cfg()) {
+    await supabase.from('profiles').delete().eq('id', id);
+    return;
+  }
+  lsSet('nq_profiles', lsGet<Profile[]>('nq_profiles', []).filter(p => p.id !== id));
+}
+
+export async function getAllComments(): Promise<EventComment[]> {
+  if (cfg()) {
+    const { data } = await supabase.from('event_comments').select('*').order('created_at', { ascending: false });
+    return (data as EventComment[]) ?? [];
+  }
+  return lsGet<EventComment[]>('nq_comments', DEMO_COMMENTS);
+}
+
+export async function deleteCostume(id: string): Promise<void> {
+  if (cfg()) {
+    await supabase.from('costumes').delete().eq('id', id);
+    return;
+  }
+  lsSet('nq_costumes', lsGet<Costume[]>('nq_costumes', DEMO_COSTUMES).filter(c => c.id !== id));
+}
+
+export async function adminResetPassword(email: string): Promise<boolean> {
+  if (cfg()) {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/reset-password` : undefined,
+    });
+    return !error;
+  }
+  return true;
 }
