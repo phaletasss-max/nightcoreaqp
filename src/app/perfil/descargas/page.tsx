@@ -12,7 +12,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { downloadMedia, checkVideo, isMediaConfigured, storeBackup } from '@/lib/media';
-import { addSong } from '@/lib/data';
+import { addSong, getSongs } from '@/lib/data';
+import type { Song } from '@/lib/types';
 import { usePlayer } from '@/context/PlayerContext';
 
 type Platform = 'youtube' | 'instagram' | 'tiktok' | 'unknown';
@@ -47,6 +48,12 @@ export default function DescargasPage() {
   const [suggestArtist, setSuggestArtist] = useState('');
   const [suggesting, setSuggesting] = useState(false);
   const [suggestDone, setSuggestDone] = useState(false);
+
+  const [songs, setSongs] = useState<Song[]>([]);
+
+  React.useEffect(() => {
+    getSongs().then(setSongs);
+  }, []);
 
   const platform = url ? detectPlatform(url) : 'unknown';
   const pInfo = platformInfo[platform];
@@ -95,6 +102,12 @@ export default function DescargasPage() {
     const isYt = cUrl.includes('youtube.com') || cUrl.includes('youtu.be');
     if (!isYt) {
       setError('Solo puedes sugerir enlaces de YouTube a la playlist.');
+      return;
+    }
+
+    const exists = songs.find(s => s.youtube_url === cUrl || s.youtube_url === url);
+    if (exists) {
+      setError('Esta canción ya fue sugerida y está en la playlist.');
       return;
     }
 
@@ -238,7 +251,34 @@ export default function DescargasPage() {
             <PlayCircle className="h-4 w-4" /> Ver en fondo
           </button>
           <button
-            onClick={() => setSuggestMode(!suggestMode)}
+            onClick={async () => {
+              setSuggestMode(!suggestMode);
+              if (!suggestMode && url.trim()) {
+                const cleanUrl = (u: string) => u.split('&list=')[0].split('?list=')[0];
+                const cUrl = cleanUrl(url);
+                const exists = songs.find(s => s.youtube_url === cUrl || s.youtube_url === url);
+                if (exists) {
+                  setError('⚠️ Esta canción ya está en la playlist.');
+                  setSuggestMode(false);
+                  return;
+                }
+                if (cUrl.includes('youtu')) {
+                  try {
+                    const res = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(cUrl)}`);
+                    const data = await res.json();
+                    if (data.title) {
+                      const parts = data.title.split('-');
+                      if (parts.length > 1) {
+                        setSuggestArtist(parts[0].trim());
+                        setSuggestTitle(parts.slice(1).join('-').trim());
+                      } else {
+                        setSuggestTitle(data.title);
+                      }
+                    }
+                  } catch(e) {}
+                }
+              }
+            }}
             className="btn btn-cyan w-full"
           >
             <Zap className="h-4 w-4" /> Sugerir al DJ
