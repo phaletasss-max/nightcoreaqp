@@ -57,8 +57,8 @@ export default function GlobalPlayer() {
           <video
             ref={videoRef}
             src={playingItem?.type === 'stream' ? playingItem.url : '/fondoscenecoe.mp4'}
-            autoPlay={isPlaying || playingItem?.type === 'default'}
-            muted={isMuted || playingItem?.type === 'default'}
+            autoPlay
+            muted={playingItem?.type === 'default' ? true : isMuted}
             loop={playingItem?.type === 'default'}
             playsInline
             onEnded={() => {

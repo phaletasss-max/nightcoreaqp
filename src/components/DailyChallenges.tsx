@@ -56,14 +56,21 @@ export default function DailyChallenges() {
     <div className="grid lg:grid-cols-3 gap-6 items-start">
       {/* Racha + ranking */}
       <div className="space-y-6">
-        <div className="card accent-pink p-6 space-y-5">
-          <div className="flex items-center gap-3">
-            <Flame className="h-6 w-6 text-neon-pink" />
-            <div>
-              <h3 className="section-title text-lg">Racha diaria</h3>
-              <p className="text-xs text-muted">Entra cada día para ganar puntos.</p>
+        <div 
+          className="card accent-pink p-6 space-y-5 relative overflow-hidden bg-cover bg-center"
+          style={{ backgroundImage: 'url(/mikualentadora.jpg)' }}
+        >
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-[2px]" />
+          <div className="relative z-10 space-y-5">
+            <div className="flex items-center gap-3">
+              <div className={`p-3 rounded-xl border ${checkedIn ? 'bg-neon-pink/10 border-neon-pink text-neon-pink' : 'bg-white/5 border-border text-muted'}`}>
+                <Flame className={`h-6 w-6 ${checkedIn ? 'glow-magenta' : ''}`} />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-white">Racha diaria</h3>
+                <p className="text-xs text-muted-2">Entra {7 - streak} días seguidos para medalla mensual.</p>
+              </div>
             </div>
-          </div>
 
           <div className="text-center py-5 rounded-xl bg-black/30 border border-border">
             <span className="text-5xl font-extrabold text-white text-glow-pink">{streak}</span>
@@ -91,9 +98,16 @@ export default function DailyChallenges() {
             })}
           </div>
 
-          <button onClick={handleCheckIn} disabled={checkedIn} className={`btn w-full ${checkedIn ? 'btn-ghost' : 'btn-primary'}`}>
-            <CalendarCheck className="h-4 w-4" /> {checkedIn ? 'Check-in completado' : 'Reclamar check-in'}
-          </button>
+            <button
+              onClick={handleCheckIn}
+              disabled={checkedIn}
+              className={`w-full py-2.5 rounded-lg font-bold text-sm transition-all ${
+                checkedIn ? 'bg-neon-pink/20 text-neon-pink border border-neon-pink cursor-not-allowed' : 'bg-white text-black hover:bg-neon-pink hover:text-white hover:shadow-[0_0_15px_rgba(255,0,255,0.5)]'
+              }`}
+            >
+              {checkedIn ? '✅ Registrado por hoy' : 'Reclamar +5 PTS'}
+            </button>
+          </div>
         </div>
 
         <div className="card p-6 space-y-3">

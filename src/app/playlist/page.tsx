@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Music, Plus, ChevronUp, ChevronDown, Play, ExternalLink, Search, Music3,
-  Download, Link2, Check, AlertCircle,
+  Download, Link2, Check, AlertCircle, Loader2, Video, CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { getSongs, addSong, setSongVote } from '@/lib/data';
@@ -156,9 +156,27 @@ export default function PlaylistPage() {
             </h1>
             <p className="text-sm text-muted mt-1">Sugiere y vota. El Top 10 entra al setlist en vivo.</p>
           </div>
-          <button onClick={() => setShowForm(!showForm)} className="btn btn-primary">
-            <Plus className="h-4 w-4" /> Sugerir canción
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => {
+                if (filtered.length === 0) return;
+                const itemsToQueue = filtered.map(s => ({
+                  type: 'yt' as const,
+                  id: getYouTubeId(s.youtube_url) || '',
+                  title: s.title,
+                  artist: s.artist,
+                  url: s.youtube_url
+                })).filter(s => s.id !== '');
+                setQueue(itemsToQueue, 0);
+              }}
+              className="btn btn-lime text-black hover:bg-neon-lime/80"
+            >
+              <Play className="h-4 w-4" /> Reproducir todo
+            </button>
+            <button onClick={() => setShowForm(!showForm)} className="btn btn-primary">
+              <Plus className="h-4 w-4" /> Sugerir canción
+            </button>
+          </div>
         </div>
 
         {showForm && (
@@ -271,19 +289,28 @@ export default function PlaylistPage() {
                     </a>
                     <button onClick={() => handleCopy(song)} title="Copiar enlace"
                       className="h-9 w-9 rounded-lg border border-border text-muted hover:text-white flex items-center justify-center transition-colors">
-                      {copiedId === song.id ? <Check className="h-4 w-4 text-green-400" /> : <Link2 className="h-4 w-4" />}
+                      {copiedId === song.id ? <CheckCircle2 className="h-4 w-4 text-green-400" /> : <Link2 className="h-4 w-4" />}
                     </button>
+                    {/* Botones de Descarga */}
                     {mediaOn && (
-                      <>
-                        <button onClick={() => handleDownload(song, 'mp3')} disabled={downloadingId === song.id} title="Descargar MP3"
-                          className="h-9 px-2 rounded-lg border border-border text-muted hover:text-neon-purple flex items-center gap-1 text-[10px] font-bold transition-colors">
-                          <Download className="h-3.5 w-3.5" /> MP3
+                      <div className="hidden sm:flex items-center gap-1 border-l border-border pl-2 ml-1">
+                        <button onClick={() => handleDownload(song, 'mp3')} disabled={downloadingId === song.id}
+                          className="h-9 px-2 rounded-lg border border-border text-xs text-muted hover:text-white hover:border-white transition-colors flex items-center gap-1">
+                          {downloadingId === song.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />} MP3
                         </button>
-                        <button onClick={() => handleDownload(song, 'mp4')} disabled={downloadingId === song.id} title="Descargar MP4"
-                          className="h-9 px-2 rounded-lg border border-border text-muted hover:text-neon-cyan flex items-center gap-1 text-[10px] font-bold transition-colors">
-                          <Download className="h-3.5 w-3.5" /> MP4
+                        <button onClick={() => handleDownload(song, 'mp4')} disabled={downloadingId === song.id}
+                          className="h-9 px-2 rounded-lg border border-border text-xs text-muted hover:text-neon-cyan hover:border-neon-cyan transition-colors flex items-center gap-1">
+                          {downloadingId === song.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Video className="h-3 w-3" />} MP4
                         </button>
-                      </>
+                      </div>
+                    )}
+
+                    {/* Miniatura del Video */}
+                    {yt && (
+                      <div className="hidden sm:block ml-2 w-20 h-12 rounded overflow-hidden border border-border shrink-0 relative group bg-black">
+                        <img src={`https://i.ytimg.com/vi/${yt}/mqdefault.jpg`} alt="thumbnail" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                        <div className="absolute bottom-0.5 right-0.5 bg-black/80 px-1 rounded text-[8px] font-bold text-white">2:00</div>
+                      </div>
                     )}
                   </div>
                 </div>
