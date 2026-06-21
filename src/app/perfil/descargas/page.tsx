@@ -238,13 +238,7 @@ export default function DescargasPage() {
             <PlayCircle className="h-4 w-4" /> Ver en fondo
           </button>
           <button
-            onClick={() => {
-              setSuggestMode(!suggestMode);
-              if (!suggestMode && info) {
-                setSuggestTitle(info.title || '');
-                setSuggestArtist(info.author || '');
-              }
-            }}
+            onClick={() => setSuggestMode(!suggestMode)}
             className="btn btn-cyan w-full"
           >
             <Zap className="h-4 w-4" /> Sugerir al DJ

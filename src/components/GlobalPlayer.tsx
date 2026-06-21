@@ -5,7 +5,7 @@ import { usePlayer } from '@/context/PlayerContext';
 import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Tv } from 'lucide-react';
 
 export default function GlobalPlayer() {
-  const { playingItem, isPlaying, isMuted, togglePlay, toggleMute, playNext, playPrevious, queue } = usePlayer();
+  const { playingItem, isPlaying, isMuted, togglePlay, toggleMute, playNext, playPrevious, queue, setQueue } = usePlayer();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 

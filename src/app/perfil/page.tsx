@@ -125,7 +125,7 @@ export default function PerfilPage() {
               <form onSubmit={saveProfileSettings} className="relative z-10 card bg-black/50 p-4 space-y-3 border-dashed border-neon-cyan/50 animate-fade-in">
                 <div>
                   <label className="label text-[10px]">Alias / @nombre (Local)</label>
-                  <input className="input py-1.5 text-xs" value={localAlias} onChange={(e) => setLocalAlias(e.target.value)} placeholder={`Ej. @${profile.username}`} />
+                  <input className="input py-1.5 text-xs" value={localAlias} onChange={(e) => setLocalAlias(e.target.value)} placeholder={`Ej. @${profile?.username || 'user'}`} />
                 </div>
                 <div>
                   <label className="label text-[10px]">Fondo del Perfil (URL Imagen/GIF)</label>

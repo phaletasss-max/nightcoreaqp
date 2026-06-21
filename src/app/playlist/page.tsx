@@ -224,7 +224,7 @@ export default function PlaylistPage() {
           ) : (
             filtered.map((song, i) => {
               const yt = getYouTubeId(song.youtube_url);
-              const isPlaying = (playingItem?.type === 'yt' && playingItem.id === yt) || (playingItem?.type === 'stream' && playingItem.url.includes(encodeURIComponent(song.youtube_url)));
+              const isPlaying = (playingItem?.type === 'yt' && playingItem.id === yt) || (playingItem?.type === 'stream' && playingItem.url?.includes(encodeURIComponent(song.youtube_url)));
               return (
                 <div key={song.id} className={`card card-hover flex items-center gap-3 p-3 ${isPlaying ? 'accent-pink' : ''}`}>
                   <div className="flex flex-col items-center">

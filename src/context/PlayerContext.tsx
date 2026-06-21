@@ -17,7 +17,7 @@ interface PlayerContextType {
   isPlaying: boolean;
   isMuted: boolean;
   playItem: (item: PlayableItem) => void;
-  setQueue: (items: PlayableItem[]) => void;
+  setQueue: (items: PlayableItem[], startIndex?: number) => void;
   playNext: () => void;
   playPrevious: () => void;
   togglePlay: () => void;
