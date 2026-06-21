@@ -7,7 +7,7 @@ import {
   Music, Sparkles, Plus, Trash2, ExternalLink, Check
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
-import { getAttendees, getUserActivity, addSong } from '@/lib/data';
+import { getAttendees, getUserActivity, addSong, uploadMediaFile } from '@/lib/data';
 import type { UserActivity } from '@/lib/data';
 import type { Attendee } from '@/lib/types';
 
@@ -39,6 +39,8 @@ export default function PerfilPage() {
   const [editing, setEditing] = useState(false);
   const [localAlias, setLocalAlias] = useState('');
   const [localBg, setLocalBg] = useState('');
+  const [localBgOpacity, setLocalBgOpacity] = useState(0.15);
+  const [uploadingBg, setUploadingBg] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -46,6 +48,8 @@ export default function PerfilPage() {
       const suffix = profile?.id ? `_${profile.id}` : '_guest';
       setLocalAlias(localStorage.getItem(`nq_alias${suffix}`) || '');
       setLocalBg(localStorage.getItem(`nq_bg${suffix}`) || '');
+      const opacityVal = localStorage.getItem(`nq_bg_opacity${suffix}`);
+      setLocalBgOpacity(opacityVal ? parseFloat(opacityVal) : 0.15);
 
       if (profile?.id) {
         setSpotifyUrl(localStorage.getItem(`nq_spotify_url_${profile.id}`) || '');
@@ -68,6 +72,7 @@ export default function PerfilPage() {
     const suffix = profile?.id ? `_${profile.id}` : '_guest';
     localStorage.setItem(`nq_alias${suffix}`, localAlias);
     localStorage.setItem(`nq_bg${suffix}`, localBg);
+    localStorage.setItem(`nq_bg_opacity${suffix}`, String(localBgOpacity));
     setEditing(false);
   };
 
@@ -132,7 +137,7 @@ export default function PerfilPage() {
     return (
       <div className="card p-10 text-center max-w-md mx-auto relative overflow-hidden">
         {localBg && (
-          <img src={localBg} className="absolute inset-0 w-full h-full object-cover opacity-20 pointer-events-none mix-blend-screen" alt="bg" />
+          <img src={localBg} className="absolute inset-0 w-full h-full object-cover pointer-events-none mix-blend-screen" style={{ opacity: localBgOpacity }} alt="bg" />
         )}
         <div className="relative z-10">
           <User className="h-10 w-10 text-neon-pink mx-auto mb-3" />
@@ -145,8 +150,60 @@ export default function PerfilPage() {
           <div className="card bg-black/40 p-4 text-left border-dashed">
             <p className="font-bold text-white mb-2 text-sm">Personalización local (Modo Invitado)</p>
             <form onSubmit={saveProfileSettings} className="space-y-3">
-              <div><label className="label">Alias / @nombre</label><input className="input py-1.5 text-xs" value={localAlias} onChange={(e) => setLocalAlias(e.target.value)} placeholder="@invitado_genial" /></div>
-              <div><label className="label">URL de Fondo (Imagen/GIF)</label><input className="input py-1.5 text-xs" value={localBg} onChange={(e) => setLocalBg(e.target.value)} placeholder="https://..." /></div>
+              <div>
+                <label className="label">Alias / @nombre</label>
+                <input className="input py-1.5 text-xs" value={localAlias} onChange={(e) => setLocalAlias(e.target.value)} placeholder="@invitado_genial" />
+              </div>
+              <div>
+                <label className="label">URL de Fondo (Imagen/GIF)</label>
+                <div className="space-y-2">
+                  <input className="input py-1.5 text-xs" value={localBg} onChange={(e) => setLocalBg(e.target.value)} placeholder="https://... o carga una abajo" />
+                  
+                  {/* Botón para cargar archivo PNG/JPG */}
+                  <div className="relative border border-dashed border-white/20 rounded-lg p-2 text-center hover:border-neon-cyan/50 transition-colors bg-white/5 cursor-pointer">
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setUploadingBg(true);
+                          try {
+                            const url = await uploadMediaFile(file);
+                            if (url) {
+                              setLocalBg(url);
+                            }
+                          } catch (err) {
+                            console.error("Error subiendo imagen:", err);
+                          } finally {
+                            setUploadingBg(false);
+                          }
+                        }
+                      }} 
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" 
+                    />
+                    <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted font-bold">
+                      <Camera className="h-3.5 w-3.5 text-neon-cyan" />
+                      {uploadingBg ? 'Subiendo...' : 'Cargar archivo PNG/JPG'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="label flex justify-between">
+                  <span>Opacidad del Fondo</span>
+                  <span className="text-neon-cyan font-mono font-bold">{(localBgOpacity * 100).toFixed(0)}%</span>
+                </label>
+                <input 
+                  type="range" 
+                  min="0.0" 
+                  max="1.0" 
+                  step="0.05" 
+                  value={localBgOpacity} 
+                  onChange={(e) => setLocalBgOpacity(parseFloat(e.target.value))} 
+                  className="w-full accent-neon-cyan cursor-pointer bg-white/10 rounded-lg appearance-none h-1.5"
+                />
+              </div>
               <button type="submit" className="btn btn-primary py-1.5 text-xs w-full">Guardar personalización</button>
             </form>
           </div>
@@ -159,7 +216,7 @@ export default function PerfilPage() {
     <>
       {localBg && (
         <div className="fixed inset-0 -z-10 pointer-events-none">
-          <img src={localBg} className="absolute inset-0 w-full h-full object-cover opacity-15 mix-blend-screen" alt="Profile background" />
+          <img src={localBg} className="absolute inset-0 w-full h-full object-cover mix-blend-screen" style={{ opacity: localBgOpacity }} alt="Profile background" />
         </div>
       )}
       <div className="grid lg:grid-cols-3 gap-8 items-start relative z-10">
@@ -167,7 +224,7 @@ export default function PerfilPage() {
         <div className="space-y-6">
           <div className="card p-6 space-y-6 relative overflow-hidden">
             {localBg && (
-              <img src={localBg} className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-overlay pointer-events-none blur-sm" alt="card bg" />
+              <img src={localBg} className="absolute inset-0 w-full h-full object-cover mix-blend-overlay pointer-events-none blur-sm" style={{ opacity: Math.min(localBgOpacity * 2, 0.6) }} alt="card bg" />
             )}
             <div className="relative z-10 flex flex-col items-center text-center gap-3">
               <div className="h-20 w-20 rounded-full bg-neon-pink/15 border border-neon-pink/30 flex items-center justify-center overflow-hidden">
@@ -185,14 +242,60 @@ export default function PerfilPage() {
             </div>
 
             {editing && (
-              <form onSubmit={saveProfileSettings} className="relative z-10 card bg-black/50 p-4 space-y-3 border-dashed border-neon-cyan/50 animate-fade-in">
+              <form onSubmit={saveProfileSettings} className="relative z-10 card bg-black/50 p-4 space-y-3 border-dashed border-neon-cyan/50 animate-fade-in text-left">
                 <div>
                   <label className="label text-[10px]">Alias / @nombre (Local)</label>
                   <input className="input py-1.5 text-xs" value={localAlias} onChange={(e) => setLocalAlias(e.target.value)} placeholder={`Ej. @${profile?.username || 'user'}`} />
                 </div>
                 <div>
                   <label className="label text-[10px]">Fondo del Perfil (URL Imagen/GIF)</label>
-                  <input className="input py-1.5 text-xs" value={localBg} onChange={(e) => setLocalBg(e.target.value)} placeholder="https://..." />
+                  <div className="space-y-2">
+                    <input className="input py-1.5 text-xs text-white" value={localBg} onChange={(e) => setLocalBg(e.target.value)} placeholder="https://... o carga una abajo" />
+                    
+                    {/* Botón para cargar archivo PNG/JPG */}
+                    <div className="relative border border-dashed border-white/20 rounded-lg p-2 text-center hover:border-neon-cyan/50 transition-colors bg-white/5 cursor-pointer">
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setUploadingBg(true);
+                            try {
+                              const url = await uploadMediaFile(file);
+                              if (url) {
+                                setLocalBg(url);
+                              }
+                            } catch (err) {
+                              console.error("Error subiendo imagen:", err);
+                            } finally {
+                              setUploadingBg(false);
+                            }
+                          }
+                        }} 
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" 
+                      />
+                      <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted font-bold">
+                        <Camera className="h-3.5 w-3.5 text-neon-cyan" />
+                        {uploadingBg ? 'Subiendo...' : 'Cargar archivo PNG/JPG'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="label text-[10px] flex justify-between">
+                    <span>Opacidad del Fondo</span>
+                    <span className="text-neon-cyan font-mono font-bold">{(localBgOpacity * 100).toFixed(0)}%</span>
+                  </label>
+                  <input 
+                    type="range" 
+                    min="0.0" 
+                    max="1.0" 
+                    step="0.05" 
+                    value={localBgOpacity} 
+                    onChange={(e) => setLocalBgOpacity(parseFloat(e.target.value))} 
+                    className="w-full accent-neon-cyan cursor-pointer bg-white/10 rounded-lg appearance-none h-1.5"
+                  />
                 </div>
                 <button type="submit" className="btn btn-cyan py-1.5 text-xs w-full">Guardar cambios</button>
               </form>
