@@ -57,6 +57,18 @@ app.post('/api/download', async (req, res) => {
   }
 });
 
+// Soporte para GET (para embeber en src="...")
+app.get('/api/download', async (req, res) => {
+  const { url, format = 'mp4', quality = 'best' } = req.query || {};
+  if (!url) return res.status(400).json({ error: 'Falta url' });
+  try {
+    log('DOWNLOAD_GET', `${format} ${url}`);
+    await streamDownload(url, format, quality, res);
+  } catch (err) {
+    if (!res.headersSent) res.status(500).json({ error: err.message });
+  }
+});
+
 // Descargar + respaldar en Supabase Storage. POST /api/store { url, format }
 // Devuelve { url: <public_url> }. Útil cuando un link no es embebible y queremos
 // un respaldo propio para el set del DJ.

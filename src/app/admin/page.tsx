@@ -39,6 +39,13 @@ export default function AdminPage() {
   const [evCap, setEvCap] = useState(150);
   const [evStatus, setEvStatus] = useState<EventStatus>('planning');
   const [evComments, setEvComments] = useState(true);
+  
+  const [evFlyer, setEvFlyer] = useState('');
+  const [evThemes, setEvThemes] = useState('');
+  const [evDetails, setEvDetails] = useState('');
+  const [evGoogleMaps, setEvGoogleMaps] = useState('');
+  const [evTikToks, setEvTikToks] = useState('');
+  const [evDJs, setEvDJs] = useState<{ name: string; tel: string; color: string; bg_url: string }[]>([]);
 
   useEffect(() => {
     getEvents().then(setEvents);
@@ -142,10 +149,25 @@ export default function AdminPage() {
       available_tickets: Number(evCap),
       status: evStatus,
       comments_enabled: evComments,
+      flyer_url: evFlyer || null,
+      themes: evThemes || null,
+      details: evDetails || null,
+      google_maps_url: evGoogleMaps || null,
+      tiktok_urls: evTikToks || null,
+      djs: evDJs.length > 0 ? evDJs : undefined,
     };
     setEvents((p) => [...p, ev]);
     await saveEvent(ev);
     setEvTitle(''); setEvTagline(''); setEvDesc(''); setEvLocation(''); setEvPrice('15.00'); setEvCap(150); setEvStatus('planning'); setEvComments(true);
+    setEvFlyer(''); setEvThemes(''); setEvDetails(''); setEvGoogleMaps(''); setEvTikToks(''); setEvDJs([]);
+  };
+
+  const handleAddDJ = () => setEvDJs([...evDJs, { name: '', tel: '', color: 'neon-lime', bg_url: '' }]);
+  const handleRemoveDJ = (idx: number) => setEvDJs(evDJs.filter((_, i) => i !== idx));
+  const handleUpdateDJ = (idx: number, field: string, val: string) => {
+    const newDjs = [...evDJs];
+    newDjs[idx] = { ...newDjs[idx], [field]: val };
+    setEvDJs(newDjs);
   };
 
   const tabs: { id: Tab; label: string }[] = [
@@ -307,6 +329,15 @@ export default function AdminPage() {
             <div><label className="label">Tagline</label><input className="input" value={evTagline} onChange={(e) => setEvTagline(e.target.value)} placeholder="Ej. Miku & FNAF" /></div>
             <div><label className="label">Descripción</label><textarea className="input resize-none" rows={3} value={evDesc} onChange={(e) => setEvDesc(e.target.value)} /></div>
             <div className="grid grid-cols-2 gap-3">
+              <div><label className="label">Flyer URL (JPG/PNG)</label><input className="input" value={evFlyer} onChange={(e) => setEvFlyer(e.target.value)} placeholder="https://..." /></div>
+              <div><label className="label">Temáticas</label><input className="input" value={evThemes} onChange={(e) => setEvThemes(e.target.value)} placeholder="Cyberpunk, Vocaloid" /></div>
+            </div>
+            <div><label className="label">Detalles del Flyer (Bullets)</label><textarea className="input resize-none" rows={2} value={evDetails} onChange={(e) => setEvDetails(e.target.value)} placeholder="Shots gratis, Cóctel gratis..." /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="label">Google Maps Link</label><input className="input" value={evGoogleMaps} onChange={(e) => setEvGoogleMaps(e.target.value)} placeholder="https://maps.app.goo.gl/..." /></div>
+              <div><label className="label">TikTok Links (coma sep.)</label><input className="input" value={evTikToks} onChange={(e) => setEvTikToks(e.target.value)} placeholder="https://tiktok.com/..." /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div><label className="label">Fecha</label><input className="input" type="datetime-local" required value={evDate} onChange={(e) => setEvDate(e.target.value)} /></div>
               <div><label className="label">Capacidad</label><input className="input" type="number" required value={evCap} onChange={(e) => setEvCap(Number(e.target.value))} /></div>
             </div>
@@ -324,7 +355,29 @@ export default function AdminPage() {
             <label className="flex items-center gap-2 text-xs text-muted">
               <input type="checkbox" checked={evComments} onChange={(e) => setEvComments(e.target.checked)} className="accent-[var(--cyan)]" /> Habilitar comentarios
             </label>
-            <button type="submit" className="btn btn-cyan w-full"><Plus className="h-4 w-4" /> Registrar</button>
+
+            {/* Configuración de DJs */}
+            <div className="space-y-3 border-t border-border pt-4">
+              <div className="flex items-center justify-between">
+                <label className="label mb-0">DJs del Evento</label>
+                <button type="button" onClick={handleAddDJ} className="btn btn-ghost px-2 py-1 text-xs"><Plus className="h-3 w-3" /> Añadir DJ</button>
+              </div>
+              {evDJs.map((dj, idx) => (
+                <div key={idx} className="p-3 bg-white/5 border border-border rounded-lg space-y-3 relative">
+                  <button type="button" onClick={() => handleRemoveDJ(idx)} className="absolute top-2 right-2 p-1 text-muted hover:text-red-400"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div><input className="input text-xs" placeholder="Nombre (ej. DJ MELY)" value={dj.name} onChange={(e) => handleUpdateDJ(idx, 'name', e.target.value)} required /></div>
+                    <div><input className="input text-xs" placeholder="Teléfono" value={dj.tel} onChange={(e) => handleUpdateDJ(idx, 'tel', e.target.value)} /></div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div><input className="input text-xs" placeholder="Color neón (ej. neon-lime)" value={dj.color} onChange={(e) => handleUpdateDJ(idx, 'color', e.target.value)} /></div>
+                    <div><input className="input text-xs" placeholder="Fondo URL (ej. https://...)" value={dj.bg_url} onChange={(e) => handleUpdateDJ(idx, 'bg_url', e.target.value)} /></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <button type="submit" className="btn btn-cyan w-full mt-4"><Plus className="h-4 w-4" /> Registrar</button>
           </form>
 
           <div className="lg:col-span-2 space-y-6">

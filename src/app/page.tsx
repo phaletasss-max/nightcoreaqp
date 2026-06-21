@@ -1,15 +1,21 @@
 'use client';
 
+// ── Página principal: Eventos — Edición Scenecore ────────────────────────────
+// Feed de eventos con selector, detalle, RSVP, muro de comentarios,
+// retos de la comunidad, feed de novedades y temáticas sugeridas.
+
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Calendar, MapPin, Clock, Ticket, Users, Check, ArrowRight,
-  MessageSquare, Send, AlertTriangle, Music4, Download,
+  MessageSquare, Send, AlertTriangle, Music4, Download, Zap,
+  Headphones, Star,
 } from 'lucide-react';
 import Hero from '@/components/Hero';
 import DailyChallenges from '@/components/DailyChallenges';
 import ThemesSection from '@/components/ThemesSection';
 import CommunityFeed from '@/components/CommunityFeed';
 import VideoBackground from '@/components/VideoBackground';
+import ScenecoreBackground from '@/components/ScenecoreBackground';
 import { useAuth } from '@/lib/auth';
 import {
   getEvents, getComments, addComment, createRsvp, getAttendees,
@@ -81,9 +87,53 @@ export default function Home() {
     new Date(d).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
-    <div className="space-y-10">
-      <VideoBackground />
+    <div className="space-y-10 relative">
       <Hero nextEvent={nextEvent} onCta={goToDetail} />
+
+      {/* DJs del evento — mostrado solo para Nightcore Fest 2.0 */}
+      {selected && selected.title.includes('Cyberpunk') && (
+        <section className="card p-6 sm:p-8 space-y-4 accent-magenta checkerboard-subtle">
+          <h3 className="section-title flex items-center gap-2 text-xl">
+            <Headphones className="h-5 w-5 text-neon-magenta glow-magenta" /> DJs del Evento
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {(nextEvent?.djs?.length ? nextEvent.djs : [
+              { name: 'DJ LOBITO', tel: '946 388 627', color: 'neon-magenta', bg_url: '' },
+              { name: 'DJ MATT', tel: '944 506 957', color: 'neon-lime', bg_url: '' },
+              { name: 'DJ MELY', tel: '951 710 227', color: 'neon-cyan', bg_url: '' },
+            ]).map((dj) => (
+              <div 
+                key={dj.name} 
+                className="card bg-surface-2 p-5 text-center space-y-2 border-neon-lime/30 relative overflow-hidden transition-all hover:border-neon-lime hover:shadow-[0_0_15px_rgba(57,255,20,0.3)]"
+                style={dj.bg_url ? { backgroundImage: `url(${dj.bg_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+              >
+                {dj.bg_url && <div className="absolute inset-0 bg-black/70 backdrop-blur-[2px]" />}
+                <div className="relative z-10">
+                  <div className={`h-14 w-14 rounded-full bg-${dj.color || 'neon-lime'}/15 border border-${dj.color || 'neon-lime'}/50 flex items-center justify-center mx-auto shadow-[0_0_10px_currentColor] text-${dj.color || 'neon-lime'}`}>
+                    <Headphones className="h-7 w-7" />
+                  </div>
+                  <h4 className="font-extrabold text-white text-lg mt-3">{dj.name}</h4>
+                  {dj.tel && <p className="text-sm text-neon-lime font-mono font-bold tracking-widest">📞 {dj.tel}</p>}
+                  <p className="text-[10px] text-neon-lime/80 uppercase tracking-widest font-bold mt-1">Pedidos Abiertos</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="card bg-surface-2 p-4 border-neon-lime/20 space-y-2">
+            <div className="flex items-center gap-2 text-sm">
+              <Zap className="h-4 w-4 text-neon-lime glow-lime" />
+              <span className="font-bold text-neon-lime">Extras del evento</span>
+            </div>
+            <ul className="text-xs text-muted space-y-1 list-inside">
+              <li>🥃 <strong>Shots gratis</strong> a los primeros en llegar</li>
+              <li>🍸 <strong>Cóctel gratis</strong> si vienes con cosplay</li>
+              <li>🍾 <strong>1 sellada</strong> al grupo más grande</li>
+              <li>🎵 <strong>10 horas</strong> de música Nightcore</li>
+              <li>🎤 <strong>Pedidos musicales</strong> a los DJs por WhatsApp</li>
+            </ul>
+          </div>
+        </section>
+      )}
 
       {/* Selector de eventos */}
       {events.length > 0 && (
@@ -96,12 +146,12 @@ export default function Home() {
                 <button
                   key={evt.id}
                   onClick={() => { setSelectedId(evt.id); setStatus('idle'); }}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-bold transition-colors ${
-                    active ? 'border-neon-pink/50 bg-neon-pink/10 text-neon-pink' : 'border-border text-muted hover:text-white hover:bg-white/5'
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-bold transition-colors rainbow-border ${
+                    active ? 'border-neon-magenta/50 bg-neon-magenta/10 text-neon-magenta' : 'border-border text-muted hover:text-white hover:bg-white/5'
                   }`}
                 >
                   <span>{evt.title}</span>
-                  <span className={`badge ${evt.status === 'confirmed' ? 'badge-green' : evt.status === 'paused' ? 'badge-red' : 'badge-yellow'}`}>
+                  <span className={`badge ${evt.status === 'confirmed' ? 'badge-lime' : evt.status === 'paused' ? 'badge-red' : 'badge-yellow'}`}>
                     {evt.status === 'confirmed' ? 'Confirmado' : evt.status === 'paused' ? 'Pausado' : 'Planeación'}
                   </span>
                 </button>
@@ -121,29 +171,29 @@ export default function Home() {
               {selected.description && <p className="text-muted leading-relaxed">{selected.description}</p>}
 
               <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-2 text-sm text-muted">
-                <span className="flex items-center gap-2"><Calendar className="h-4 w-4 text-neon-pink" /> {fmtDate(selected.date)}</span>
-                <span className="flex items-center gap-2"><Clock className="h-4 w-4 text-neon-pink" /> {selected.status === 'planning' ? 'Hora por confirmar' : '08:00 PM – 03:00 AM'}</span>
+                <span className="flex items-center gap-2"><Calendar className="h-4 w-4 text-neon-magenta glow-magenta" /> {fmtDate(selected.date)}</span>
+                <span className="flex items-center gap-2"><Clock className="h-4 w-4 text-neon-magenta glow-magenta" /> {selected.status === 'planning' ? 'Hora por confirmar' : '5:00 PM — hasta que aguantes 🔥'}</span>
               </div>
               <span className="flex items-center gap-2 text-sm text-muted">
-                <MapPin className="h-4 w-4 text-neon-cyan" /> {selected.location || 'Ubicación por confirmar (Arequipa)'}
+                <MapPin className="h-4 w-4 text-neon-cyan glow-cyan" /> {selected.location || 'Ubicación por confirmar (Arequipa)'}
               </span>
             </div>
 
             {/* Capacidad */}
             <div className="card bg-surface-2 p-5 w-full lg:w-72 shrink-0 space-y-3">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted font-semibold">{selected.status === 'planning' ? 'Registrados' : 'Entradas'}</span>
+                <span className="text-muted font-semibold">{selected.status === 'planning' ? 'Registrados' : 'Capacidad'}</span>
                 <span className="text-neon-cyan font-bold">
-                  {selected.status === 'planning' ? attendees.length : `${selected.available_tickets}/${selected.total_tickets}`}
+                  {selected.status === 'planning' ? attendees.length : `${attendees.length}/${selected.total_tickets || '∞'}`}
                 </span>
               </div>
               <div className="track">
                 <span style={{ width: `${selected.status === 'planning'
                   ? Math.min((attendees.length / Math.max(selected.total_tickets, 1)) * 100, 100)
-                  : (selected.available_tickets / Math.max(selected.total_tickets, 1)) * 100}%` }} />
+                  : Math.min((attendees.length / Math.max(selected.total_tickets, 1)) * 100, 100)}%` }} />
               </div>
               <p className="text-xs text-muted-2">
-                {selected.status === 'paused' ? 'Venta pausada temporalmente.' : selected.status === 'planning' ? 'Pre-registro de interés abierto.' : 'Últimas entradas disponibles.'}
+                {selected.status === 'paused' ? 'Venta pausada temporalmente.' : selected.status === 'planning' ? 'Pre-registro de interés abierto.' : '¡Asegura tu lugar!'}
               </p>
             </div>
           </div>
@@ -154,9 +204,9 @@ export default function Home() {
       {selected && (
         <section className="grid md:grid-cols-2 gap-6 items-start">
           {/* Form RSVP */}
-          <div className="card p-6 space-y-5">
+          <div className="card p-6 space-y-5 accent-magenta">
             <h3 className="section-title flex items-center gap-2 text-xl">
-              <Ticket className="h-5 w-5 text-neon-cyan" />
+              <Ticket className="h-5 w-5 text-neon-magenta glow-magenta" />
               {selected.status === 'planning' ? 'Registro de interés' : 'Reservar entrada'}
             </h3>
 
@@ -165,14 +215,14 @@ export default function Home() {
                 <AlertTriangle className="h-5 w-5" /> Registros suspendidos temporalmente.
               </div>
             ) : status === 'booked' ? (
-              <div className="card accent-cyan p-5 text-center space-y-3">
-                <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-neon-cyan/15 text-neon-cyan">
+              <div className="card accent-lime p-5 text-center space-y-3">
+                <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-neon-lime/15 text-neon-lime">
                   <Check className="h-6 w-6" />
                 </div>
                 <p className="font-bold text-white">¡Reserva registrada!</p>
                 <p className="text-sm text-muted">Ganaste {rsvpType === 'confirmed' ? 15 : 5} puntos.</p>
                 <div className="text-left bg-black/30 rounded-lg p-3 font-mono text-sm border border-border">
-                  <p><span className="text-muted-2">CÓDIGO:</span> <span className="text-neon-cyan font-bold">{ticketCode}</span></p>
+                  <p><span className="text-muted-2">CÓDIGO:</span> <span className="text-neon-lime font-bold">{ticketCode}</span></p>
                   <p><span className="text-muted-2">TITULAR:</span> {name}</p>
                 </div>
                 <button onClick={() => setStatus('idle')} className="text-xs text-neon-cyan font-bold hover:underline">Registrar a otra persona</button>
@@ -191,13 +241,13 @@ export default function Home() {
                   {(['confirmed', 'interested'] as const).map((rt) => (
                     <button key={rt} type="button" onClick={() => setRsvpType(rt)}
                       className={`px-4 py-2.5 rounded-lg border text-sm font-bold transition-colors ${
-                        rsvpType === rt ? 'border-neon-cyan/50 bg-neon-cyan/10 text-neon-cyan' : 'border-border text-muted hover:text-white'
+                        rsvpType === rt ? 'border-neon-magenta/50 bg-neon-magenta/10 text-neon-magenta' : 'border-border text-muted hover:text-white'
                       }`}>
-                      {rt === 'confirmed' ? (selected.status === 'planning' ? 'Asistencia segura' : 'Voy a ir') : 'Solo interesado'}
+                      {rt === 'confirmed' ? (selected.status === 'planning' ? 'Asistencia segura' : '🔥 Voy a ir') : 'Solo interesado'}
                     </button>
                   ))}
                 </div>
-                <button type="submit" disabled={status === 'booking'} className="btn btn-cyan w-full">
+                <button type="submit" disabled={status === 'booking'} className="btn btn-primary w-full">
                   {status === 'booking' ? 'Procesando…' : <>Confirmar <ArrowRight className="h-4 w-4" /></>}
                 </button>
               </form>
@@ -205,26 +255,26 @@ export default function Home() {
           </div>
 
           {/* Asistentes */}
-          <div className="card p-6 space-y-4">
+          <div className="card p-6 space-y-4 accent-cyan">
             <div className="flex items-center justify-between">
               <h3 className="section-title flex items-center gap-2 text-xl">
-                <Users className="h-5 w-5 text-neon-pink" /> Asistentes
+                <Users className="h-5 w-5 text-neon-cyan glow-cyan" /> Asistentes
               </h3>
-              <span className="badge badge-pink">{attendees.length} registrados</span>
+              <span className="badge badge-cyan">{attendees.length} registrados</span>
             </div>
             <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
               {attendees.length === 0 ? (
-                <p className="text-sm text-muted-2 text-center py-8">Aún no hay registros. ¡Sé el primero!</p>
+                <p className="text-sm text-muted-2 text-center py-8">Aún no hay registros. ¡Sé el primero! ✦</p>
               ) : (
                 attendees.map((a) => (
-                  <div key={a.id} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.03] border border-border text-sm">
+                  <div key={a.id} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.03] border border-border text-sm rainbow-border">
                     <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-neon-purple/20 border border-border flex items-center justify-center text-xs font-bold text-white uppercase">
+                      <div className="h-8 w-8 rounded-full bg-neon-magenta/20 border border-border flex items-center justify-center text-xs font-bold text-white uppercase">
                         {a.name.substring(0, 2)}
                       </div>
                       <span className="font-semibold text-foreground">{a.name}</span>
                     </div>
-                    <span className={`badge ${a.status === 'confirmed' ? 'badge-green' : 'badge-yellow'}`}>
+                    <span className={`badge ${a.status === 'confirmed' ? 'badge-lime' : 'badge-yellow'}`}>
                       {a.status === 'confirmed' ? 'Confirmado' : 'Interesado'}
                     </span>
                   </div>
@@ -239,7 +289,7 @@ export default function Home() {
       {selected && (
         <section className="card p-6 sm:p-8 space-y-5">
           <h3 className="section-title flex items-center gap-2 text-xl">
-            <MessageSquare className="h-5 w-5 text-neon-cyan" /> Muro de comentarios
+            <MessageSquare className="h-5 w-5 text-neon-magenta glow-magenta" /> Muro de comentarios
           </h3>
 
           {!selected.comments_enabled ? (
@@ -249,17 +299,17 @@ export default function Home() {
           ) : (
             <>
               <form onSubmit={handleComment} className="flex gap-3">
-                <input className="input" value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Escribe un comentario… (+2 pts)" />
-                <button type="submit" className="btn btn-cyan shrink-0"><Send className="h-4 w-4" /></button>
+                <input className="input" value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Escribe un comentario… (+2 pts) ✦" />
+                <button type="submit" className="btn btn-primary shrink-0"><Send className="h-4 w-4" /></button>
               </form>
               <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
                 {comments.length === 0 ? (
-                  <p className="text-sm text-muted-2 text-center py-8 border border-dashed border-border rounded-xl">Aún no hay comentarios.</p>
+                  <p className="text-sm text-muted-2 text-center py-8 border border-dashed border-border rounded-xl">Aún no hay comentarios. ¡Comenta algo! ✦</p>
                 ) : (
                   comments.map((c) => (
-                    <div key={c.id} className="p-4 rounded-xl bg-white/[0.03] border border-border space-y-1">
+                    <div key={c.id} className="p-4 rounded-xl bg-white/[0.03] border border-border space-y-1 rainbow-border">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-neon-pink">{c.username}</span>
+                        <span className="font-bold text-neon-magenta">{c.username}</span>
                         <span className="text-muted-2">{new Date(c.created_at).toLocaleDateString('es-ES', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                       <p className="text-sm text-foreground">{c.content}</p>
@@ -272,10 +322,12 @@ export default function Home() {
         </section>
       )}
 
-      {/* Retos de la comunidad (antes /encuestas, ahora en el feed de Eventos) */}
+      {/* Retos de la comunidad */}
       <section className="space-y-5">
         <div>
-          <h3 className="section-title text-xl">Retos de la comunidad</h3>
+          <h3 className="section-title text-xl flex items-center gap-2">
+            <Star className="h-5 w-5 text-neon-yellow glow-lime" /> Retos de la comunidad
+          </h3>
           <p className="text-sm text-muted mt-0.5">Mantén tu racha, vota la encuesta del día y escala en el ranking.</p>
         </div>
         <DailyChallenges />
@@ -290,7 +342,7 @@ export default function Home() {
       {/* Descargas (sets propios del DJ) */}
       <section className="card p-6 sm:p-8 space-y-4">
         <div className="flex items-center gap-3">
-          <Music4 className="h-5 w-5 text-neon-purple" />
+          <Music4 className="h-5 w-5 text-neon-magenta glow-magenta" />
           <div>
             <h3 className="section-title text-xl">Sets del DJ</h3>
             <p className="text-sm text-muted mt-0.5">Grabaciones oficiales de los sets en vivo, libres de copyright.</p>
@@ -298,7 +350,7 @@ export default function Home() {
         </div>
         <div className="text-sm text-muted-2 text-center py-10 border border-dashed border-border rounded-xl flex flex-col items-center gap-2">
           <Download className="h-6 w-6" />
-          Aún no hay grabaciones publicadas. Aparecerán aquí después del próximo evento.
+          Aún no hay grabaciones publicadas. Aparecerán aquí después del próximo evento. ✦
         </div>
       </section>
     </div>

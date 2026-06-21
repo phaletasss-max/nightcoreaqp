@@ -1,11 +1,14 @@
 'use client';
 
+// ── Navbar — Scenecore edition ───────────────────────────────────────────────
+// Navegación principal con logo, enlaces, racha, puntos y auth.
+
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Music, Calendar, Camera, User, Bell,
-  Flame, Coins, Menu, X, Volume2, LogIn, LogOut,
+  Music, Calendar, Camera, User, Bell, Download,
+  Flame, Coins, Menu, X, Volume2, LogIn, LogOut, Sparkles,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import AuthModal from '@/components/AuthModal';
@@ -21,20 +24,21 @@ export default function Navbar() {
     { name: 'Eventos', href: '/', icon: Calendar },
     { name: 'Playlist', href: '/playlist', icon: Music },
     { name: 'Disfraces', href: '/disfraces', icon: Camera },
+    { name: 'Descargas', href: '/perfil/descargas', icon: Download },
     { name: 'Perfil', href: '/perfil', icon: User },
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md" style={{ borderColor: 'rgba(255, 0, 255, 0.15)' }}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 shrink-0">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-neon-pink/15 border border-neon-pink/30">
-              <Volume2 className="h-5 w-5 text-neon-pink" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-neon-magenta/15 border border-neon-magenta/30">
+              <Sparkles className="h-5 w-5 text-neon-magenta glow-magenta" />
             </div>
             <span className="text-lg font-extrabold tracking-tight text-white">
-              NIGHTCORE<span className="text-neon-pink">AQP</span>
+              NIGHTCORE<span className="text-glow-rainbow">AQP</span>
             </span>
           </Link>
 
@@ -49,7 +53,7 @@ export default function Navbar() {
                   href={item.href}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive
-                      ? 'bg-neon-pink/10 text-neon-pink'
+                      ? 'bg-neon-magenta/10 text-neon-magenta'
                       : 'text-muted hover:text-white hover:bg-white/5'
                   }`}
                 >
@@ -66,7 +70,7 @@ export default function Navbar() {
               <>
                 <Link href="/perfil" className="relative p-1.5 rounded-full text-muted hover:text-white hover:bg-white/5 transition-colors" title="Notificaciones">
                   <Bell className="h-4 w-4" />
-                  <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-neon-pink" />
+                  <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-neon-magenta" />
                 </Link>
                 <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/5 border border-border text-orange-400" title="Racha diaria">
                   <Flame className="h-4 w-4" />
@@ -109,7 +113,7 @@ export default function Navbar() {
 
       {/* Mobile drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-border px-4 pt-2 pb-4 space-y-1 bg-background">
+        <div className="md:hidden border-t px-4 pt-2 pb-4 space-y-1 bg-background" style={{ borderColor: 'rgba(255, 0, 255, 0.15)' }}>
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -119,7 +123,7 @@ export default function Navbar() {
                 href={item.href}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-colors ${
-                  isActive ? 'bg-neon-pink/10 text-neon-pink' : 'text-muted hover:bg-white/5'
+                  isActive ? 'bg-neon-magenta/10 text-neon-magenta' : 'text-muted hover:bg-white/5'
                 }`}
               >
                 <Icon className="h-5 w-5" />
@@ -127,7 +131,7 @@ export default function Navbar() {
               </Link>
             );
           })}
-          <div className="pt-3 border-t border-border">
+          <div className="pt-3 border-t" style={{ borderColor: 'rgba(255, 0, 255, 0.15)' }}>
             {profile && configured ? (
               <button onClick={() => { signOut(); setMobileMenuOpen(false); }} className="btn btn-ghost w-full">
                 <LogOut className="h-4 w-4" /> Cerrar sesión

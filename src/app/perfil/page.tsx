@@ -25,16 +25,29 @@ export default function PerfilPage() {
   const [notifyEvent, setNotifyEvent] = useState(true);
   const [notifySongs, setNotifySongs] = useState(false);
 
+  const [editing, setEditing] = useState(false);
+  const [localAlias, setLocalAlias] = useState('');
+  const [localBg, setLocalBg] = useState('');
+
   useEffect(() => {
-    // Lee el flag desde localStorage al montar (solo cliente).
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (typeof window !== 'undefined') setPushEnabled(localStorage.getItem('nq_push_enabled') === 'true');
+    if (typeof window !== 'undefined') {
+      setPushEnabled(localStorage.getItem('nq_push_enabled') === 'true');
+      setLocalAlias(localStorage.getItem('nq_alias') || '');
+      setLocalBg(localStorage.getItem('nq_bg') || '');
+    }
     getAttendees().then((all) => {
       const uid = profile?.id;
       setTickets(uid ? all.filter((a) => a.user_id === uid) : all.slice(0, 0));
     });
     getUserActivity(profile?.id ?? null).then(setActivity);
   }, [profile?.id]);
+
+  const saveProfileSettings = (e: React.FormEvent) => {
+    e.preventDefault();
+    localStorage.setItem('nq_alias', localAlias);
+    localStorage.setItem('nq_bg', localBg);
+    setEditing(false);
+  };
 
   const handlePush = () => {
     if (pushEnabled) return;
@@ -49,50 +62,92 @@ export default function PerfilPage() {
 
   const points = profile?.points ?? 0;
   const rank = rankFor(points);
+  
+  const displayName = localAlias || profile?.username || 'Invitado';
 
-  // Perfil solo para usuarios con sesión (decisión 2026-06-20).
   if (!loading && !profile) {
     return (
-      <div className="card p-10 text-center max-w-md mx-auto">
-        <User className="h-10 w-10 text-neon-pink mx-auto mb-3" />
-        <h1 className="section-title">Inicia sesión para ver tu perfil</h1>
-        <p className="text-sm text-muted mt-2">
-          Usa el botón <span className="text-neon-pink font-bold">Entrar</span> de la barra superior
-          para registrarte o iniciar sesión. Tu perfil guarda tus puntos, racha, publicaciones e
-          insignias de asistencia.
-        </p>
+      <div className="card p-10 text-center max-w-md mx-auto relative overflow-hidden">
+        {localBg && (
+          <img src={localBg} className="absolute inset-0 w-full h-full object-cover opacity-20 pointer-events-none mix-blend-screen" alt="bg" />
+        )}
+        <div className="relative z-10">
+          <User className="h-10 w-10 text-neon-pink mx-auto mb-3" />
+          <h1 className="section-title">Inicia sesión para ver tu perfil</h1>
+          <p className="text-sm text-muted mt-2 mb-6">
+            Usa el botón <span className="text-neon-pink font-bold">Entrar</span> de la barra superior
+            para registrarte o iniciar sesión. Tu perfil guarda tus puntos, racha, publicaciones e
+            insignias de asistencia.
+          </p>
+          <div className="card bg-black/40 p-4 text-left border-dashed">
+            <p className="font-bold text-white mb-2 text-sm">Personalización local (Modo Invitado)</p>
+            <form onSubmit={saveProfileSettings} className="space-y-3">
+              <div><label className="label">Alias / @nombre</label><input className="input py-1.5 text-xs" value={localAlias} onChange={(e) => setLocalAlias(e.target.value)} placeholder="@invitado_genial" /></div>
+              <div><label className="label">URL de Fondo (Imagen/GIF)</label><input className="input py-1.5 text-xs" value={localBg} onChange={(e) => setLocalBg(e.target.value)} placeholder="https://..." /></div>
+              <button type="submit" className="btn btn-primary py-1.5 text-xs w-full">Guardar personalización</button>
+            </form>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="grid lg:grid-cols-3 gap-8 items-start">
-      {/* Resumen */}
-      <div className="space-y-6">
-        <div className="card p-6 space-y-6">
-          <div className="flex flex-col items-center text-center gap-3">
-            <div className="h-20 w-20 rounded-full bg-neon-pink/15 border border-neon-pink/30 flex items-center justify-center">
-              <User className="h-9 w-9 text-neon-pink" />
-            </div>
-            <div>
-              <h2 className="text-xl font-extrabold text-white">{profile?.username ?? 'Invitado'}</h2>
-              <span className={`badge ${rank.cls} mt-2`}>{rank.title}</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 border-t border-border pt-5">
-            <div className="card bg-surface-2 p-4 text-center">
-              <Coins className="h-5 w-5 text-neon-cyan mx-auto mb-1" />
-              <span className="text-2xl font-extrabold text-white block">{points}</span>
-              <span className="text-[10px] text-muted-2 font-bold uppercase tracking-wider">Puntos</span>
-            </div>
-            <div className="card bg-surface-2 p-4 text-center">
-              <Flame className="h-5 w-5 text-neon-pink mx-auto mb-1" />
-              <span className="text-2xl font-extrabold text-white block">{profile?.streak_count ?? 0}</span>
-              <span className="text-[10px] text-muted-2 font-bold uppercase tracking-wider">Racha</span>
-            </div>
-          </div>
+    <>
+      {localBg && (
+        <div className="fixed inset-0 -z-10 pointer-events-none">
+          <img src={localBg} className="absolute inset-0 w-full h-full object-cover opacity-15 mix-blend-screen" alt="Profile background" />
         </div>
+      )}
+      <div className="grid lg:grid-cols-3 gap-8 items-start relative z-10">
+        {/* Resumen */}
+        <div className="space-y-6">
+          <div className="card p-6 space-y-6 relative overflow-hidden">
+            {localBg && (
+              <img src={localBg} className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-overlay pointer-events-none blur-sm" alt="card bg" />
+            )}
+            <div className="relative z-10 flex flex-col items-center text-center gap-3">
+              <div className="h-20 w-20 rounded-full bg-neon-pink/15 border border-neon-pink/30 flex items-center justify-center overflow-hidden">
+                <User className="h-9 w-9 text-neon-pink" />
+              </div>
+              <div>
+                <h2 className="text-xl font-extrabold text-white">
+                  {displayName}
+                </h2>
+                <span className={`badge ${rank.cls} mt-2`}>{rank.title}</span>
+              </div>
+              <button onClick={() => setEditing(!editing)} className="text-xs text-neon-cyan hover:underline mt-1">
+                {editing ? 'Cancelar edición' : 'Personalizar perfil'}
+              </button>
+            </div>
+
+            {editing && (
+              <form onSubmit={saveProfileSettings} className="relative z-10 card bg-black/50 p-4 space-y-3 border-dashed border-neon-cyan/50 animate-fade-in">
+                <div>
+                  <label className="label text-[10px]">Alias / @nombre (Local)</label>
+                  <input className="input py-1.5 text-xs" value={localAlias} onChange={(e) => setLocalAlias(e.target.value)} placeholder={`Ej. @${profile.username}`} />
+                </div>
+                <div>
+                  <label className="label text-[10px]">Fondo del Perfil (URL Imagen/GIF)</label>
+                  <input className="input py-1.5 text-xs" value={localBg} onChange={(e) => setLocalBg(e.target.value)} placeholder="https://..." />
+                </div>
+                <button type="submit" className="btn btn-cyan py-1.5 text-xs w-full">Guardar cambios</button>
+              </form>
+            )}
+
+            <div className="relative z-10 grid grid-cols-2 gap-3 border-t border-border pt-5">
+              <div className="card bg-surface-2 p-4 text-center">
+                <Coins className="h-5 w-5 text-neon-cyan mx-auto mb-1" />
+                <span className="text-2xl font-extrabold text-white block">{points}</span>
+                <span className="text-[10px] text-muted-2 font-bold uppercase tracking-wider">Puntos</span>
+              </div>
+              <div className="card bg-surface-2 p-4 text-center">
+                <Flame className="h-5 w-5 text-neon-pink mx-auto mb-1" />
+                <span className="text-2xl font-extrabold text-white block">{profile?.streak_count ?? 0}</span>
+                <span className="text-[10px] text-muted-2 font-bold uppercase tracking-wider">Racha</span>
+              </div>
+            </div>
+          </div>
 
         {/* Notificaciones */}
         <div className="card accent-pink p-6 space-y-4">
@@ -210,5 +265,6 @@ export default function PerfilPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

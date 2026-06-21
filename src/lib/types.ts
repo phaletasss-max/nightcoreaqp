@@ -28,6 +28,12 @@ export interface EventItem {
   available_tickets: number;
   status: EventStatus;
   comments_enabled: boolean;
+  flyer_url?: string | null;
+  themes?: string | null;
+  details?: string | null;
+  google_maps_url?: string | null;
+  tiktok_urls?: string | null;
+  djs?: { name: string; tel?: string; color?: string; bg_url?: string }[];
 }
 
 export interface Attendee {

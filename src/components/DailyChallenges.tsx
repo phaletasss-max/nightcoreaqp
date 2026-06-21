@@ -98,15 +98,19 @@ export default function DailyChallenges() {
 
         <div className="card p-6 space-y-3">
           <h3 className="section-title text-base flex items-center gap-2"><Trophy className="h-5 w-5 text-neon-cyan" /> Top fans del mes</h3>
-          {DEMO_LEADERBOARD.map((f) => (
-            <div key={f.rank} className="flex items-center justify-between p-2.5 rounded-lg bg-white/[0.03] border border-border text-xs">
-              <div className="flex items-center gap-2">
-                <span className={`h-5 w-5 rounded-full flex items-center justify-center font-bold ${f.rank === 1 ? 'bg-yellow-400 text-black' : f.rank === 2 ? 'bg-slate-300 text-black' : 'bg-amber-600 text-black'}`}>{f.rank}</span>
-                <span className="font-bold text-foreground">{f.name}</span>
+          {DEMO_LEADERBOARD.length === 0 ? (
+            <p className="text-sm text-muted-2 text-center py-4">El ranking se llenará con actividad de la comunidad. ✦</p>
+          ) : (
+            DEMO_LEADERBOARD.map((f) => (
+              <div key={f.rank} className="flex items-center justify-between p-2.5 rounded-lg bg-white/[0.03] border border-border text-xs">
+                <div className="flex items-center gap-2">
+                  <span className={`h-5 w-5 rounded-full flex items-center justify-center font-bold ${f.rank === 1 ? 'bg-yellow-400 text-black' : f.rank === 2 ? 'bg-slate-300 text-black' : 'bg-amber-600 text-black'}`}>{f.rank}</span>
+                  <span className="font-bold text-foreground">{f.name}</span>
+                </div>
+                <span className="font-extrabold text-neon-cyan">{f.points} pts</span>
               </div>
-              <span className="font-extrabold text-neon-cyan">{f.points} pts</span>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 

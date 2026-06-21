@@ -7,8 +7,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { getSongs, addSong, setSongVote } from '@/lib/data';
-import { checkVideo, downloadMedia, isMediaConfigured } from '@/lib/media';
+import { checkVideo, downloadMedia, isMediaConfigured, type VideoInfo } from '@/lib/media';
 import type { Song, VoteType } from '@/lib/types';
+import { usePlayer, type PlayableItem } from '@/context/PlayerContext';
 
 function getYouTubeId(url: string) {
   const m = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
@@ -24,14 +25,56 @@ export default function PlaylistPage() {
   const { profile, addPoints } = useAuth();
   const [songs, setSongs] = useState<Song[]>([]);
   const [query, setQuery] = useState('');
-  const [playing, setPlaying] = useState<string | null>(null);
+  const { playingItem, playItem, setQueue } = usePlayer();
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
   const [url, setUrl] = useState('');
+  const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null);
   const [checking, setChecking] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Clean url logic to strip '&list=' parameters before fetching
+  const cleanUrl = (u: string) => u.split('&list=')[0].split('?list=')[0];
+
+  useEffect(() => {
+    if (!showForm || !url || !url.startsWith('http')) {
+      setVideoInfo(null);
+      return;
+    }
+    const cUrl = cleanUrl(url);
+    const isYt = cUrl.includes('youtube.com') || cUrl.includes('youtu.be');
+    
+    if (!isYt) {
+      setFormError('Solo se aceptan enlaces de YouTube para la playlist.');
+      setVideoInfo(null);
+      return;
+    }
+
+    setFormError(null);
+    const t = setTimeout(async () => {
+      setChecking(true);
+      const info = await checkVideo(cUrl);
+      setChecking(false);
+      setVideoInfo(info);
+      if (info && info.available) {
+        if (info.title && !title) setTitle(info.title);
+        if (info.author && !artist) setArtist(info.author);
+        
+        // Auto preview
+        if (info.embeddable) {
+          const yt = getYouTubeId(cUrl);
+          if (yt) playItem({ type: 'yt', id: yt, title: info.title || 'Previa', artist: info.author || 'Sugerencia' });
+        } else {
+          // Play stream
+          const MEDIA_URL = (process.env.NEXT_PUBLIC_MEDIA_SERVICE_URL || '').replace(/\/$/, '');
+          playItem({ type: 'stream', url: `${MEDIA_URL}/api/download?url=${encodeURIComponent(cUrl)}&format=mp4`, title: info.title || 'Previa', artist: info.author || 'Sugerencia' });
+        }
+      }
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [url, showForm]);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const mediaOn = isMediaConfigured();
 
@@ -57,35 +100,31 @@ export default function PlaylistPage() {
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !artist || !url) return;
+    const cUrl = cleanUrl(url);
+    const isYt = cUrl.includes('youtube.com') || cUrl.includes('youtu.be');
+    if (!isYt) {
+      setFormError('Solo se pueden sugerir enlaces de YouTube.');
+      return;
+    }
+    if (!title || !cUrl) return;
     setFormError(null);
 
-    const yt = getYouTubeId(url);
+    const finalArtist = artist || videoInfo?.author || 'YouTube';
 
-    // Verificación del link. Con media-service: comprobante real (yt-dlp).
-    // Sin él: chequeo básico de que sea un enlace de YouTube válido.
-    setChecking(true);
-    const info = await checkVideo(url);
-    setChecking(false);
-    if (info) {
-      if (!info.available) {
-        setFormError('Ese link no está disponible o es privado. Prueba con otro enlace público.');
-        return;
-      }
-      if (!info.embeddable) {
-        // Disponible pero no embebible: se acepta y quedará para respaldo del DJ.
-        setFormError(null);
-      }
-    } else if (!yt) {
-      // Sin media-service y no es un YouTube válido.
-      setFormError('Por ahora solo validamos enlaces de YouTube. Usa un link de YouTube válido.');
+    if (!videoInfo && mediaOn) {
+      setFormError('Espera a que se verifique el enlace.');
       return;
     }
 
-    const row = await addSong({ title, artist, youtube_url: url }, profile?.id ?? null, profile?.username ?? 'Tú');
+    if (videoInfo && !videoInfo.available) {
+      setFormError('Ese link no está disponible o es privado. Prueba con otro enlace público.');
+      return;
+    }
+
+    const row = await addSong({ title, artist: finalArtist, youtube_url: cUrl }, profile?.id ?? null, profile?.username ?? 'Tú');
     setSongs((prev) => [...prev, row]);
-    if (yt) setPlaying(yt);
-    setTitle(''); setArtist(''); setUrl(''); setShowForm(false);
+    
+    setTitle(''); setArtist(''); setUrl(''); setShowForm(false); setVideoInfo(null);
     addPoints(5);
   };
 
@@ -109,9 +148,8 @@ export default function PlaylistPage() {
   };
 
   return (
-    <div className="grid lg:grid-cols-3 gap-8 items-start">
-      <div className="lg:col-span-2 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="section-title flex items-center gap-2 text-2xl">
               <Music className="h-6 w-6 text-neon-pink" /> Playlist del DJ
@@ -127,12 +165,28 @@ export default function PlaylistPage() {
           <form onSubmit={handleAdd} className="card accent-pink p-5 space-y-4 animate-fade-in">
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="label">Título</label>
+                <label className="label">Título (Auto-generado)</label>
                 <input className="input" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ej. Angel With A Shotgun" />
               </div>
               <div>
-                <label className="label">Artista / Remix</label>
-                <input className="input" required value={artist} onChange={(e) => setArtist(e.target.value)} placeholder="Ej. Nightcore (The Cab)" />
+                <label className="label text-muted-2 text-xs uppercase font-bold">Estado de Reproducción</label>
+                <div className="h-[42px] flex items-center px-3 border border-border rounded-lg bg-black/40 text-sm">
+                  {checking ? (
+                    <span className="text-neon-cyan animate-pulse">Verificando enlace...</span>
+                  ) : videoInfo ? (
+                    videoInfo.available ? (
+                      videoInfo.embeddable ? (
+                        <span className="text-neon-lime truncate">✅ Reproducible (Compatible)</span>
+                      ) : (
+                        <span className="text-neon-yellow truncate">📥 Vista Previa Descargada</span>
+                      )
+                    ) : (
+                      <span className="text-red-500 truncate">❌ {videoInfo.error || 'Privado / Borrado'}</span>
+                    )
+                  ) : (
+                    <span className="text-muted truncate">Pega el link para verificar</span>
+                  )}
+                </div>
               </div>
             </div>
             <div>
@@ -170,7 +224,7 @@ export default function PlaylistPage() {
           ) : (
             filtered.map((song, i) => {
               const yt = getYouTubeId(song.youtube_url);
-              const isPlaying = yt && playing === yt;
+              const isPlaying = (playingItem?.type === 'yt' && playingItem.id === yt) || (playingItem?.type === 'stream' && playingItem.url.includes(encodeURIComponent(song.youtube_url)));
               return (
                 <div key={song.id} className={`card card-hover flex items-center gap-3 p-3 ${isPlaying ? 'accent-pink' : ''}`}>
                   <div className="flex flex-col items-center">
@@ -195,7 +249,18 @@ export default function PlaylistPage() {
 
                   <div className="flex items-center gap-2">
                     {yt && (
-                      <button onClick={() => setPlaying(yt)} title="Vista previa"
+                      <button onClick={() => {
+                        const itemsToQueue = filtered.map(s => ({
+                          type: 'yt' as const,
+                          id: getYouTubeId(s.youtube_url) || '',
+                          title: s.title,
+                          artist: s.artist,
+                          url: s.youtube_url
+                        })).filter(s => s.id !== '');
+                        
+                        const idx = itemsToQueue.findIndex(q => q.id === yt);
+                        setQueue(itemsToQueue, idx >= 0 ? idx : 0);
+                      }} title="Vista previa en fondo"
                         className={`h-9 w-9 rounded-lg flex items-center justify-center border transition-colors ${isPlaying ? 'bg-neon-pink text-black border-neon-pink' : 'border-border text-muted hover:text-white'}`}>
                         <Play className={`h-4 w-4 ${isPlaying ? 'fill-black' : ''}`} />
                       </button>
@@ -226,35 +291,13 @@ export default function PlaylistPage() {
             })
           )}
         </div>
-      </div>
-
-      {/* Reproductor */}
-      <div className="space-y-6 lg:sticky lg:top-24">
-        <div className="card accent-cyan p-5 space-y-4">
-          <h3 className="section-title text-lg">Escuchar previa</h3>
-          {playing ? (
-            <div className="aspect-video rounded-xl overflow-hidden border border-border bg-black">
-              <iframe
-                src={`https://www.youtube.com/embed/${playing}?autoplay=1`}
-                title="YouTube" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen
-                className="w-full h-full border-0"
-              />
-            </div>
-          ) : (
-            <div className="aspect-video rounded-xl border border-dashed border-border flex flex-col items-center justify-center text-muted-2 text-sm gap-2">
-              <Music className="h-7 w-7" /> Elige ▶ en una canción
-            </div>
-          )}
-        </div>
-
-        <div className="card p-5 space-y-3">
-          <h4 className="font-bold text-white">Reglas</h4>
-          <ul className="text-xs text-muted space-y-1.5 list-disc list-inside">
-            <li>Solo remixes Nightcore, Eurobeat, Hardcore o Lofi Speedup.</li>
-            <li>No repitas canciones ya listadas.</li>
-            <li>Las sugerencias cierran 24h antes del evento.</li>
-          </ul>
-        </div>
+      <div className="card p-5 space-y-3">
+        <h4 className="font-bold text-white">Reglas</h4>
+        <ul className="text-xs text-muted space-y-1.5 flex flex-wrap gap-4">
+          <li>• Solo remixes Nightcore, Eurobeat, Hardcore o Lofi Speedup.</li>
+          <li>• No repitas canciones ya listadas.</li>
+          <li>• Las sugerencias cierran 24h antes del evento.</li>
+        </ul>
       </div>
     </div>
   );

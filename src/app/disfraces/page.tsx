@@ -65,6 +65,13 @@ export default function DisfracesPage() {
     setCommentText('');
   };
 
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPhotoUrl(URL.createObjectURL(file));
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -80,36 +87,56 @@ export default function DisfracesPage() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="card accent-cyan p-5 space-y-4 max-w-2xl animate-fade-in">
-          <h3 className="font-bold text-white flex items-center gap-2"><Sparkles className="h-5 w-5 text-neon-cyan" /> Registrar disfraz</h3>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div><label className="label">Personaje</label><input className="input" required value={charName} onChange={(e) => setCharName(e.target.value)} placeholder="Ej. Misa Amane" /></div>
-            <div><label className="label">Anime / Serie</label><input className="input" required value={anime} onChange={(e) => setAnime(e.target.value)} placeholder="Ej. Death Note" /></div>
+        <div className="flex flex-col md:flex-row gap-8 items-start animate-fade-in">
+          <form onSubmit={handleSubmit} className="card accent-cyan p-5 space-y-4 flex-1 w-full max-w-2xl">
+            <h3 className="font-bold text-white flex items-center gap-2"><Sparkles className="h-5 w-5 text-neon-cyan" /> Registrar disfraz</h3>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div><label className="label">Personaje</label><input className="input" required value={charName} onChange={(e) => setCharName(e.target.value)} placeholder="Ej. Misa Amane" /></div>
+              <div><label className="label">Anime / Serie</label><input className="input" required value={anime} onChange={(e) => setAnime(e.target.value)} placeholder="Ej. Death Note" /></div>
+            </div>
+            <div>
+              <label className="label">Foto (Sube un PNG o JPG)</label>
+              <input 
+                className="input cursor-pointer file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-neon-cyan/10 file:text-neon-cyan hover:file:bg-neon-cyan/20" 
+                type="file" 
+                accept="image/png, image/jpeg" 
+                onChange={handlePhotoUpload} 
+                required 
+              />
+              <p className="text-[11px] text-muted-2 mt-1">En producción esto subirá la imagen a Supabase Storage.</p>
+            </div>
+            <div>
+              <label className="label">¿De qué evento es la foto?</label>
+              <select className="input" value={eventId} onChange={(e) => setEventId(e.target.value)}>
+                <option value="">Sin evento / general</option>
+                {selectableEvents.map((ev) => (
+                  <option key={ev.id} value={ev.id}>{ev.title}</option>
+                ))}
+              </select>
+              <p className="text-[11px] text-muted-2 mt-1">Solo aparecen eventos vigentes o que terminaron hace ≤ 1 semana.</p>
+            </div>
+            <div>
+              <label className="label">Descripción</label>
+              <textarea className="input resize-none" rows={3} required value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Detalles, materiales, tus redes de cosplay…" />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button type="button" onClick={() => setShowForm(false)} className="btn btn-ghost">Cancelar</button>
+              <button type="submit" className="btn btn-cyan">Publicar</button>
+            </div>
+          </form>
+          
+          <div className="hidden md:flex flex-col items-center justify-center max-w-xs text-center space-y-4 mt-6">
+            <div className="relative rounded-2xl overflow-hidden border-2 border-neon-magenta shadow-[0_0_25px_rgba(255,0,255,0.3)] transform rotate-3 hover:rotate-0 transition-transform w-full max-w-[200px]">
+              <img src="/mikualentadora.jpg" alt="Miku alentadora" className="w-full h-auto object-cover" />
+            </div>
+            <div className="card p-4 accent-magenta relative">
+              <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-surface border-t border-l border-border rotate-45" />
+              <p className="text-sm font-bold text-white relative z-10">
+                ¡Anímate a subir tu cosplay o fotos que tengas de los cosplays para recordarlos! ✦
+              </p>
+            </div>
           </div>
-          <div>
-            <label className="label">Foto (URL)</label>
-            <input className="input" type="url" value={photoUrl} onChange={(e) => setPhotoUrl(e.target.value)} placeholder="https://… (vacío = demo)" />
-            <p className="text-[11px] text-muted-2 mt-1">En producción esto subirá la imagen a Supabase Storage.</p>
-          </div>
-          <div>
-            <label className="label">¿De qué evento es la foto?</label>
-            <select className="input" value={eventId} onChange={(e) => setEventId(e.target.value)}>
-              <option value="">Sin evento / general</option>
-              {selectableEvents.map((ev) => (
-                <option key={ev.id} value={ev.id}>{ev.title}</option>
-              ))}
-            </select>
-            <p className="text-[11px] text-muted-2 mt-1">Solo aparecen eventos vigentes o que terminaron hace ≤ 1 semana.</p>
-          </div>
-          <div>
-            <label className="label">Descripción</label>
-            <textarea className="input resize-none" rows={3} required value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Detalles, materiales, tus redes de cosplay…" />
-          </div>
-          <div className="flex justify-end gap-3">
-            <button type="button" onClick={() => setShowForm(false)} className="btn btn-ghost">Cancelar</button>
-            <button type="submit" className="btn btn-cyan">Publicar</button>
-          </div>
-        </form>
+        </div>
       )}
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

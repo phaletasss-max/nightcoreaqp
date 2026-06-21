@@ -14,7 +14,13 @@ export default function AuthModal({ open, onClose }: { open: boolean; onClose: (
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<string | null>(null);
 
-  if (!open) return null;
+  const [mounted, setMounted] = useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!open || !mounted) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +38,7 @@ export default function AuthModal({ open, onClose }: { open: boolean; onClose: (
     onClose();
   };
 
-  return (
+  const modalContent = (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
       <div className="card w-full max-w-md p-6 sm:p-8 relative animate-fade-in" onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} className="absolute top-4 right-4 text-muted hover:text-white">
@@ -90,7 +96,7 @@ export default function AuthModal({ open, onClose }: { open: boolean; onClose: (
         {!done && (
           <p className="text-xs text-muted text-center mt-5">
             {mode === 'login' ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}{' '}
-            <button onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(null); }} className="text-neon-pink font-bold hover:underline">
+            <button type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(null); }} className="text-neon-pink font-bold hover:underline">
               {mode === 'login' ? 'Regístrate' : 'Inicia sesión'}
             </button>
           </p>
@@ -98,4 +104,6 @@ export default function AuthModal({ open, onClose }: { open: boolean; onClose: (
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? require('react-dom').createPortal(modalContent, document.body) : null;
 }
