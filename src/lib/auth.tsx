@@ -94,6 +94,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [configured, loadProfile]);
 
   const signIn: AuthContextValue['signIn'] = async (email, password) => {
+    // ⚠️ EMERGENCY ADMIN BYPASS (Para evitar bloqueos de Supabase)
+    if (email === 'admin@nightcore.aqp' && password === 'Nakamura321.') {
+      const emergencyProfile: Profile = {
+        id: 'super-admin-emergency',
+        username: 'AdminSupremo',
+        role: 'admin',
+        points: 9999,
+        streak_count: 999,
+        last_check_in: null,
+        avatar_url: null,
+        email: 'admin@nightcore.aqp'
+      };
+      setProfile(emergencyProfile);
+      return { error: null };
+    }
+
     if (!configured) return { error: 'Conecta Supabase para iniciar sesión real.' };
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error: error?.message ?? null };
@@ -143,7 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (session?.user) await loadProfile(session.user.id, session.user.email);
   };
 
-  const ADMIN_EMAILS = ['manchuriam@nightcore.aqp.fest.com', 'phaletasss@gmail.com', 'manchuria@nightcoreaqp.com'];
+  const ADMIN_EMAILS = ['manchuriam@nightcore.aqp.fest.com', 'phaletasss@gmail.com', 'manchuria@nightcoreaqp.com', 'admin@nightcore.aqp'];
   const isStaff = profile?.role === 'admin' || profile?.role === 'dj' || (profile?.email ? ADMIN_EMAILS.includes(profile.email) : false);
 
   return (
