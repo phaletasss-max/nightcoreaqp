@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   User, Flame, Coins, Ticket, Bell, Smartphone, QrCode,
-  AlertCircle, CheckCircle2, Camera, MessageSquare, Heart, Medal,
+  AlertCircle, CheckCircle2, Camera, MessageSquare, Heart, Medal, ShieldAlert,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { getAttendees, getUserActivity } from '@/lib/data';
