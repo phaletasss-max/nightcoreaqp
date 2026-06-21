@@ -66,22 +66,26 @@ export default function DescargasPage() {
     setLoading(true);
 
     try {
-      if (!mediaOn) {
-        throw new Error('El servicio de descarga no está conectado aún. Pronto estará disponible.');
-      }
-
       const cleanUrl = (u: string) => u.split('&list=')[0].split('?list=')[0];
       const cUrl = cleanUrl(url);
 
-      // Verificar disponibilidad
+      if (!mediaOn) {
+        // Redirigir a servicio online en Vercel
+        window.open(`https://ssyoutube.com/en171/youtube-video-downloader?url=${encodeURIComponent(cUrl)}`, '_blank');
+        setSuccess(true);
+        addPoints(1);
+        setTimeout(() => setSuccess(false), 3000);
+        setLoading(false);
+        return;
+      }
+
+      // Verificar disponibilidad (solo en local con media-service)
       const info = await checkVideo(cUrl);
       if (info && !info.available) {
         throw new Error('Ese enlace no está disponible o es privado.');
       }
 
       const filename = info?.title || `descarga_${Date.now()}`;
-      
-      // La reproducción automática fue removida. Solo descarga normal.
       await downloadMedia(cUrl, format, filename.replace(/[^a-z0-9]/gi, '_').substring(0, 50));
       setSuccess(true);
       addPoints(3);

@@ -60,10 +60,10 @@ export default function PlaylistPage() {
       setChecking(true);
       let info = await checkVideo(cUrl);
       
-      // Fallback a YouTube oEmbed si el media-service falla
+      // Fallback a noembed (bypass CORS) si el media-service falla
       if (!info || (!info.available && info.error === 'No se pudo contactar el media-service')) {
         try {
-          const res = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(cUrl)}&format=json`);
+          const res = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(cUrl)}`);
           if (res.ok) {
             const data = await res.json();
             info = {
@@ -89,9 +89,13 @@ export default function PlaylistPage() {
           const yt = getYouTubeId(cUrl);
           if (yt) playItem({ type: 'yt', id: yt, title: info.title || 'Previa', artist: info.author || 'Sugerencia' });
         } else {
-          // Play stream
-          const MEDIA_URL = (process.env.NEXT_PUBLIC_MEDIA_SERVICE_URL || 'http://localhost:8787').replace(/\/$/, '');
-          playItem({ type: 'stream', url: `${MEDIA_URL}/api/download?url=${encodeURIComponent(cUrl)}&format=mp4`, title: info.title || 'Previa', artist: info.author || 'Sugerencia' });
+          // Play stream if media is on, otherwise alert
+          if (isMediaConfigured()) {
+            const MEDIA_URL = (process.env.NEXT_PUBLIC_MEDIA_SERVICE_URL || 'http://localhost:8787').replace(/\/$/, '');
+            playItem({ type: 'stream', url: `${MEDIA_URL}/api/download?url=${encodeURIComponent(cUrl)}&format=mp4`, title: info.title || 'Previa', artist: info.author || 'Sugerencia' });
+          } else {
+            console.log('Media service no disponible para vista previa.');
+          }
         }
       } else {
         const yt = getYouTubeId(cUrl);
