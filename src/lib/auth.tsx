@@ -83,7 +83,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session?.user) {
         loadProfile(session.user.id, session.user.email);
       } else {
-        setProfile(null);
+        const isEmergency = localStorage.getItem('nq_emergency_admin');
+        if (isEmergency === 'true') {
+          setProfile({
+            id: '11111111-1111-1111-1111-111111111111',
+            username: 'AdminSupremo',
+            role: 'admin',
+            points: 9999,
+            streak_count: 999,
+            last_check_in: null,
+            avatar_url: null,
+            email: 'admin@nightcore.aqp'
+          });
+        } else {
+          setProfile(null);
+        }
       }
     });
 
@@ -107,6 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: 'admin@nightcore.aqp'
       };
       setProfile(emergencyProfile);
+      localStorage.setItem('nq_emergency_admin', 'true');
       return { error: null };
     }
 
@@ -134,6 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    localStorage.removeItem('nq_emergency_admin');
     if (configured) await supabase.auth.signOut();
     setProfile(null);
   };

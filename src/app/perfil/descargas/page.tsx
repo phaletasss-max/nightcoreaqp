@@ -103,6 +103,11 @@ export default function DescargasPage() {
     const cUrl = cleanUrl(url);
     if (!cUrl.trim() || !suggestTitle.trim() || !suggestArtist.trim()) return;
 
+    if (!profile || profile.id === '11111111-1111-1111-1111-111111111111') {
+      setError('⚠️ Necesitas iniciar sesión con tu cuenta real (Supabase) para poder guardar canciones.');
+      return;
+    }
+
     const isYt = cUrl.includes('youtube.com') || cUrl.includes('youtu.be');
     if (!isYt) {
       setError('Solo puedes sugerir enlaces de YouTube a la playlist.');
