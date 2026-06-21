@@ -151,6 +151,15 @@ export async function deleteSong(songId: string): Promise<void> {
   lsSet('nq_songs', lsGet('nq_songs', DEMO_SONGS).filter((s) => s.id !== songId));
 }
 
+export async function clearSongs(): Promise<void> {
+  if (cfg()) {
+    // Delete all songs
+    await supabase.from('songs').delete().neq('id', 'dummy'); 
+    return;
+  }
+  lsSet('nq_songs', []);
+}
+
 // Guarda el MP4 propio de una canción (lo subió el media-service a Storage).
 export async function setSongFileUrl(songId: string, fileUrl: string): Promise<void> {
   if (cfg()) { await supabase.from('songs').update({ file_url: fileUrl }).eq('id', songId); return; }

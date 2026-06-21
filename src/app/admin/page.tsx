@@ -8,7 +8,7 @@ import {
 import { useAuth } from '@/lib/auth';
 import {
   getEvents, saveEvent, deleteEvent, getSongs, setSongPlayed, deleteSong,
-  getAttendees, launchSurvey, setSongFileUrl,
+  getAttendees, launchSurvey, setSongFileUrl, clearSongs
 } from '@/lib/data';
 import { downloadMedia, storeBackup, isMediaConfigured } from '@/lib/media';
 import type { EventItem, Song, Attendee, EventStatus } from '@/lib/types';
@@ -91,6 +91,12 @@ export default function AdminPage() {
   const removeSong = async (id: string) => {
     setSongs((p) => p.filter((x) => x.id !== id));
     await deleteSong(id);
+  };
+  const handleClearSongs = async () => {
+    if (!confirm('¿ESTÁS SEGURO? Esto eliminará TODAS las canciones de la base de datos de Supabase. Esta acción no se puede deshacer.')) return;
+    await clearSongs();
+    setSongs([]);
+    alert('Playlist vaciada con éxito.');
   };
 
   const handleDownloadSet = async () => {
@@ -257,6 +263,10 @@ export default function AdminPage() {
               ) : (
                 <span className="text-[10px] text-muted-2" title="Disponible al conectar el media-service">Descarga del set: media-service no conectado</span>
               )}
+              <div className="w-px h-4 bg-border mx-1" />
+              <button onClick={handleClearSongs} className="btn border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-1.5 text-xs">
+                <Trash2 className="h-3.5 w-3.5" /> Vaciar Playlist
+              </button>
             </div>
           </div>
           <div className="overflow-x-auto">
