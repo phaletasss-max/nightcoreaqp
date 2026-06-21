@@ -59,9 +59,10 @@ export default function PlaylistPage() {
       setChecking(false);
       setVideoInfo(info);
       if (info && info.available) {
-        if (info.title && !title) setTitle(info.title);
-        if (info.author && !artist) setArtist(info.author);
+        setTitle(info.title || '');
+        setArtist(info.author || '');
         
+
         // Auto preview
         if (info.embeddable) {
           const yt = getYouTubeId(cUrl);

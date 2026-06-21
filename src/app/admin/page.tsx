@@ -35,7 +35,7 @@ export default function AdminPage() {
   const [evDesc, setEvDesc] = useState('');
   const [evDate, setEvDate] = useState('2026-08-25T18:00');
   const [evLocation, setEvLocation] = useState('');
-  const [evPrice, setEvPrice] = useState('15.00');
+  const [evPrice, setEvPrice] = useState('0');
   const [evCap, setEvCap] = useState(150);
   const [evStatus, setEvStatus] = useState<EventStatus>('planning');
   const [evComments, setEvComments] = useState(true);
@@ -44,8 +44,19 @@ export default function AdminPage() {
   const [evThemes, setEvThemes] = useState('');
   const [evDetails, setEvDetails] = useState('');
   const [evGoogleMaps, setEvGoogleMaps] = useState('');
-  const [evTikToks, setEvTikToks] = useState('');
+  const [evTikToksList, setEvTikToksList] = useState<{title: string; url: string}[]>([]);
   const [evDJs, setEvDJs] = useState<{ name: string; tel: string; color: string; bg_url: string }[]>([]);
+
+  const [strictAuth, setStrictAuth] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPass, setLoginPass] = useState('');
+  const [loginError, setLoginError] = useState('');
+
+  const PRESET_DJS = [
+    { name: 'DJ Lobito', tel: '946 388 627', color: 'neon-magenta', bg_url: '/fondoscenecoe.mp4' },
+    { name: 'DJ Matt', tel: '944 506 957', color: 'neon-lime', bg_url: '/fondoscenecoe.mp4' },
+    { name: 'DJ Mely', tel: '951 710 227', color: 'neon-cyan', bg_url: '/mikualentadora.jpg' }
+  ];
 
   useEffect(() => {
     getEvents().then(setEvents);
@@ -53,12 +64,26 @@ export default function AdminPage() {
     getAttendees().then(setRsvps);
   }, []);
 
-  if (!isStaff) {
+  if (!isStaff && !strictAuth) {
     return (
-      <div className="card p-10 text-center max-w-md mx-auto">
+      <div className="card p-10 text-center max-w-md mx-auto space-y-4">
         <ShieldAlert className="h-10 w-10 text-neon-pink mx-auto mb-3" />
-        <h1 className="section-title">Acceso restringido</h1>
-        <p className="text-sm text-muted mt-2">Esta sección es solo para administradores y DJs.</p>
+        <h1 className="section-title text-xl">Acceso Admin</h1>
+        <p className="text-sm text-muted">Ingresa tus credenciales maestras para continuar.</p>
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          if (loginEmail === 'manchuriam@nightcore.aqp.fest.com' && loginPass === 'Nakamura321.') {
+            setStrictAuth(true);
+            setLoginError('');
+          } else {
+            setLoginError('Credenciales incorrectas');
+          }
+        }} className="space-y-4 mt-4">
+          <input type="email" required className="input w-full text-center" placeholder="Correo electrónico" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} />
+          <input type="password" required className="input w-full text-center" placeholder="Contraseña" value={loginPass} onChange={e => setLoginPass(e.target.value)} />
+          {loginError && <p className="text-red-500 text-xs font-bold">{loginError}</p>}
+          <button type="submit" className="btn btn-primary w-full">Ingresar a Consola</button>
+        </form>
       </div>
     );
   }
@@ -159,13 +184,13 @@ export default function AdminPage() {
       themes: evThemes || null,
       details: evDetails || null,
       google_maps_url: evGoogleMaps || null,
-      tiktok_urls: evTikToks || null,
+      tiktok_urls: evTikToksList.length > 0 ? JSON.stringify(evTikToksList) : null,
       djs: evDJs.length > 0 ? evDJs : undefined,
     };
     setEvents((p) => [...p, ev]);
     await saveEvent(ev);
-    setEvTitle(''); setEvTagline(''); setEvDesc(''); setEvLocation(''); setEvPrice('15.00'); setEvCap(150); setEvStatus('planning'); setEvComments(true);
-    setEvFlyer(''); setEvThemes(''); setEvDetails(''); setEvGoogleMaps(''); setEvTikToks(''); setEvDJs([]);
+    setEvTitle(''); setEvTagline(''); setEvDesc(''); setEvLocation(''); setEvPrice('0'); setEvCap(150); setEvStatus('planning'); setEvComments(true);
+    setEvFlyer(''); setEvThemes(''); setEvDetails(''); setEvGoogleMaps(''); setEvTikToksList([]); setEvDJs([]);
   };
 
   const handleAddDJ = () => setEvDJs([...evDJs, { name: '', tel: '', color: 'neon-lime', bg_url: '' }]);
@@ -339,13 +364,29 @@ export default function AdminPage() {
             <div><label className="label">Tagline</label><input className="input" value={evTagline} onChange={(e) => setEvTagline(e.target.value)} placeholder="Ej. Miku & FNAF" /></div>
             <div><label className="label">Descripción</label><textarea className="input resize-none" rows={3} value={evDesc} onChange={(e) => setEvDesc(e.target.value)} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="label">Flyer URL (JPG/PNG)</label><input className="input" value={evFlyer} onChange={(e) => setEvFlyer(e.target.value)} placeholder="https://..." /></div>
+              <div><label className="label">Flyer URL (Imagen, MP4, MP3)</label><input className="input" value={evFlyer} onChange={(e) => setEvFlyer(e.target.value)} placeholder="https://..." /></div>
               <div><label className="label">Temáticas</label><input className="input" value={evThemes} onChange={(e) => setEvThemes(e.target.value)} placeholder="Cyberpunk, Vocaloid" /></div>
             </div>
             <div><label className="label">Detalles del Flyer (Bullets)</label><textarea className="input resize-none" rows={2} value={evDetails} onChange={(e) => setEvDetails(e.target.value)} placeholder="Shots gratis, Cóctel gratis..." /></div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-3">
               <div><label className="label">Google Maps Link</label><input className="input" value={evGoogleMaps} onChange={(e) => setEvGoogleMaps(e.target.value)} placeholder="https://maps.app.goo.gl/..." /></div>
-              <div><label className="label">TikTok Links (coma sep.)</label><input className="input" value={evTikToks} onChange={(e) => setEvTikToks(e.target.value)} placeholder="https://tiktok.com/..." /></div>
+              <div className="space-y-2 border-l-2 border-neon-cyan/30 pl-3">
+                <div className="flex items-center justify-between">
+                  <label className="label mb-0">Enlaces Informativos (TikTok, Posts...)</label>
+                  <button type="button" onClick={() => setEvTikToksList([...evTikToksList, {title: '', url: ''}])} className="btn btn-ghost px-2 py-1 text-xs"><Plus className="h-3 w-3" /> Añadir URL</button>
+                </div>
+                {evTikToksList.map((tkk, idx) => (
+                  <div key={idx} className="flex gap-2">
+                    <input className="input flex-1 text-xs" placeholder="Título (ej. Dresscode TikTok)" value={tkk.title} onChange={e => {
+                      const n = [...evTikToksList]; n[idx].title = e.target.value; setEvTikToksList(n);
+                    }} />
+                    <input className="input flex-[2] text-xs" placeholder="https://..." value={tkk.url} onChange={e => {
+                      const n = [...evTikToksList]; n[idx].url = e.target.value; setEvTikToksList(n);
+                    }} />
+                    <button type="button" onClick={() => setEvTikToksList(evTikToksList.filter((_, i) => i !== idx))} className="btn btn-ghost p-2"><Trash2 className="h-3.5 w-3.5 text-red-400" /></button>
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div><label className="label">Fecha</label><input className="input" type="datetime-local" required value={evDate} onChange={(e) => setEvDate(e.target.value)} /></div>
@@ -370,7 +411,19 @@ export default function AdminPage() {
             <div className="space-y-3 border-t border-border pt-4">
               <div className="flex items-center justify-between">
                 <label className="label mb-0">DJs del Evento</label>
-                <button type="button" onClick={handleAddDJ} className="btn btn-ghost px-2 py-1 text-xs"><Plus className="h-3 w-3" /> Añadir DJ</button>
+                <select className="input max-w-[150px] text-xs py-1" value="" onChange={(e) => {
+                  if(!e.target.value) return;
+                  if (e.target.value === 'custom') {
+                    handleAddDJ();
+                  } else {
+                    const dj = PRESET_DJS.find(d => d.name === e.target.value);
+                    if (dj && !evDJs.some(ex => ex.name === dj.name)) setEvDJs([...evDJs, dj]);
+                  }
+                }}>
+                  <option value="">Añadir DJ...</option>
+                  {PRESET_DJS.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
+                  <option value="custom">Otro DJ (Manual)</option>
+                </select>
               </div>
               {evDJs.map((dj, idx) => (
                 <div key={idx} className="p-3 bg-white/5 border border-border rounded-lg space-y-3 relative">

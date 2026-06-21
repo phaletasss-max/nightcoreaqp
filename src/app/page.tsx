@@ -8,7 +8,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Calendar, MapPin, Clock, Ticket, Users, Check, ArrowRight,
   MessageSquare, Send, AlertTriangle, Music4, Download, Zap,
-  Headphones, Star,
+  Headphones, Star, Link2,
 } from 'lucide-react';
 import Hero from '@/components/Hero';
 import DailyChallenges from '@/components/DailyChallenges';
@@ -177,6 +177,27 @@ export default function Home() {
               <span className="flex items-center gap-2 text-sm text-muted">
                 <MapPin className="h-4 w-4 text-neon-cyan glow-cyan" /> {selected.location || 'Ubicación por confirmar (Arequipa)'}
               </span>
+
+              {/* Maps & TikToks */}
+              <div className="flex flex-wrap gap-2 pt-2">
+                {selected.google_maps_url && (
+                  <a href={selected.google_maps_url} target="_blank" rel="noreferrer" className="btn btn-ghost px-3 py-1.5 text-xs border border-border">
+                    <MapPin className="h-3.5 w-3.5 text-neon-cyan" /> Ver en Mapa
+                  </a>
+                )}
+                {selected.tiktok_urls && (() => {
+                  try {
+                    const links: {title: string, url: string}[] = JSON.parse(selected.tiktok_urls);
+                    return links.map((l, i) => (
+                      <a key={i} href={l.url} target="_blank" rel="noreferrer" className="btn btn-ghost px-3 py-1.5 text-xs border border-border">
+                        <Link2 className="h-3.5 w-3.5 text-neon-magenta" /> {l.title || 'Info URL'}
+                      </a>
+                    ));
+                  } catch {
+                    return null;
+                  }
+                })()}
+              </div>
             </div>
 
             {/* Capacidad */}
