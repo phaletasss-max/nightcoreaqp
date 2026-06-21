@@ -72,7 +72,8 @@ export default function AdminPage() {
         <p className="text-sm text-muted">Ingresa tus credenciales maestras para continuar.</p>
         <form onSubmit={(e) => {
           e.preventDefault();
-          if (loginEmail === 'manchuriam@nightcore.aqp.fest.com' && loginPass === 'Nakamura321.') {
+          const ADMIN_EMAILS = ['manchuriam@nightcore.aqp.fest.com', 'manchuria@nightcoreaqp.com', 'admin@nightcore.aqp', 'phaletasss@gmail.com'];
+          if (ADMIN_EMAILS.includes(loginEmail) && loginPass === 'Nakamura321.') {
             setStrictAuth(true);
             setLoginError('');
           } else {

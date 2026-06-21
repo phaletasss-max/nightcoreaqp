@@ -16,8 +16,10 @@ function rankFor(points: number) {
   return { title: 'Fan de Bronce', cls: 'badge-pink' };
 }
 
+import Link from 'next/link';
+
 export default function PerfilPage() {
-  const { profile, addPoints, loading } = useAuth();
+  const { profile, addPoints, loading, isStaff } = useAuth();
   const [tickets, setTickets] = useState<Attendee[]>([]);
   const [activity, setActivity] = useState<UserActivity>({ costumes: [], comments: [], attended: [], likesGiven: 0 });
   const [pushEnabled, setPushEnabled] = useState(false);
@@ -119,6 +121,11 @@ export default function PerfilPage() {
               <button onClick={() => setEditing(!editing)} className="text-xs text-neon-cyan hover:underline mt-1">
                 {editing ? 'Cancelar edición' : 'Personalizar perfil'}
               </button>
+              {isStaff && (
+                <Link href="/admin" className="btn btn-primary text-xs py-1.5 w-full mt-3 flex items-center justify-center gap-2">
+                  <ShieldAlert className="h-4 w-4" /> Panel de Administración
+                </Link>
+              )}
             </div>
 
             {editing && (

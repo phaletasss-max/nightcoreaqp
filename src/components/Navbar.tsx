@@ -8,14 +8,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Music, Calendar, Camera, User, Bell, Download,
-  Flame, Coins, Menu, X, Volume2, LogIn, LogOut, Sparkles,
+  Flame, Coins, Menu, X, Volume2, LogIn, LogOut, Sparkles, ShieldAlert
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import AuthModal from '@/components/AuthModal';
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { profile, configured, signOut } = useAuth();
+  const { profile, configured, isStaff, signOut } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
 
@@ -68,6 +68,11 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-3">
             {profile && (
               <>
+                {isStaff && (
+                  <Link href="/admin" className="relative p-1.5 rounded-full text-neon-cyan hover:bg-white/5 transition-colors" title="Panel Admin">
+                    <ShieldAlert className="h-4 w-4" />
+                  </Link>
+                )}
                 <Link href="/perfil" className="relative p-1.5 rounded-full text-muted hover:text-white hover:bg-white/5 transition-colors" title="Notificaciones">
                   <Bell className="h-4 w-4" />
                   <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-neon-magenta" />
@@ -131,6 +136,18 @@ export default function Navbar() {
               </Link>
             );
           })}
+          {isStaff && (
+            <Link
+              href="/admin"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-colors ${
+                pathname === '/admin' ? 'bg-neon-cyan/10 text-neon-cyan' : 'text-neon-cyan hover:bg-white/5'
+              }`}
+            >
+              <ShieldAlert className="h-5 w-5" />
+              <span>Panel de Administración</span>
+            </Link>
+          )}
           <div className="pt-3 border-t" style={{ borderColor: 'rgba(255, 0, 255, 0.15)' }}>
             {profile && configured ? (
               <button onClick={() => { signOut(); setMobileMenuOpen(false); }} className="btn btn-ghost w-full">
