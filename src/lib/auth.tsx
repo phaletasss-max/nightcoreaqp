@@ -97,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // ⚠️ EMERGENCY ADMIN BYPASS (Para evitar bloqueos de Supabase)
     if (email === 'admin@nightcore.aqp' && password === 'Nakamura321.') {
       const emergencyProfile: Profile = {
-        id: 'super-admin-emergency',
+        id: '11111111-1111-1111-1111-111111111111',
         username: 'AdminSupremo',
         role: 'admin',
         points: 9999,
