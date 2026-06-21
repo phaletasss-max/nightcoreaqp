@@ -87,9 +87,12 @@ export default function PlaylistPage() {
           if (yt) playItem({ type: 'yt', id: yt, title: info.title || 'Previa', artist: info.author || 'Sugerencia' });
         } else {
           // Play stream
-          const MEDIA_URL = (process.env.NEXT_PUBLIC_MEDIA_SERVICE_URL || '').replace(/\/$/, '');
+          const MEDIA_URL = (process.env.NEXT_PUBLIC_MEDIA_SERVICE_URL || 'http://localhost:8787').replace(/\/$/, '');
           playItem({ type: 'stream', url: `${MEDIA_URL}/api/download?url=${encodeURIComponent(cUrl)}&format=mp4`, title: info.title || 'Previa', artist: info.author || 'Sugerencia' });
         }
+      } else {
+        const yt = getYouTubeId(cUrl);
+        if (yt) setTitle(`Video ${yt}`);
       }
     }, 1000);
     return () => clearTimeout(t);
