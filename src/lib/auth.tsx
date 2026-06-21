@@ -51,9 +51,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadProfile = useCallback(async (userId: string) => {
+  const loadProfile = useCallback(async (userId: string, email?: string) => {
     const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
-    if (data) setProfile(data as Profile);
+    if (data) {
+      setProfile({ ...(data as Profile), email });
+    }
   }, []);
 
   useEffect(() => {
@@ -70,7 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return;
       if (session?.user) {
-        loadProfile(session.user.id).finally(() => mounted && setLoading(false));
+        loadProfile(session.user.id, session.user.email).finally(() => mounted && setLoading(false));
       } else {
         setLoading(false);
       }
@@ -78,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        loadProfile(session.user.id);
+        loadProfile(session.user.id, session.user.email);
       } else {
         setProfile(null);
       }
@@ -129,10 +131,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) await loadProfile(session.user.id);
+    if (session?.user) await loadProfile(session.user.id, session.user.email);
   };
 
-  const isStaff = profile?.role === 'admin' || profile?.role === 'dj';
+  const ADMIN_EMAILS = ['manchuriam@nightcore.aqp.fest.com', 'phaletasss@gmail.com', 'phaletasss@gmai.com'];
+  const isStaff = profile?.role === 'admin' || profile?.role === 'dj' || (profile?.email ? ADMIN_EMAILS.includes(profile.email) : false);
 
   return (
     <AuthContext.Provider value={{ profile, loading, configured, isStaff, signIn, signUp, signOut, addPoints, refresh }}>

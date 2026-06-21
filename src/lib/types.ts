@@ -14,6 +14,7 @@ export interface Profile {
   streak_count: number;
   last_check_in: string | null;
   avatar_url: string | null;
+  email?: string;
 }
 
 export interface EventItem {
