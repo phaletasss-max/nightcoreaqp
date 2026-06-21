@@ -16,6 +16,7 @@ interface AuthContextValue {
   isStaff: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, username: string) => Promise<{ error: string | null }>;
+  resetPassword: (email: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   addPoints: (delta: number) => void;
   refresh: () => Promise<void>;
@@ -108,6 +109,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error?.message ?? null };
   };
 
+  const resetPassword: AuthContextValue['resetPassword'] = async (email) => {
+    if (!configured) return { error: 'Conecta Supabase para recuperar la contraseña.' };
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/reset-password` : undefined,
+    });
+    return { error: error?.message ?? null };
+  };
+
   const signOut = async () => {
     if (configured) await supabase.auth.signOut();
     setProfile(null);
@@ -138,7 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isStaff = profile?.role === 'admin' || profile?.role === 'dj' || (profile?.email ? ADMIN_EMAILS.includes(profile.email) : false);
 
   return (
-    <AuthContext.Provider value={{ profile, loading, configured, isStaff, signIn, signUp, signOut, addPoints, refresh }}>
+    <AuthContext.Provider value={{ profile, loading, configured, isStaff, signIn, signUp, resetPassword, signOut, addPoints, refresh }}>
       {children}
     </AuthContext.Provider>
   );

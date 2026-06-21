@@ -5,8 +5,8 @@ import { X, LogIn, UserPlus, AlertCircle, Mail } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 
 export default function AuthModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { signIn, signUp, configured } = useAuth();
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const { configured, signIn, signUp, resetPassword } = useAuth();
+  const [mode, setMode] = useState<'login' | 'register' | 'recovery'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
@@ -26,16 +26,20 @@ export default function AuthModal({ open, onClose }: { open: boolean; onClose: (
     e.preventDefault();
     setError(null);
     setBusy(true);
-    const res = mode === 'login'
-      ? await signIn(email, password)
-      : await signUp(email, password, username);
-    setBusy(false);
-    if (res.error) { setError(res.error); return; }
-    if (mode === 'register') {
-      setDone('Cuenta creada. Revisa tu correo para confirmar y luego inicia sesión.');
-      return;
+    if (mode === 'recovery') {
+      const { error } = await resetPassword(email);
+      if (error) setError(error);
+      else setDone('Revisa tu correo. Te hemos enviado un enlace para cambiar tu contraseña.');
+    } else if (mode === 'login') {
+      const { error } = await signIn(email, password);
+      if (error) setError(error);
+      else onClose();
+    } else {
+      const { error } = await signUp(email, password, username);
+      if (error) setError(error);
+      else setDone('¡Cuenta creada! Revisa tu correo para verificar tu cuenta (si aplica), o cierra esto y ya estarás logeado.');
     }
-    onClose();
+    setBusy(false);
   };
 
   const modalContent = (
@@ -45,9 +49,11 @@ export default function AuthModal({ open, onClose }: { open: boolean; onClose: (
           <X className="h-5 w-5" />
         </button>
 
-        <h2 className="section-title mb-1">{mode === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}</h2>
+        <h2 className="text-2xl font-black text-white mb-2 tracking-tight">
+          {mode === 'login' ? 'Iniciar sesión' : mode === 'register' ? 'Crear cuenta' : 'Recuperar contraseña'}
+        </h2>
         <p className="text-sm text-muted mb-6">
-          {mode === 'login' ? 'Entra para votar, sugerir música y ganar puntos.' : 'Únete a la comunidad nightcore de Arequipa.'}
+          {mode === 'login' ? 'Entra para votar, sugerir música y ganar puntos.' : mode === 'register' ? 'Únete a la comunidad nightcore de Arequipa.' : 'Te enviaremos un correo con instrucciones para restablecer tu contraseña.'}
         </p>
 
         {!configured && (
@@ -75,10 +81,12 @@ export default function AuthModal({ open, onClose }: { open: boolean; onClose: (
               <label className="label">Correo</label>
               <input className="input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tucorreo@gmail.com" />
             </div>
-            <div>
-              <label className="label">Contraseña</label>
-              <input className="input" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" />
-            </div>
+            {mode !== 'recovery' && (
+              <div>
+                <label className="label">Contraseña</label>
+                <input className="input" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" />
+              </div>
+            )}
 
             {error && (
               <div className="badge badge-red w-full justify-start py-2 px-3 normal-case tracking-normal text-xs">
@@ -88,18 +96,25 @@ export default function AuthModal({ open, onClose }: { open: boolean; onClose: (
 
             <button type="submit" disabled={busy} className="btn btn-primary w-full">
               {mode === 'login' ? <LogIn className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
-              {busy ? 'Procesando…' : mode === 'login' ? 'Entrar' : 'Registrarme'}
+              {busy ? 'Procesando…' : mode === 'login' ? 'Entrar' : mode === 'register' ? 'Registrarme' : 'Recuperar contraseña'}
             </button>
           </form>
         )}
 
         {!done && (
-          <p className="text-xs text-muted text-center mt-5">
-            {mode === 'login' ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}{' '}
-            <button type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(null); }} className="text-neon-pink font-bold hover:underline">
-              {mode === 'login' ? 'Regístrate' : 'Inicia sesión'}
-            </button>
-          </p>
+          <div className="text-xs text-muted text-center mt-5 space-y-2 flex flex-col items-center">
+            <p>
+              {mode === 'login' ? '¿No tienes cuenta?' : mode === 'register' ? '¿Ya tienes cuenta?' : '¿Recordaste tu contraseña?'}{' '}
+              <button type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(null); }} className="text-neon-pink font-bold hover:underline">
+                {mode === 'login' ? 'Regístrate' : 'Inicia sesión'}
+              </button>
+            </p>
+            {mode === 'login' && (
+              <button type="button" onClick={() => { setMode('recovery'); setError(null); }} className="text-neon-cyan hover:underline transition-colors">
+                Olvidé mi contraseña
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>
