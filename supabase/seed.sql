@@ -9,19 +9,19 @@
 insert into events (id, title, tagline, description, date, location, ticket_price, total_tickets, available_tickets, status, comments_enabled)
 values
   ('e1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
-   'NIGHTCORE NEXUS V1',
-   'La mayor fiesta anime, eurobeat y nightcore en Arequipa',
-   'Únete a una noche llena de visuales cyberpunk, remixes acelerados de tus canciones de anime favoritas y un setlist comandado por los DJs más duros de la escena local.',
-   '2026-07-18T20:00:00-05:00',
-   'Casona San Francisco 308, Centro Histórico, Arequipa',
-   15.00, 150, 27, 'confirmed', true),
+   'Nightcore AQP - Primera Edición',
+   'Ingreso libre 7:30 PM – 9:30 PM · 15 de mayo',
+   '¡Vive la fiesta, que no te lo cuenten, vívelo! Primer evento de Nightcore AQP en Arequipa. Ingreso completamente libre de 7:30 PM hasta las 9:30 PM. Ubicación: Inferno, a media cuadra de la Plaza de Armas.',
+   '2025-05-15T19:30:00-05:00',
+   'Inferno, media cuadra de la Plaza de Armas, Arequipa',
+   0.00, 0, 0, 'confirmed', true),
   ('e2b3c4d5-e6f7-8a9b-0c1d-2e3f4a5b6c7d',
-   'NIGHTCORE FRIKI FEST (EDICIÓN ESPECIAL)',
-   'Temática Cyberpunk, Hatsune Miku, FNAF & Cultura Geek',
-   '¡Nuestra próxima gran fecha temática! Concurso especial de disfraces, cabina cyberpunk decorada con visuales creepy-coloridos de Vocaloid y animatrónicos, y playbacks en vivo.',
-   '2026-07-25T18:00:00-05:00',
-   'Por confirmar (Arequipa)',
-   12.00, 200, 200, 'planning', true)
+   'Nightcore AQP - Segunda Edición',
+   'Corcho libre hasta las 8 PM · 12 de junio',
+   '¡Vive la fiesta, que no te lo cuenten, vívelo! Segunda edición de Nightcore AQP. Con los DJs: DJ Lobito, DJ Matt y DJ Mely. Corcho libre hasta las 8 PM de la noche. Starts 5 PM. Ubicación: a 1 cuadra y media de la Plaza de Armas.',
+   '2025-06-12T17:00:00-05:00',
+   'A 1 cuadra y media de la Plaza de Armas, Arequipa',
+   0.00, 0, 0, 'confirmed', true)
 on conflict (id) do nothing;
 
 -- ── Canciones (playlist del DJ) ──────────────────────────────────────────────
@@ -33,7 +33,9 @@ values
   ('e1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d', 'FRIENDS', 'Marshmello & Anne-Marie (Speedup)', 'https://www.youtube.com/watch?v=jzD_yyEw0M4', 'Nightcore Pop', 'Pop/Speedup', 'Friendzone_Hero', 65),
   ('e1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d', 'Five Nights at Freddy''s 2 Song', 'The Living Tombstone', 'https://www.youtube.com/watch?v=d1wK9FzN96w', 'Creepy Synthwave', 'FNAF', 'Foxy_BiteOf87', 59),
   ('e1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d', 'Stronger Than You - Chara Response Remake', 'Undertale Animation Parody', 'https://www.youtube.com/watch?v=co5Zo6Ng9-c', 'Chiptune Remix', 'Undertale', 'Sans_Undertale', 48),
-  ('e1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d', 'Creeper vs Zombie - Especial 1 Millón (Parte 2)', 'Zarcort & Kronno Zomber', 'https://www.youtube.com/watch?v=5m288qNNDw0', 'Geek Rap / Gamer', 'Minecraft', 'Fernanfloo_Fan', 43)
+  ('e1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d', 'Creeper vs Zombie - Especial 1 Millón (Parte 2)', 'Zarcort & Kronno Zomber', 'https://www.youtube.com/watch?v=5m288qNNDw0', 'Geek Rap / Gamer', 'Minecraft', 'Fernanfloo_Fan', 43),
+  ('e2b3c4d5-e6f7-8a9b-0c1d-2e3f4a5b6c7d', 'Touhou - Touhou Remix DJ Haru Edition', 'DJ Haru', 'https://www.youtube.com/watch?v=8Xp2LYvXzws', 'Nightcore', 'Touhou', 'Touhou_Fan', 35),
+  ('e2b3c4d5-e6f7-8a9b-0c1d-2e3f4a5b6c7d', 'Senbonsakura (Nightcore Speedup)', 'Vocaloid Remix Masters', 'https://www.youtube.com/watch?v=D_F6LwREG0U', 'Nightcore Vocaloid', 'Anime', 'Miku_Lover', 28)
 on conflict do nothing;
 
 -- ── Temáticas de la comunidad ────────────────────────────────────────────────

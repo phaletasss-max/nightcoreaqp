@@ -7,30 +7,30 @@ import type { EventItem, Song, Survey, Costume, EventComment, Theme } from './ty
 export const DEMO_EVENTS: EventItem[] = [
   {
     id: 'e1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
-    title: 'Nightcore Nexus V1',
-    tagline: 'Anime, eurobeat y nightcore en Arequipa',
+    title: 'Nightcore AQP - Primera Edición',
+    tagline: 'Ingreso libre 7:30 PM – 9:30 PM · 15 de mayo',
     description:
-      'Una noche de visuales cyberpunk, remixes acelerados de tus canciones de anime favoritas y un setlist comandado por los DJs de la escena local.',
-    date: '2026-07-18T20:00:00-05:00',
-    location: 'Casona San Francisco 308, Centro Histórico, Arequipa',
-    ticket_price: 15,
-    total_tickets: 150,
-    available_tickets: 27,
+      '¡Vive la fiesta, que no te lo cuenten, vívelo! Primer evento de Nightcore AQP en Arequipa. Ingreso completamente libre de 7:30 PM hasta las 9:30 PM. Ubicación: Inferno, a media cuadra de la Plaza de Armas.',
+    date: '2025-05-15T19:30:00-05:00',
+    location: 'Inferno, media cuadra de la Plaza de Armas, Arequipa',
+    ticket_price: 0,
+    total_tickets: 0,
+    available_tickets: 0,
     status: 'confirmed',
     comments_enabled: true,
   },
   {
     id: 'e2b3c4d5-e6f7-8a9b-0c1d-2e3f4a5b6c7d',
-    title: 'Nightcore Friki Fest',
-    tagline: 'Edición especial · Miku · FNAF · Cultura geek',
+    title: 'Nightcore AQP - Segunda Edición',
+    tagline: 'Corcho libre hasta las 8 PM · 12 de junio · 5 PM',
     description:
-      'Nuestra próxima gran fecha temática: concurso de disfraces, cabina cyberpunk con visuales de Vocaloid y animatrónicos, y playbacks en vivo.',
-    date: '2026-08-25T18:00:00-05:00',
-    location: 'Por confirmar (Arequipa)',
-    ticket_price: 12,
-    total_tickets: 200,
-    available_tickets: 200,
-    status: 'planning',
+      '¡Vive la fiesta, que no te lo cuenten, vívelo! Segunda edición con DJ Lobito, DJ Matt y DJ Mely. Corcho libre hasta las 8 PM de la noche. Entrada desde las 5 PM. A 1 cuadra y media de la Plaza de Armas.',
+    date: '2025-06-12T17:00:00-05:00',
+    location: 'A 1 cuadra y media de la Plaza de Armas, Arequipa',
+    ticket_price: 0,
+    total_tickets: 0,
+    available_tickets: 0,
+    status: 'confirmed',
     comments_enabled: true,
   },
 ];
@@ -43,6 +43,8 @@ export const DEMO_SONGS: Song[] = [
   { id: 's5', event_id: DEMO_EVENTS[0].id, title: "Five Nights at Freddy's 2 Song", artist: 'The Living Tombstone', youtube_url: 'https://www.youtube.com/watch?v=d1wK9FzN96w', genre: 'Creepy Synthwave', geek_tag: 'FNAF', suggested_by: null, suggested_by_name: 'Foxy_BiteOf87', votes_count: 59, played: false, userVote: 'upvote' },
   { id: 's6', event_id: DEMO_EVENTS[0].id, title: 'Stronger Than You — Chara Response', artist: 'Undertale Parody', youtube_url: 'https://www.youtube.com/watch?v=co5Zo6Ng9-c', genre: 'Chiptune Remix', geek_tag: 'Undertale', suggested_by: null, suggested_by_name: 'Sans_Undertale', votes_count: 48, played: false, userVote: null },
   { id: 's7', event_id: DEMO_EVENTS[0].id, title: 'Creeper vs Zombie (1 Millón)', artist: 'Zarcort & Kronno Zomber', youtube_url: 'https://www.youtube.com/watch?v=5m288qNNDw0', genre: 'Geek Rap', geek_tag: 'Minecraft', suggested_by: null, suggested_by_name: 'Fernanfloo_Fan', votes_count: 43, played: false, userVote: null },
+  { id: 's8', event_id: DEMO_EVENTS[1].id, title: 'Touhou Remix', artist: 'DJ Haru', youtube_url: 'https://www.youtube.com/watch?v=8Xp2LYvXzws', genre: 'Nightcore', geek_tag: 'Touhou', suggested_by: null, suggested_by_name: 'Touhou_Fan', votes_count: 35, played: false, userVote: null },
+  { id: 's9', event_id: DEMO_EVENTS[1].id, title: 'Senbonsakura (Speedup)', artist: 'Vocaloid Remix', youtube_url: 'https://www.youtube.com/watch?v=D_F6LwREG0U', genre: 'Nightcore Vocaloid', geek_tag: 'Anime', suggested_by: null, suggested_by_name: 'Miku_Lover', votes_count: 28, played: false, userVote: null },
 ];
 
 export const DEMO_SURVEY: Survey = {
@@ -57,9 +59,10 @@ export const DEMO_SURVEY: Survey = {
 };
 
 export const DEMO_COSTUMES: Costume[] = [
-  { id: 'c1', event_id: DEMO_EVENTS[0].id, user_id: null, char_name: 'Misa Amane', anime: 'Death Note', photo_url: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&auto=format&fit=crop&q=80', description: 'Armé el outfit gótico completo para el evento pasado.', votes_count: 74, voted: false, comments: [] },
+  { id: 'c1', event_id: DEMO_EVENTS[0].id, user_id: null, char_name: 'Misa Amane', anime: 'Death Note', photo_url: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&auto=format&fit=crop&q=80', description: 'Armé el outfit gótico completo para la primera edición.', votes_count: 74, voted: false, comments: [] },
   { id: 'c2', event_id: DEMO_EVENTS[0].id, user_id: null, char_name: 'Ken Kaneki', anime: 'Tokyo Ghoul', photo_url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=80', description: 'Cosplay versión battle. La máscara la hice yo mismo.', votes_count: 53, voted: false, comments: [] },
   { id: 'c3', event_id: DEMO_EVENTS[0].id, user_id: null, char_name: 'Cyberpunk DJ', anime: 'Original', photo_url: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=80', description: 'DJ futurista con luces LED al ritmo del nightcore.', votes_count: 31, voted: true, comments: [] },
+  { id: 'c4', event_id: DEMO_EVENTS[1].id, user_id: null, char_name: 'Hatsune Miku', anime: 'Vocaloid', photo_url: 'https://images.unsplash.com/photo-1589985643862-1c1f4899e35b?w=600&auto=format&fit=crop&q=80', description: 'Traje de Miku con peluca azul turquesa y accesorios.', votes_count: 42, voted: false, comments: [] },
 ];
 
 export const DEMO_COMMENTS: EventComment[] = [];
