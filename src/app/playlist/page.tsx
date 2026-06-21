@@ -55,7 +55,25 @@ export default function PlaylistPage() {
     setFormError(null);
     const t = setTimeout(async () => {
       setChecking(true);
-      const info = await checkVideo(cUrl);
+      let info = await checkVideo(cUrl);
+      
+      // Fallback a YouTube oEmbed si el media-service falla
+      if (!info || (!info.available && info.error === 'No se pudo contactar el media-service')) {
+        try {
+          const res = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(cUrl)}&format=json`);
+          if (res.ok) {
+            const data = await res.json();
+            info = {
+              available: true,
+              embeddable: true,
+              title: data.title,
+              author: data.author_name,
+              thumbnail: data.thumbnail_url,
+            };
+          }
+        } catch { /* ignorar fallback */ }
+      }
+      
       setChecking(false);
       setVideoInfo(info);
       if (info && info.available) {
@@ -118,13 +136,13 @@ export default function PlaylistPage() {
       return;
     }
 
-    if (!videoInfo && mediaOn) {
-      setFormError('Espera a que se verifique el enlace.');
+    if (!videoInfo && mediaOn && !title) {
+      setFormError('Espera a que se verifique el enlace o escribe el título manualmente.');
       return;
     }
 
-    if (videoInfo && !videoInfo.available) {
-      setFormError('Ese link no está disponible o es privado. Prueba con otro enlace público.');
+    if (videoInfo && !videoInfo.available && !title) {
+      setFormError('Ese link no está disponible o el validador falló. Por favor, escribe el título manualmente.');
       return;
     }
 

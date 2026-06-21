@@ -64,7 +64,7 @@ export default function AdminPage() {
     getAttendees().then(setRsvps);
   }, []);
 
-  if (!isStaff && !strictAuth) {
+  if (!strictAuth) {
     return (
       <div className="card p-10 text-center max-w-md mx-auto space-y-4">
         <ShieldAlert className="h-10 w-10 text-neon-pink mx-auto mb-3" />
