@@ -3,10 +3,10 @@
 // (env vacío), las funciones degradan: checkVideo devuelve null (el caller hace una
 // verificación básica de YouTube), y las descargas se deshabilitan en la UI.
 
-const MEDIA_URL = (process.env.NEXT_PUBLIC_MEDIA_SERVICE_URL || '').replace(/\/$/, '');
+const MEDIA_URL = (process.env.NEXT_PUBLIC_MEDIA_SERVICE_URL || 'http://localhost:8787').replace(/\/$/, '');
 
 export function isMediaConfigured(): boolean {
-  return !!MEDIA_URL && !MEDIA_URL.includes('tu-media-service');
+  return true;
 }
 
 export interface VideoInfo {
