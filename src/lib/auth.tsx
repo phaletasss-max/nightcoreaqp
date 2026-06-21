@@ -52,29 +52,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadProfile = useCallback(async (userId: string, email?: string) => {
-    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
-    if (data) {
-      setProfile({ ...(data as Profile), email });
+  // ── Función para restaurar perfil desde localStorage (instantáneo) ──
+  const restoreLocalProfile = useCallback((): Profile | null => {
+    if (typeof window === 'undefined') return null;
+    const isEmergency = localStorage.getItem('nq_emergency_admin');
+    if (isEmergency === 'true') {
+      return {
+        id: '11111111-1111-1111-1111-111111111111',
+        username: 'AdminSupremo',
+        role: 'admin',
+        points: 9999,
+        streak_count: 999,
+        last_check_in: null,
+        avatar_url: null,
+        email: 'admin@nightcore.aqp'
+      };
     }
+    const saved = localStorage.getItem('nq_local_profile');
+    if (saved) {
+      try { return JSON.parse(saved); } catch { /* ignorar */ }
+    }
+    return null;
+  }, []);
+
+  const loadProfile = useCallback(async (userId: string, email?: string) => {
+    try {
+      const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
+      if (data) {
+        setProfile({ ...(data as Profile), email });
+      }
+    } catch { /* Supabase puede fallar, el perfil local ya está cargado */ }
   }, []);
 
   useEffect(() => {
     if (!configured) {
-      // Sincroniza el perfil demo desde localStorage al montar (solo en cliente,
-      // por eso va en un efecto y no en el initializer: evita mismatch de hidratación).
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setProfile(loadDemoProfile());
       setLoading(false);
       return;
     }
 
+    // ★ PASO 1: Restaurar perfil desde localStorage INMEDIATAMENTE
+    // Esto garantiza que el usuario NUNCA pierde su sesión al dar F5
+    const localProfile = restoreLocalProfile();
+    if (localProfile) {
+      setProfile(localProfile);
+      setLoading(false);
+    }
+
+    // PASO 2: Intentar obtener sesión real de Supabase (si existe, reemplaza)
     let mounted = true;
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return;
       if (session?.user) {
         loadProfile(session.user.id, session.user.email).finally(() => mounted && setLoading(false));
-      } else {
+      } else if (!localProfile) {
+        // Solo poner null si tampoco hay perfil local
         setLoading(false);
       }
     });
@@ -82,34 +114,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         loadProfile(session.user.id, session.user.email);
-      } else {
-        // Restaurar perfiles guardados localmente
-        const isEmergency = localStorage.getItem('nq_emergency_admin');
-        const localProfile = localStorage.getItem('nq_local_profile');
-        if (isEmergency === 'true') {
-          setProfile({
-            id: '11111111-1111-1111-1111-111111111111',
-            username: 'AdminSupremo',
-            role: 'admin',
-            points: 9999,
-            streak_count: 999,
-            last_check_in: null,
-            avatar_url: null,
-            email: 'admin@nightcore.aqp'
-          });
-        } else if (localProfile) {
-          try { setProfile(JSON.parse(localProfile)); } catch { setProfile(null); }
-        } else {
-          setProfile(null);
-        }
       }
+      // NO hacer setProfile(null) aquí — el perfil local ya está cargado
     });
 
     return () => {
       mounted = false;
       sub.subscription.unsubscribe();
     };
-  }, [configured, loadProfile]);
+  }, [configured, loadProfile, restoreLocalProfile]);
 
   const signIn: AuthContextValue['signIn'] = async (email, password) => {
     // ⚠️ EMERGENCY ADMIN BYPASS (Para evitar bloqueos de Supabase)
