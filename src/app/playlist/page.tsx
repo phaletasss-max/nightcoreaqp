@@ -112,6 +112,12 @@ export default function PlaylistPage() {
 
     const finalArtist = artist || videoInfo?.author || 'YouTube';
 
+    const ytId = getYouTubeId(cUrl);
+    if (ytId && songs.some((s) => getYouTubeId(s.youtube_url) === ytId)) {
+      setFormError('Esta canción ya está en la playlist. ¡Búscala abajo y dale tu voto!');
+      return;
+    }
+
     if (!videoInfo && mediaOn) {
       setFormError('Espera a que se verifique el enlace.');
       return;

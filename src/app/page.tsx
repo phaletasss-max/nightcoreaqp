@@ -8,7 +8,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Calendar, MapPin, Clock, Ticket, Users, Check, ArrowRight,
   MessageSquare, Send, AlertTriangle, Music4, Download, Zap,
-  Headphones, Star, Link2,
+  Headphones, Star, Link2, Trash2,
 } from 'lucide-react';
 import Hero from '@/components/Hero';
 import DailyChallenges from '@/components/DailyChallenges';
@@ -18,12 +18,12 @@ import VideoBackground from '@/components/VideoBackground';
 import ScenecoreBackground from '@/components/ScenecoreBackground';
 import { useAuth } from '@/lib/auth';
 import {
-  getEvents, getComments, addComment, createRsvp, getAttendees,
+  getEvents, getComments, addComment, deleteComment, createRsvp, getAttendees,
 } from '@/lib/data';
 import type { EventItem, EventComment, Attendee } from '@/lib/types';
 
 export default function Home() {
-  const { profile, addPoints } = useAuth();
+  const { profile, addPoints, isStaff } = useAuth();
   const detailRef = useRef<HTMLDivElement>(null);
 
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -333,7 +333,19 @@ export default function Home() {
                         <span className="font-bold text-neon-magenta">{c.username}</span>
                         <span className="text-muted-2">{new Date(c.created_at).toLocaleDateString('es-ES', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
-                      <p className="text-sm text-foreground">{c.content}</p>
+                      <div className="flex justify-between items-start gap-4">
+                        <p className="text-sm text-foreground">{c.content}</p>
+                        {isStaff && (
+                          <button onClick={async () => {
+                            if (confirm('¿Eliminar comentario?')) {
+                              await deleteComment(c.id);
+                              setComments(comments.filter(x => x.id !== c.id));
+                            }
+                          }} className="text-red-400 hover:text-red-300 p-1 shrink-0">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))
                 )}

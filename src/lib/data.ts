@@ -190,6 +190,11 @@ export async function addComment(eventId: string, userId: string | null, usernam
   return row;
 }
 
+export async function deleteComment(commentId: string): Promise<void> {
+  if (cfg()) { await supabase.from('event_comments').delete().eq('id', commentId); return; }
+  lsSet('nq_comments', lsGet('nq_comments', DEMO_COMMENTS).filter((c) => c.id !== commentId));
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 //  ENCUESTA
 // ════════════════════════════════════════════════════════════════════════════

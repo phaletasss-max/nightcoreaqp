@@ -58,7 +58,7 @@ export default function DailyChallenges() {
       <div className="space-y-6">
         <div 
           className="card accent-pink p-6 space-y-5 relative overflow-hidden bg-cover bg-center"
-          style={{ backgroundImage: 'url(/mikualentadora.jpg)' }}
+          style={{ backgroundImage: 'url(/mikulatas.jpg)' }}
         >
           <div className="absolute inset-0 bg-black/70 backdrop-blur-[2px]" />
           <div className="relative z-10 space-y-5">

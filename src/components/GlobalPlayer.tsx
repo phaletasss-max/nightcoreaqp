@@ -34,7 +34,7 @@ export default function GlobalPlayer() {
       }), '*');
     }
     if (videoRef.current) {
-      videoRef.current.muted = isMuted;
+      videoRef.current.muted = playingItem?.type === 'default' ? true : isMuted;
     }
   }, [isMuted, playingItem]);
 
