@@ -114,20 +114,22 @@ export async function createRsvp(input: Omit<Attendee, 'id' | 'created_at' | 'co
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  CANCIONES (playlist)
+//  CANCIONES (playlist) — localStorage-first, Supabase como sync
 // ════════════════════════════════════════════════════════════════════════════
 export async function getSongs(): Promise<Song[]> {
+  // 1. Siempre leer lo local primero (esto NUNCA falla)
+  const local = lsGet<Song[]>('nq_songs', []);
+
+  // 2. Intentar traer de Supabase como complemento
   let remote: Song[] = [];
   if (cfg()) {
     try {
-      const { data } = await supabase.from('songs').select('*').order('votes_count', { ascending: false });
-      if (data) remote = data as Song[];
-    } catch (e) {
-      console.warn('Error fetching songs from Supabase, falling back to local');
-    }
+      const { data, error } = await supabase.from('songs').select('*').order('votes_count', { ascending: false });
+      if (!error && data && data.length > 0) remote = data as Song[];
+    } catch { /* silencioso */ }
   }
-  const local = lsGet<Song[]>('nq_songs', []);
-  // Combine: local and remote, favoring local if same ID or url
+
+  // 3. Combinar: remote primero, luego locales que no estén en remote
   const combined = [...remote];
   local.forEach(l => {
     if (!combined.find(c => c.id === l.id || c.youtube_url === l.youtube_url)) {
@@ -152,23 +154,22 @@ export async function addSong(input: Pick<Song, 'title' | 'artist' | 'youtube_ur
     played: false,
     userVote: 'upvote',
   };
-  if (cfg()) {
-    try {
-      const { data, error } = await supabase.from('songs').insert({
-        title: row.title, artist: row.artist, youtube_url: row.youtube_url,
-        genre: row.genre, geek_tag: row.geek_tag, suggested_by: userId, suggested_by_name: userName,
-      }).select().single();
-      
-      if (!error && data) return data as Song;
-      console.warn('Supabase rejected insert (RLS/500). Saving locally instead.');
-    } catch (e) {
-      console.warn('Supabase network error. Saving locally instead.');
-    }
-  }
-  // Fallback to local storage
+
+  // ★ SIEMPRE guardar en localStorage PRIMERO (garantía de persistencia)
   const all = lsGet<Song[]>('nq_songs', []);
   all.push(row);
   lsSet('nq_songs', all);
+
+  // Intentar también en Supabase como backup en la nube (opcional, no bloquea)
+  if (cfg()) {
+    try {
+      await supabase.from('songs').insert({
+        title: row.title, artist: row.artist, youtube_url: row.youtube_url,
+        genre: row.genre, geek_tag: row.geek_tag, suggested_by: userId, suggested_by_name: userName,
+      });
+    } catch { /* silencioso, ya guardamos local */ }
+  }
+
   return row;
 }
 
