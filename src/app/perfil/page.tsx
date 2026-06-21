@@ -34,8 +34,9 @@ export default function PerfilPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setPushEnabled(localStorage.getItem('nq_push_enabled') === 'true');
-      setLocalAlias(localStorage.getItem('nq_alias') || '');
-      setLocalBg(localStorage.getItem('nq_bg') || '');
+      const suffix = profile?.id ? `_${profile.id}` : '_guest';
+      setLocalAlias(localStorage.getItem(`nq_alias${suffix}`) || '');
+      setLocalBg(localStorage.getItem(`nq_bg${suffix}`) || '');
     }
     getAttendees().then((all) => {
       const uid = profile?.id;
@@ -46,8 +47,9 @@ export default function PerfilPage() {
 
   const saveProfileSettings = (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem('nq_alias', localAlias);
-    localStorage.setItem('nq_bg', localBg);
+    const suffix = profile?.id ? `_${profile.id}` : '_guest';
+    localStorage.setItem(`nq_alias${suffix}`, localAlias);
+    localStorage.setItem(`nq_bg${suffix}`, localBg);
     setEditing(false);
   };
 
@@ -121,11 +123,6 @@ export default function PerfilPage() {
               <button onClick={() => setEditing(!editing)} className="text-xs text-neon-cyan hover:underline mt-1">
                 {editing ? 'Cancelar edición' : 'Personalizar perfil'}
               </button>
-              {isStaff && (
-                <Link href="/admin" className="btn btn-primary text-xs py-1.5 w-full mt-3 flex items-center justify-center gap-2">
-                  <ShieldAlert className="h-4 w-4" /> Panel de Administración
-                </Link>
-              )}
             </div>
 
             {editing && (

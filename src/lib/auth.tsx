@@ -77,11 +77,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loadProfile = useCallback(async (userId: string, email?: string) => {
     try {
-      const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
-      if (data) {
-        setProfile({ ...(data as Profile), email });
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+      if (data && !error) {
+        const prof = { ...(data as Profile), email };
+        setProfile(prof);
+        localStorage.setItem('nq_local_profile', JSON.stringify(prof));
+      } else {
+        const fallback: Profile = {
+          id: userId,
+          username: email ? email.split('@')[0] : 'Usuario',
+          role: 'user',
+          points: 0,
+          streak_count: 0,
+          last_check_in: null,
+          avatar_url: null,
+          email,
+        };
+        setProfile(fallback);
+        localStorage.setItem('nq_local_profile', JSON.stringify(fallback));
       }
-    } catch { /* Supabase puede fallar, el perfil local ya está cargado */ }
+    } catch {
+      const fallback: Profile = {
+        id: userId,
+        username: email ? email.split('@')[0] : 'Usuario',
+        role: 'user',
+        points: 0,
+        streak_count: 0,
+        last_check_in: null,
+        avatar_url: null,
+        email,
+      };
+      setProfile(fallback);
+      localStorage.setItem('nq_local_profile', JSON.stringify(fallback));
+    }
   }, []);
 
   useEffect(() => {
@@ -104,18 +132,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return;
       if (session?.user) {
+        if (session.user.email !== 'admin@nightcore.aqp') {
+          localStorage.removeItem('nq_emergency_admin');
+        }
         loadProfile(session.user.id, session.user.email).finally(() => mounted && setLoading(false));
-      } else if (!localProfile) {
-        // Solo poner null si tampoco hay perfil local
-        setLoading(false);
+      } else {
+        if (!localProfile) {
+          setLoading(false);
+        }
       }
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
+        if (session.user.email !== 'admin@nightcore.aqp') {
+          localStorage.removeItem('nq_emergency_admin');
+        }
         loadProfile(session.user.id, session.user.email);
+      } else {
+        // Al cerrar sesión, limpiar
+        if (_event === 'SIGNED_OUT') {
+          localStorage.removeItem('nq_emergency_admin');
+          localStorage.removeItem('nq_local_profile');
+          setProfile(null);
+        }
       }
-      // NO hacer setProfile(null) aquí — el perfil local ya está cargado
     });
 
     return () => {
@@ -190,6 +231,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     localStorage.removeItem('nq_emergency_admin');
     localStorage.removeItem('nq_local_profile');
+    
+    // Eliminar todos los aliases y fondos locales para evitar fugas entre cuentas
+    if (typeof window !== 'undefined') {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('nq_alias') || key.startsWith('nq_bg'))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+    }
+
     if (configured) await supabase.auth.signOut();
     setProfile(null);
   };
