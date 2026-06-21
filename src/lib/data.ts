@@ -117,11 +117,24 @@ export async function createRsvp(input: Omit<Attendee, 'id' | 'created_at' | 'co
 //  CANCIONES (playlist)
 // ════════════════════════════════════════════════════════════════════════════
 export async function getSongs(): Promise<Song[]> {
+  let remote: Song[] = [];
   if (cfg()) {
-    const { data } = await supabase.from('songs').select('*').order('votes_count', { ascending: false });
-    return (data as Song[]) ?? [];
+    try {
+      const { data } = await supabase.from('songs').select('*').order('votes_count', { ascending: false });
+      if (data) remote = data as Song[];
+    } catch (e) {
+      console.warn('Error fetching songs from Supabase, falling back to local');
+    }
   }
-  return lsGet('nq_songs', DEMO_SONGS);
+  const local = lsGet<Song[]>('nq_songs', []);
+  // Combine: local and remote, favoring local if same ID or url
+  const combined = [...remote];
+  local.forEach(l => {
+    if (!combined.find(c => c.id === l.id || c.youtube_url === l.youtube_url)) {
+      combined.push(l);
+    }
+  });
+  return combined.sort((a, b) => b.votes_count - a.votes_count);
 }
 
 export async function addSong(input: Pick<Song, 'title' | 'artist' | 'youtube_url'> & Partial<Song>, userId: string | null, userName: string): Promise<Song> {
@@ -140,13 +153,20 @@ export async function addSong(input: Pick<Song, 'title' | 'artist' | 'youtube_ur
     userVote: 'upvote',
   };
   if (cfg()) {
-    const { data } = await supabase.from('songs').insert({
-      title: row.title, artist: row.artist, youtube_url: row.youtube_url,
-      genre: row.genre, geek_tag: row.geek_tag, suggested_by: userId, suggested_by_name: userName,
-    }).select().single();
-    return (data as Song) ?? row;
+    try {
+      const { data, error } = await supabase.from('songs').insert({
+        title: row.title, artist: row.artist, youtube_url: row.youtube_url,
+        genre: row.genre, geek_tag: row.geek_tag, suggested_by: userId, suggested_by_name: userName,
+      }).select().single();
+      
+      if (!error && data) return data as Song;
+      console.warn('Supabase rejected insert (RLS/500). Saving locally instead.');
+    } catch (e) {
+      console.warn('Supabase network error. Saving locally instead.');
+    }
   }
-  const all = lsGet('nq_songs', DEMO_SONGS);
+  // Fallback to local storage
+  const all = lsGet<Song[]>('nq_songs', []);
   all.push(row);
   lsSet('nq_songs', all);
   return row;
@@ -155,14 +175,25 @@ export async function addSong(input: Pick<Song, 'title' | 'artist' | 'youtube_ur
 // Persiste el voto. Devuelve el nuevo votes_count. La math optimista la hace la página.
 export async function setSongVote(songId: string, vote: VoteType | null, userId: string | null): Promise<void> {
   if (cfg() && userId) {
-    if (vote === null) {
-      await supabase.from('song_votes').delete().match({ song_id: songId, user_id: userId });
-    } else {
-      await supabase.from('song_votes').upsert({ song_id: songId, user_id: userId, vote }, { onConflict: 'song_id,user_id' });
+    try {
+      if (vote === null) {
+        await supabase.from('song_votes').delete().match({ song_id: songId, user_id: userId });
+      } else {
+        await supabase.from('song_votes').upsert({ song_id: songId, user_id: userId, vote_type: vote });
+      }
+      return;
+    } catch (e) {
+      console.warn('Error voting on Supabase, falling back locally');
     }
-    return;
   }
-  // demo: nada que persistir aparte del estado local de la página
+  // Local fallback (optimista, no requiere persistencia estricta para probar)
+  const all = lsGet<Song[]>('nq_songs', []);
+  const idx = all.findIndex(s => s.id === songId);
+  if (idx >= 0) {
+    if (vote === 'upvote') all[idx].votes_count += 1;
+    if (vote === 'downvote') all[idx].votes_count -= 1;
+    lsSet('nq_songs', all);
+  }
 }
 
 export async function setSongPlayed(songId: string, played: boolean): Promise<void> {

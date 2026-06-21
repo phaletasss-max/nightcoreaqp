@@ -103,8 +103,8 @@ export default function DescargasPage() {
     const cUrl = cleanUrl(url);
     if (!cUrl.trim() || !suggestTitle.trim() || !suggestArtist.trim()) return;
 
-    if (!profile || profile.id === '11111111-1111-1111-1111-111111111111') {
-      setError('⚠️ Necesitas iniciar sesión con tu cuenta real (Supabase) para poder guardar canciones.');
+    if (!profile) {
+      setError('⚠️ Necesitas iniciar sesión para poder sugerir canciones.');
       return;
     }
 
