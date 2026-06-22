@@ -17,10 +17,12 @@ import CommunityFeed from '@/components/CommunityFeed';
 import VideoBackground from '@/components/VideoBackground';
 import ScenecoreBackground from '@/components/ScenecoreBackground';
 import { useAuth } from '@/lib/auth';
+import Link from 'next/link';
 import {
-  getEvents, getComments, addComment, deleteComment, createRsvp, getAttendees, getSiteSettings
+  getEvents, getComments, addComment, deleteComment, createRsvp, getAttendees, getSiteSettings, getBannedWords
 } from '@/lib/data';
 import type { EventItem, EventComment, Attendee } from '@/lib/types';
+import { hasBannedWord, censorText } from '@/lib/moderation';
 import BgEditor from '@/components/BgEditor';
 
 export default function Home() {
@@ -39,6 +41,8 @@ export default function Home() {
   const [status, setStatus] = useState<'idle' | 'booking' | 'booked'>('idle');
   const [ticketCode, setTicketCode] = useState('');
   const [bgs, setBgs] = useState<Record<string, string>>({});
+  const [bannedWords, setBannedWords] = useState<string[]>([]);
+  const [commentNotice, setCommentNotice] = useState<string | null>(null);
 
   // Carga inicial
   useEffect(() => {
@@ -48,9 +52,12 @@ export default function Home() {
       setSelectedId(confirmed?.id ?? evs[0]?.id ?? '');
     });
     getSiteSettings().then(setBgs);
+    getBannedWords().then(setBannedWords);
   }, []);
 
   const updateBg = (key: string, url: string) => setBgs((prev) => ({ ...prev, [key]: url }));
+  // Una sección está visible salvo que el admin la haya apagado (section_<k>_off = 'true').
+  const sectionOn = (k: string) => bgs[`section_${k}_off`] !== 'true';
 
   // Datos dependientes del evento seleccionado
   useEffect(() => {
@@ -82,10 +89,13 @@ export default function Home() {
   const handleComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selected || !commentText.trim()) return;
-    const row = await addComment(selected.id, profile?.id ?? null, profile?.username ?? 'Invitado', commentText.trim());
+    const content = commentText.trim();
+    const flagged = hasBannedWord(content, bannedWords);
+    const row = await addComment(selected.id, profile?.id ?? null, profile?.username ?? 'Invitado', content, flagged);
     setComments((prev) => [row, ...prev]);
     setCommentText('');
-    addPoints(2);
+    setCommentNotice(flagged ? 'Tu comentario usa palabras sensibles: quedará en revisión y se mostrará censurado hasta que un moderador lo apruebe. Evita ese tipo de lenguaje. 🙏' : null);
+    if (!flagged) addPoints(2);
   };
 
   const fmtDate = (d: string) =>
@@ -235,7 +245,7 @@ export default function Home() {
       )}
 
       {/* RSVP + asistentes */}
-      {selected && (
+      {selected && sectionOn('rsvp') && (
         <section className="grid md:grid-cols-2 gap-6 items-start relative group rounded-3xl overflow-hidden p-4">
           {bgs['rsvp'] && <img src={bgs['rsvp']} className="absolute inset-0 w-full h-full object-cover opacity-20 z-0 pointer-events-none mix-blend-screen" />}
           {isStaff && <BgEditor sectionKey="rsvp" currentBg={bgs['rsvp']} onBgUpdate={(u) => updateBg('rsvp', u)} />}
@@ -323,7 +333,7 @@ export default function Home() {
       )}
 
       {/* Muro de comentarios */}
-      {selected && (
+      {selected && sectionOn('wall') && (
         <section className="card p-6 sm:p-8 space-y-5 relative group overflow-hidden">
           {bgs['wall'] && <img src={bgs['wall']} className="absolute inset-0 w-full h-full object-cover opacity-20 z-0 pointer-events-none mix-blend-screen" />}
           {isStaff && <BgEditor sectionKey="wall" currentBg={bgs['wall']} onBgUpdate={(u) => updateBg('wall', u)} />}
@@ -339,9 +349,14 @@ export default function Home() {
           ) : (
             <>
               <form onSubmit={handleComment} className="flex gap-3">
-                <input className="input" value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Escribe un comentario… (+2 pts) ✦" />
+                <input className="input" value={commentText} onChange={(e) => { setCommentText(e.target.value); setCommentNotice(null); }} placeholder="Escribe un comentario… (+2 pts) ✦" />
                 <button type="submit" className="btn btn-primary shrink-0"><Send className="h-4 w-4" /></button>
               </form>
+              {commentNotice && (
+                <div className="badge badge-yellow w-full justify-start py-2 px-3 normal-case tracking-normal text-xs">
+                  <AlertTriangle className="h-4 w-4 shrink-0" /> <span>{commentNotice}</span>
+                </div>
+              )}
               <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
                 {comments.length === 0 ? (
                   <p className="text-sm text-muted-2 text-center py-8 border border-dashed border-border rounded-xl">Aún no hay comentarios. ¡Comenta algo! ✦</p>
@@ -349,11 +364,18 @@ export default function Home() {
                   comments.map((c) => (
                     <div key={c.id} className="p-4 rounded-xl bg-white/[0.03] border border-border space-y-1 rainbow-border">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-neon-magenta">{c.username}</span>
+                        {c.user_id ? (
+                          <Link href={`/perfil/${c.user_id}`} className="font-bold text-neon-magenta hover:underline">{c.username}</Link>
+                        ) : (
+                          <span className="font-bold text-neon-magenta">{c.username}</span>
+                        )}
                         <span className="text-muted-2">{new Date(c.created_at).toLocaleDateString('es-ES', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                       <div className="flex justify-between items-start gap-4">
-                        <p className="text-sm text-foreground">{c.content}</p>
+                        <p className="text-sm text-foreground">
+                          {c.flagged ? censorText(c.content, bannedWords) : c.content}
+                          {c.flagged && <span className="badge badge-yellow ml-2 align-middle">en revisión</span>}
+                        </p>
                         {isStaff && (
                           <button onClick={async () => {
                             if (confirm('¿Eliminar comentario?')) {
@@ -376,6 +398,7 @@ export default function Home() {
       )}
 
       {/* Retos de la comunidad */}
+      {sectionOn('challenges') && (
       <section className="space-y-5 relative group p-6 rounded-3xl overflow-hidden">
         {bgs['challenges'] && <img src={bgs['challenges']} className="absolute inset-0 w-full h-full object-cover opacity-20 z-0 pointer-events-none mix-blend-screen" />}
         {isStaff && <BgEditor sectionKey="challenges" currentBg={bgs['challenges']} onBgUpdate={(u) => updateBg('challenges', u)} />}
@@ -391,7 +414,10 @@ export default function Home() {
         </div>
       </section>
 
+      )}
+
       {/* Novedades de la comunidad (feed) */}
+      {sectionOn('feed') && (
       <section className="relative group p-6 rounded-3xl overflow-hidden">
         {bgs['feed'] && <img src={bgs['feed']} className="absolute inset-0 w-full h-full object-cover opacity-20 z-0 pointer-events-none mix-blend-screen" />}
         {isStaff && <BgEditor sectionKey="feed" currentBg={bgs['feed']} onBgUpdate={(u) => updateBg('feed', u)} />}
@@ -400,7 +426,10 @@ export default function Home() {
         </div>
       </section>
 
+      )}
+
       {/* Temáticas sugeridas por la comunidad */}
+      {sectionOn('themes') && (
       <section className="relative group p-6 rounded-3xl overflow-hidden">
         {bgs['themes'] && <img src={bgs['themes']} className="absolute inset-0 w-full h-full object-cover opacity-20 z-0 pointer-events-none mix-blend-screen" />}
         {isStaff && <BgEditor sectionKey="themes" currentBg={bgs['themes']} onBgUpdate={(u) => updateBg('themes', u)} />}
@@ -409,7 +438,10 @@ export default function Home() {
         </div>
       </section>
 
+      )}
+
       {/* Descargas (sets propios del DJ) */}
+      {sectionOn('sets') && (
       <section className="card p-6 sm:p-8 space-y-4">
         <div className="flex items-center gap-3">
           <Music4 className="h-5 w-5 text-neon-magenta glow-magenta" />
@@ -423,6 +455,7 @@ export default function Home() {
           Aún no hay grabaciones publicadas. Aparecerán aquí después del próximo evento. ✦
         </div>
       </section>
+      )}
     </div>
   );
 }

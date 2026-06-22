@@ -15,6 +15,7 @@ export interface Profile {
   last_check_in: string | null;
   avatar_url: string | null;
   email?: string;
+  is_private?: boolean;
 }
 
 export interface EventItem {
@@ -71,6 +72,7 @@ export interface EventComment {
   username: string;
   content: string;
   created_at: string;
+  flagged?: boolean;
 }
 
 export interface Costume {

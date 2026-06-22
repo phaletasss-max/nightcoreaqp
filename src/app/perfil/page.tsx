@@ -4,10 +4,10 @@ import React, { useState, useEffect } from 'react';
 import {
   User, Flame, Coins, Ticket, Bell, Smartphone, QrCode,
   AlertCircle, CheckCircle2, Camera, MessageSquare, Heart, Medal, ShieldAlert,
-  Music, Sparkles, Plus, Trash2, ExternalLink, Check
+  Music, Sparkles, Plus, Trash2, ExternalLink, Check, Loader2, Lock, Globe
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
-import { getAttendees, getUserActivity, addSong, uploadMediaFile } from '@/lib/data';
+import { getAttendees, getUserActivity, addSong, uploadMediaFile, updateProfilePrivacy } from '@/lib/data';
 import type { UserActivity } from '@/lib/data';
 import type { Attendee } from '@/lib/types';
 
@@ -20,7 +20,8 @@ function rankFor(points: number) {
 import Link from 'next/link';
 
 export default function PerfilPage() {
-  const { profile, addPoints, loading, isStaff } = useAuth();
+  const { profile, addPoints, loading, isStaff, refresh } = useAuth();
+  const [isPrivate, setIsPrivate] = useState(false);
   const [tickets, setTickets] = useState<Attendee[]>([]);
   const [activity, setActivity] = useState<UserActivity>({ costumes: [], comments: [], attended: [], likesGiven: 0 });
   const [pushEnabled, setPushEnabled] = useState(false);
@@ -31,6 +32,12 @@ export default function PerfilPage() {
   const [subTab, setSubTab] = useState<'tickets' | 'music'>('tickets');
   const [spotifyUrl, setSpotifyUrl] = useState('');
   const [savedSongs, setSavedSongs] = useState<{ id: string; title: string; artist: string; url: string }[]>([]);
+  // Canciones jaladas desde la playlist de Spotify (vía /api/spotify/tracks)
+  const [spotifyTracks, setSpotifyTracks] = useState<{ id: string; title: string; artist: string; url: string; image: string | null }[]>([]);
+  const [loadingTracks, setLoadingTracks] = useState(false);
+  const [tracksError, setTracksError] = useState<string | null>(null);
+  const [suggestedTrackIds, setSuggestedTrackIds] = useState<string[]>([]);
+  const [suggestingTrackId, setSuggestingTrackId] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState('');
   const [newArtist, setNewArtist] = useState('');
   const [newUrl, setNewUrl] = useState('');
@@ -66,6 +73,16 @@ export default function PerfilPage() {
     });
     getUserActivity(profile?.id ?? null).then(setActivity);
   }, [profile?.id]);
+
+  useEffect(() => { setIsPrivate(!!profile?.is_private); }, [profile?.is_private]);
+
+  const togglePrivacy = async () => {
+    if (!profile?.id) return;
+    const next = !isPrivate;
+    setIsPrivate(next);
+    await updateProfilePrivacy(profile.id, next);
+    refresh();
+  };
 
   const saveProfileSettings = (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,6 +133,44 @@ export default function PerfilPage() {
   };
 
   const spotifyPlaylistId = spotifyUrl ? (spotifyUrl.match(/playlist[/:]([a-zA-Z0-9]{22})/) || [])[1] : null;
+
+  // Jala las canciones de la playlist vinculada (server-side, sin exponer el secreto).
+  useEffect(() => {
+    if (!spotifyPlaylistId) { setSpotifyTracks([]); setTracksError(null); return; }
+    let active = true;
+    setLoadingTracks(true);
+    setTracksError(null);
+    fetch(`/api/spotify/tracks?playlist=${spotifyPlaylistId}`)
+      .then(async (r) => {
+        const data = await r.json();
+        if (!active) return;
+        if (!r.ok || data.error) { setTracksError(data.error || 'No se pudieron cargar las canciones'); setSpotifyTracks([]); }
+        else setSpotifyTracks(data.tracks || []);
+      })
+      .catch(() => { if (active) setTracksError('No se pudo conectar con el servicio de Spotify'); })
+      .finally(() => { if (active) setLoadingTracks(false); });
+    return () => { active = false; };
+  }, [spotifyPlaylistId]);
+
+  const handleSuggestSpotify = async (t: { id: string; title: string; artist: string; url: string }) => {
+    if (suggestedTrackIds.includes(t.id)) return;
+    setSuggestingTrackId(t.id);
+    setTracksError(null);
+    try {
+      await addSong(
+        { title: t.title, artist: t.artist, youtube_url: t.url, genre: 'Spotify', geek_tag: 'Spotify' },
+        profile?.id ?? null,
+        profile?.username ?? 'Tú',
+      );
+      setSuggestedTrackIds((prev) => [...prev, t.id]);
+      setSuggestSuccess(t.title);
+      setTimeout(() => setSuggestSuccess(null), 3000);
+    } catch {
+      setTracksError('No se pudo sugerir la canción. Intenta de nuevo.');
+    } finally {
+      setSuggestingTrackId(null);
+    }
+  };
 
   const handlePush = () => {
     if (pushEnabled) return;
@@ -300,6 +355,23 @@ export default function PerfilPage() {
                 <button type="submit" className="btn btn-cyan py-1.5 text-xs w-full">Guardar cambios</button>
               </form>
             )}
+
+            {/* Privacidad del perfil */}
+            <div className="relative z-10 flex items-center justify-between gap-3 border-t border-border pt-4 mt-4">
+              <div className="flex items-center gap-2 text-left">
+                {isPrivate ? <Lock className="h-4 w-4 text-neon-yellow shrink-0" /> : <Globe className="h-4 w-4 text-neon-lime shrink-0" />}
+                <div>
+                  <p className="text-xs font-bold text-white">{isPrivate ? 'Perfil privado' : 'Perfil público'}</p>
+                  <p className="text-[10px] text-muted-2">{isPrivate ? 'Otros ven tu nombre y foto, pero no tu actividad.' : 'Otros pueden ver tus publicaciones y comentarios.'}</p>
+                </div>
+              </div>
+              <button type="button" onClick={togglePrivacy}
+                className={`px-3 py-1.5 rounded-lg border text-[10px] font-bold uppercase tracking-wider shrink-0 transition-colors ${
+                  isPrivate ? 'border-neon-yellow/40 text-neon-yellow' : 'border-neon-lime/40 text-neon-lime'
+                }`}>
+                {isPrivate ? 'Hacer público' : 'Hacer privado'}
+              </button>
+            </div>
 
             <div className="relative z-10 grid grid-cols-2 gap-3 border-t border-border pt-5">
               <div className="card bg-surface-2 p-4 text-center">
@@ -503,6 +575,61 @@ export default function PerfilPage() {
                 </div>
               )}
             </div>
+
+            {/* Canciones de la playlist de Spotify → sugerir al DJ */}
+            {spotifyPlaylistId && (
+              <div className="card accent-cyan p-6 sm:p-8 space-y-4">
+                <div>
+                  <h2 className="section-title text-lg flex items-center gap-2 text-neon-cyan">
+                    <Music className="h-5 w-5" /> Canciones de tu playlist
+                  </h2>
+                  <p className="text-xs text-muted mt-1">Jaladas desde Spotify. Elige cualquiera y sugiérela al DJ con un click.</p>
+                </div>
+
+                {loadingTracks ? (
+                  <div className="flex items-center justify-center gap-2 text-sm text-muted py-8">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Cargando canciones de Spotify…
+                  </div>
+                ) : tracksError ? (
+                  <div className="badge badge-red w-full justify-start py-2.5 px-3 normal-case tracking-normal text-xs">
+                    <AlertCircle className="h-4 w-4 shrink-0" /> <span>{tracksError}</span>
+                  </div>
+                ) : spotifyTracks.length === 0 ? (
+                  <p className="text-xs text-muted-2 text-center py-6">No se encontraron canciones. ¿La playlist es pública?</p>
+                ) : (
+                  <div className="grid gap-2 max-h-[480px] overflow-y-auto pr-1">
+                    {spotifyTracks.map((t) => {
+                      const done = suggestedTrackIds.includes(t.id);
+                      return (
+                        <div key={t.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-white/[0.02] border border-border hover:border-neon-cyan/40 transition-colors">
+                          {t.image ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img src={t.image} alt="" className="h-10 w-10 rounded object-cover shrink-0" />
+                          ) : (
+                            <div className="h-10 w-10 rounded bg-white/5 shrink-0 flex items-center justify-center"><Music className="h-4 w-4 text-muted-2" /></div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-white truncate">{t.title}</p>
+                            <p className="text-xs text-muted truncate">{t.artist}</p>
+                          </div>
+                          <button
+                            onClick={() => handleSuggestSpotify(t)}
+                            disabled={done || suggestingTrackId === t.id}
+                            className={`text-[10px] py-1.5 px-3 rounded-lg uppercase tracking-wider font-extrabold flex items-center gap-1 shrink-0 transition-colors ${
+                              done ? 'border border-neon-lime/40 text-neon-lime' : 'btn btn-primary'
+                            }`}
+                            title={done ? 'Ya sugerida' : 'Sugerir al DJ'}
+                          >
+                            {suggestingTrackId === t.id ? <Loader2 className="h-3 w-3 animate-spin" /> : done ? <Check className="h-3 w-3" /> : <Sparkles className="h-3 w-3" />}
+                            {done ? 'Sugerida' : 'Sugerir'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Biblioteca de Sugerencias Rápidas */}
             <div className="card accent-cyan p-6 sm:p-8 space-y-6">

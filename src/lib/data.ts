@@ -4,6 +4,7 @@
 // sin credenciales, y las páginas no necesitan saber en qué modo están.
 
 import { supabase, isSupabaseConfigured } from '@/utils/supabase';
+import { logError } from './logger';
 import {
   DEMO_EVENTS, DEMO_SONGS, DEMO_SURVEY, DEMO_COSTUMES, DEMO_COMMENTS, DEMO_THEMES,
 } from './demo-data';
@@ -38,9 +39,21 @@ export async function getEvents(): Promise<EventItem[]> {
   return lsGet('nq_events', DEMO_EVENTS);
 }
 
-export async function saveEvent(ev: EventItem): Promise<void> {
+export async function saveEvent(ev: EventItem): Promise<EventItem | void> {
   if (cfg()) {
-    await supabase.from('events').upsert(ev);
+    // Los eventos nuevos traen un id de cliente ("e-...") que NO es uuid → si se
+    // hace upsert con ese id, Postgres falla. Para nuevos: insertar sin id (la BD
+    // genera el uuid) y devolver la fila real para que el front reemplace el temporal.
+    const isNew = !ev.id || ev.id.startsWith('e-');
+    if (isNew) {
+      const { id: _omit, ...rest } = ev;
+      void _omit;
+      const { data, error } = await supabase.from('events').insert(rest).select().single();
+      if (error) { logError('saveEvent.insert', error); return; }
+      return data as EventItem;
+    }
+    const { error } = await supabase.from('events').upsert(ev);
+    if (error) logError('saveEvent.upsert', error);
     return;
   }
   const events = lsGet('nq_events', DEMO_EVENTS);
@@ -162,12 +175,13 @@ export async function addSong(input: Pick<Song, 'title' | 'artist' | 'youtube_ur
 
   // Intentar también en Supabase como backup en la nube (opcional, no bloquea)
   if (cfg()) {
-    try {
-      await supabase.from('songs').insert({
-        title: row.title, artist: row.artist, youtube_url: row.youtube_url,
-        genre: row.genre, geek_tag: row.geek_tag, suggested_by: userId, suggested_by_name: userName,
-      });
-    } catch { /* silencioso, ya guardamos local */ }
+    const { error } = await supabase.from('songs').insert({
+      title: row.title, artist: row.artist, youtube_url: row.youtube_url,
+      genre: row.genre, geek_tag: row.geek_tag, suggested_by: userId, suggested_by_name: userName,
+    });
+    // Causa típica: RLS (sesión no real → auth.uid() ≠ suggested_by). Antes era
+    // silencioso y la canción quedaba solo en localStorage ("desaparecía").
+    if (error) logError('addSong.insert', error, { userId });
   }
 
   return row;
@@ -184,7 +198,7 @@ export async function setSongVote(songId: string, vote: VoteType | null, userId:
       }
       return;
     } catch (e) {
-      console.warn('Error voting on Supabase, falling back locally');
+      logError('setSongVote', e, { songId, vote });
     }
   }
   // Local fallback (optimista, no requiere persistencia estricta para probar)
@@ -210,8 +224,10 @@ export async function deleteSong(songId: string): Promise<void> {
 
 export async function clearSongs(): Promise<void> {
   if (cfg()) {
-    // Delete all songs
-    await supabase.from('songs').delete().neq('id', 'dummy'); 
+    // 'dummy' no es un uuid → el filtro anterior fallaba y no borraba nada.
+    // Filtro válido: todas las filas con id no nulo (es decir, todas).
+    const { error } = await supabase.from('songs').delete().not('id', 'is', null);
+    if (error) logError('clearSongs', error);
     return;
   }
   lsSet('nq_songs', []);
@@ -228,9 +244,10 @@ export async function uploadMediaFile(file: File): Promise<string | null> {
   if (!cfg()) return URL.createObjectURL(file);
   const ext = file.name.split('.').pop() || 'mp4';
   const path = `uploads/${Date.now()}_${Math.random().toString(36).substring(2)}.${ext}`;
-  const { data, error } = await supabase.storage.from('media').upload(path, file);
+  const { error } = await supabase.storage.from('media').upload(path, file);
   if (error) {
-    console.error('Upload err:', error);
+    // Causa típica: faltan políticas del bucket 'media' (ver supabase/fixes.sql).
+    logError('uploadMediaFile', error, { path });
     return null;
   }
   const { data: { publicUrl } } = supabase.storage.from('media').getPublicUrl(path);
@@ -248,16 +265,83 @@ export async function getComments(eventId: string): Promise<EventComment[]> {
   return lsGet('nq_comments', DEMO_COMMENTS).filter((c) => c.event_id === eventId);
 }
 
-export async function addComment(eventId: string, userId: string | null, username: string, content: string): Promise<EventComment> {
-  const row: EventComment = { id: `c-${Date.now()}`, event_id: eventId, user_id: userId, username, content, created_at: new Date().toISOString() };
+export async function addComment(eventId: string, userId: string | null, username: string, content: string, flagged = false): Promise<EventComment> {
+  const row: EventComment = { id: `c-${Date.now()}`, event_id: eventId, user_id: userId, username, content, created_at: new Date().toISOString(), flagged };
   if (cfg()) {
-    const { data } = await supabase.from('event_comments').insert({ event_id: eventId, user_id: userId, username, content }).select().single();
+    const { data, error } = await supabase.from('event_comments').insert({ event_id: eventId, user_id: userId, username, content, flagged }).select().single();
+    if (error) logError('addComment', error);
     return (data as EventComment) ?? row;
   }
   const all = lsGet('nq_comments', DEMO_COMMENTS);
   all.unshift(row);
   lsSet('nq_comments', all);
   return row;
+}
+
+// Aprobar un comentario marcado (quita flagged → se muestra sin censura).
+export async function approveComment(commentId: string): Promise<void> {
+  if (cfg()) {
+    const { error } = await supabase.from('event_comments').update({ flagged: false }).eq('id', commentId);
+    if (error) logError('approveComment', error);
+    return;
+  }
+  const all = lsGet<EventComment[]>('nq_comments', DEMO_COMMENTS).map((c) => c.id === commentId ? { ...c, flagged: false } : c);
+  lsSet('nq_comments', all);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  MODERACIÓN — filtros de palabras (Fase E)
+// ════════════════════════════════════════════════════════════════════════════
+export async function getBannedWords(): Promise<string[]> {
+  if (cfg()) {
+    const { data, error } = await supabase.from('banned_words').select('word').order('word');
+    if (error) { logError('getBannedWords', error); return []; }
+    return (data ?? []).map((r) => r.word as string);
+  }
+  return lsGet<string[]>('nq_banned_words', []);
+}
+
+export async function addBannedWord(word: string): Promise<void> {
+  const w = word.trim().toLowerCase();
+  if (!w) return;
+  if (cfg()) {
+    const { error } = await supabase.from('banned_words').insert({ word: w });
+    if (error) logError('addBannedWord', error);
+    return;
+  }
+  const all = lsGet<string[]>('nq_banned_words', []);
+  if (!all.includes(w)) { all.push(w); lsSet('nq_banned_words', all); }
+}
+
+export async function removeBannedWord(word: string): Promise<void> {
+  if (cfg()) {
+    const { error } = await supabase.from('banned_words').delete().eq('word', word);
+    if (error) logError('removeBannedWord', error);
+    return;
+  }
+  lsSet('nq_banned_words', lsGet<string[]>('nq_banned_words', []).filter((w) => w !== word));
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  PERFIL PÚBLICO + PRIVACIDAD (Fase D)
+// ════════════════════════════════════════════════════════════════════════════
+export async function getProfileById(id: string): Promise<Profile | null> {
+  if (cfg()) {
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', id).single();
+    if (error) { logError('getProfileById', error, { id }); return null; }
+    return (data as Profile) ?? null;
+  }
+  return lsGet<Profile[]>('nq_profiles', []).find((p) => p.id === id) ?? null;
+}
+
+export async function updateProfilePrivacy(id: string, isPrivate: boolean): Promise<void> {
+  if (cfg()) {
+    const { error } = await supabase.from('profiles').update({ is_private: isPrivate }).eq('id', id);
+    if (error) logError('updateProfilePrivacy', error);
+    return;
+  }
+  const all = lsGet<Profile[]>('nq_profiles', []).map((p) => p.id === id ? { ...p, is_private: isPrivate } : p);
+  lsSet('nq_profiles', all);
 }
 
 export async function deleteComment(commentId: string): Promise<void> {

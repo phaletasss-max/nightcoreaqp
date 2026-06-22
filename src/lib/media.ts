@@ -3,10 +3,13 @@
 // (env vacío), las funciones degradan: checkVideo devuelve null (el caller hace una
 // verificación básica de YouTube), y las descargas se deshabilitan en la UI.
 
-const MEDIA_URL = (process.env.NEXT_PUBLIC_MEDIA_SERVICE_URL || 'http://localhost:8787').replace(/\/$/, '');
+const MEDIA_URL = (process.env.NEXT_PUBLIC_MEDIA_SERVICE_URL || '').replace(/\/$/, '');
 
+// Solo está "configurado" si hay una URL real (https, no localhost). Así, en
+// producción sin media-service desplegado, las descargas se ocultan en vez de
+// fallar contra http://localhost:8787 (Mixed Content / connection refused).
 export function isMediaConfigured(): boolean {
-  return true;
+  return !!MEDIA_URL && MEDIA_URL.startsWith('http') && !MEDIA_URL.includes('localhost');
 }
 
 export interface VideoInfo {

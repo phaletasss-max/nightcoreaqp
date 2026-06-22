@@ -27,6 +27,10 @@
   --neon-yellow: #fff01f;
   --electric-blue: #4d4dff;
 
+  /* ── Personalización gestionable por admin (Fase B) ── */
+  --card-opacity: 0.75;                                  /* opacidad de los contenedores .card */
+  --display-font: var(--font-geist-sans), system-ui, sans-serif;  /* fuente de títulos */
+
   /* Legacy names (remapped to scenecore) */
   --miku: #39c5bb;
   --fnaf: #ff4d4d;
@@ -145,7 +149,7 @@ body {
 /* ── Superficies ────────────────────────────────────────────────────────────*/
 /* Glassmorphism con tinte scenecore */
 .card {
-  background: rgba(17, 8, 24, 0.75);
+  background: rgba(17, 8, 24, var(--card-opacity));
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border);
@@ -180,7 +184,20 @@ body {
   font-weight: 800;
   letter-spacing: -0.01em;
   color: var(--foreground);
+  font-family: var(--display-font);
 }
+/* La fuente de títulos del Hero también respeta la elección del admin */
+h1 { font-family: var(--display-font); }
+
+/* ── Presets de fuente de títulos (admin · Fase B) ──────────────────────────
+   data-font se setea en <html> por DesignLoader; las fuentes web se cargan
+   dinámicamente solo cuando se eligen. */
+[data-font="pixel"]   { --display-font: 'Press Start 2P', monospace; }
+[data-font="rounded"] { --display-font: 'Baloo 2', system-ui, sans-serif; }
+[data-font="mono"]    { --display-font: var(--font-geist-mono), monospace; }
+/* La fuente pixel es ancha: bajamos el tamaño de títulos para que no rompa el layout */
+[data-font="pixel"] .section-title { font-size: 1.05rem; letter-spacing: 0; }
+[data-font="pixel"] h1 { letter-spacing: 0; line-height: 1.25; }
 .text-glow-pink { text-shadow: 0 0 18px rgba(255, 0, 255, 0.55), 0 0 40px rgba(255, 45, 143, 0.25); }
 .text-glow-cyan { text-shadow: 0 0 18px rgba(0, 255, 255, 0.50), 0 0 40px rgba(0, 255, 255, 0.20); }
 .text-glow-lime { text-shadow: 0 0 18px rgba(57, 255, 20, 0.50); }

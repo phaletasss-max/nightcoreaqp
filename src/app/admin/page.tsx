@@ -4,18 +4,38 @@ import React, { useState, useEffect } from 'react';
 import {
   ShieldAlert, Users, Music, TrendingUp, BarChart3, Trash2, Check,
   Plus, Calendar, Eye, EyeOff, Sparkles, Radio, Download, Film, Loader2,
+  Palette, Type, SlidersHorizontal, X,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import {
   getEvents, saveEvent, deleteEvent, getSongs, setSongPlayed, deleteSong,
   getAttendees, launchSurvey, setSongFileUrl, clearSongs,
   getProfiles, updateProfileRole, deleteProfile, getAllComments, deleteCostume,
-  adminResetPassword, deleteComment, getCostumes
+  adminResetPassword, deleteComment, getCostumes, getSiteSettings, updateSiteSetting,
+  getBannedWords, addBannedWord, removeBannedWord, approveComment,
 } from '@/lib/data';
+import Link from 'next/link';
 import { downloadMedia, storeBackup, isMediaConfigured } from '@/lib/media';
 import type { EventItem, Song, Attendee, EventStatus, Profile, Costume, EventComment } from '@/lib/types';
 
-type Tab = 'kpi' | 'dj' | 'survey' | 'events' | 'users' | 'posts' | 'comments';
+type Tab = 'kpi' | 'dj' | 'survey' | 'events' | 'users' | 'posts' | 'comments' | 'design';
+
+// Secciones de la home que el admin puede activar/desactivar.
+const HOME_SECTIONS = [
+  { key: 'rsvp', label: 'Reservas / RSVP' },
+  { key: 'wall', label: 'Muro de comentarios' },
+  { key: 'challenges', label: 'Retos / Racha' },
+  { key: 'feed', label: 'Novedades de la comunidad' },
+  { key: 'themes', label: 'Temáticas' },
+  { key: 'sets', label: 'Sets del DJ' },
+];
+
+const FONT_OPTIONS = [
+  { key: 'default', label: 'Geist (limpia)' },
+  { key: 'pixel', label: 'Pixel / Scene' },
+  { key: 'rounded', label: 'Redondeada / Happycore' },
+  { key: 'mono', label: 'Monoespaciada' },
+];
 
 export default function AdminPage() {
   const { isStaff } = useAuth();
@@ -29,6 +49,9 @@ export default function AdminPage() {
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
   const [downloadingSet, setDownloadingSet] = useState(false);
   const [storingId, setStoringId] = useState<string | null>(null);
+  const [design, setDesign] = useState<Record<string, string>>({});
+  const [bannedWords, setBannedWords] = useState<string[]>([]);
+  const [newWord, setNewWord] = useState('');
 
   // form encuesta
   const [sQuestion, setSQuestion] = useState('');
@@ -70,7 +93,34 @@ export default function AdminPage() {
     getProfiles().then(setProfiles);
     getAllComments().then(setComments);
     getCostumes().then(setCostumes);
+    getSiteSettings().then(setDesign);
+    getBannedWords().then(setBannedWords);
   }, []);
+
+  const handleAddWord = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const w = newWord.trim().toLowerCase();
+    if (!w) return;
+    await addBannedWord(w);
+    setBannedWords((prev) => prev.includes(w) ? prev : [...prev, w]);
+    setNewWord('');
+  };
+  const handleRemoveWord = async (w: string) => {
+    await removeBannedWord(w);
+    setBannedWords((prev) => prev.filter((x) => x !== w));
+  };
+  const handleApproveComment = async (id: string) => {
+    await approveComment(id);
+    setComments((prev) => prev.map((c) => c.id === id ? { ...c, flagged: false } : c));
+  };
+
+  // Guarda un ajuste de diseño y lo aplica en vivo (DesignLoader escucha el evento).
+  const setDesignKey = async (key: string, value: string) => {
+    const next = { ...design, [key]: value };
+    setDesign(next);
+    await updateSiteSetting(key, value);
+    window.dispatchEvent(new CustomEvent('nq-design-updated', { detail: next }));
+  };
 
   if (!strictAuth) {
     return (
@@ -218,7 +268,12 @@ export default function AdminPage() {
     { id: 'users', label: 'Usuarios' },
     { id: 'posts', label: 'Disfraces' },
     { id: 'comments', label: 'Comentarios' },
+    { id: 'design', label: 'Diseño' },
   ];
+
+  const cardOpacity = parseFloat(design.design_card_opacity || '0.75');
+  const overlay = parseFloat(design.design_overlay || '0');
+  const currentFont = design.design_font || 'default';
 
   return (
     <div className="space-y-8">
@@ -580,6 +635,7 @@ export default function AdminPage() {
                       </select>
                     </td>
                     <td className="py-3 px-2 text-right space-x-2">
+                      <Link href={`/perfil/${p.id}`} className="px-2 py-1 rounded text-[10px] font-bold border border-border text-muted hover:text-white transition-colors">Ver</Link>
                       {p.email && (
                         <button
                           onClick={async () => {
@@ -660,33 +716,134 @@ export default function AdminPage() {
             <h2 className="font-extrabold text-white text-lg flex items-center gap-2">
               <ShieldAlert className="h-5 w-5 text-neon-pink" /> Moderación de Comentarios
             </h2>
-            <p className="text-xs text-muted mt-1">Revisa y elimina comentarios inapropiados en los eventos.</p>
+            <p className="text-xs text-muted mt-1">Revisa, aprueba o elimina comentarios. Los marcados ⚠️ contienen palabras de tu filtro.</p>
           </div>
+
+          {/* Filtros de palabras */}
+          <div className="card bg-black/30 p-4 space-y-3">
+            <h3 className="font-bold text-white text-sm flex items-center gap-2"><ShieldAlert className="h-4 w-4 text-neon-yellow" /> Filtros de palabras</h3>
+            <p className="text-[11px] text-muted-2">Cuando un comentario contiene una de estas palabras, se publica pero se muestra censurado (***) hasta que lo apruebes aquí.</p>
+            <form onSubmit={handleAddWord} className="flex gap-2">
+              <input className="input text-xs" value={newWord} onChange={(e) => setNewWord(e.target.value)} placeholder="Ej. droga, marihuana…" />
+              <button type="submit" className="btn btn-primary text-xs shrink-0 py-2"><Plus className="h-3.5 w-3.5" /> Añadir</button>
+            </form>
+            <div className="flex flex-wrap gap-2">
+              {bannedWords.length === 0 ? (
+                <span className="text-[11px] text-muted-2">Sin palabras filtradas todavía.</span>
+              ) : bannedWords.map((w) => (
+                <span key={w} className="inline-flex items-center gap-1.5 badge badge-red lowercase">
+                  {w}
+                  <button onClick={() => handleRemoveWord(w)} className="hover:text-white"><X className="h-3 w-3" /></button>
+                </span>
+              ))}
+            </div>
+          </div>
+
           <div className="space-y-3">
-            {comments.map((c) => (
-              <div key={c.id} className="border border-border rounded-lg p-4 bg-white/5 flex items-start justify-between gap-4">
+            {[...comments].sort((a, b) => (b.flagged ? 1 : 0) - (a.flagged ? 1 : 0)).map((c) => (
+              <div key={c.id} className={`border rounded-lg p-4 flex items-start justify-between gap-4 ${c.flagged ? 'border-neon-yellow/40 bg-neon-yellow/5' : 'border-border bg-white/5'}`}>
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-white text-sm">{c.username}</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {c.user_id ? (
+                      <Link href={`/perfil/${c.user_id}`} className="font-bold text-white text-sm hover:text-neon-cyan hover:underline">{c.username}</Link>
+                    ) : (
+                      <span className="font-bold text-white text-sm">{c.username}</span>
+                    )}
                     <span className="text-[10px] text-muted">{new Date(c.created_at).toLocaleString()}</span>
+                    {c.flagged && <span className="badge badge-yellow">⚠️ en revisión</span>}
                   </div>
                   <p className="text-xs text-muted">{c.content}</p>
                 </div>
-                <button
-                  onClick={async () => {
-                    if (!confirm('¿Eliminar este comentario?')) return;
-                    await deleteComment(c.id);
-                    setComments(prev => prev.filter(x => x.id !== c.id));
-                  }}
-                  className="p-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors flex-shrink-0"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  {c.flagged && (
+                    <button onClick={() => handleApproveComment(c.id)} title="Aprobar (mostrar sin censura)"
+                      className="p-1.5 rounded-lg border border-neon-lime/30 text-neon-lime hover:bg-neon-lime/10 transition-colors">
+                      <Check className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  <button
+                    onClick={async () => {
+                      if (!confirm('¿Eliminar este comentario?')) return;
+                      await deleteComment(c.id);
+                      setComments(prev => prev.filter(x => x.id !== c.id));
+                    }}
+                    className="p-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
             ))}
             {comments.length === 0 && (
               <p className="text-xs text-muted text-center py-6">No hay comentarios en la plataforma.</p>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* PESTAÑA: DISEÑO */}
+      {tab === 'design' && (
+        <div className="space-y-6 animate-fade-in max-w-3xl">
+          <div>
+            <h2 className="font-extrabold text-white text-lg flex items-center gap-2">
+              <Palette className="h-5 w-5 text-neon-magenta" /> Diseño y personalización
+            </h2>
+            <p className="text-xs text-muted mt-1">Los cambios se aplican en vivo para todos. (Para fondos por sección, usa el editor 🖼️ en cada contenedor de la home.)</p>
+          </div>
+
+          {/* Fuente de títulos */}
+          <div className="card p-5 space-y-3">
+            <h3 className="font-bold text-white text-sm flex items-center gap-2"><Type className="h-4 w-4 text-neon-cyan" /> Fuente de títulos</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {FONT_OPTIONS.map((f) => (
+                <button key={f.key} onClick={() => setDesignKey('design_font', f.key)}
+                  className={`px-3 py-2.5 rounded-lg border text-xs font-bold transition-colors ${
+                    currentFont === f.key ? 'border-neon-magenta bg-neon-magenta/10 text-neon-magenta' : 'border-border text-muted hover:text-white'
+                  }`}>{f.label}</button>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-2">Afecta a los títulos de sección y el hero (el cuerpo de texto se mantiene legible).</p>
+          </div>
+
+          {/* Opacidades */}
+          <div className="card p-5 space-y-5">
+            <h3 className="font-bold text-white text-sm flex items-center gap-2"><SlidersHorizontal className="h-4 w-4 text-neon-lime" /> Opacidad</h3>
+            <div>
+              <label className="label flex justify-between"><span>Opacidad de contenedores</span><span className="text-neon-cyan font-mono">{Math.round(cardOpacity * 100)}%</span></label>
+              <input type="range" min="0.2" max="1" step="0.05" value={cardOpacity}
+                onChange={(e) => setDesignKey('design_card_opacity', e.target.value)}
+                className="w-full accent-neon-magenta cursor-pointer" />
+              <p className="text-[11px] text-muted-2 mt-1">Qué tan sólidos se ven las tarjetas/paneles (más bajo = se ve más el fondo).</p>
+            </div>
+            <div>
+              <label className="label flex justify-between"><span>Oscurecer fondo general</span><span className="text-neon-cyan font-mono">{Math.round(overlay * 100)}%</span></label>
+              <input type="range" min="0" max="0.85" step="0.05" value={overlay}
+                onChange={(e) => setDesignKey('design_overlay', e.target.value)}
+                className="w-full accent-neon-magenta cursor-pointer" />
+              <p className="text-[11px] text-muted-2 mt-1">Capa oscura sobre el fondo (útil si pusiste imágenes muy brillantes detrás).</p>
+            </div>
+          </div>
+
+          {/* Secciones visibles */}
+          <div className="card p-5 space-y-3">
+            <h3 className="font-bold text-white text-sm flex items-center gap-2"><Eye className="h-4 w-4 text-neon-cyan" /> Secciones de la home</h3>
+            <p className="text-[11px] text-muted-2">Activa o desactiva secciones para todos los visitantes.</p>
+            <div className="space-y-2">
+              {HOME_SECTIONS.map((s) => {
+                const off = design[`section_${s.key}_off`] === 'true';
+                return (
+                  <div key={s.key} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-border">
+                    <span className={`text-sm font-bold ${off ? 'text-muted-2 line-through' : 'text-white'}`}>{s.label}</span>
+                    <button onClick={() => setDesignKey(`section_${s.key}_off`, off ? 'false' : 'true')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${
+                        off ? 'border-red-500/30 text-red-400' : 'border-neon-lime/30 text-neon-lime'
+                      }`}>
+                      {off ? <><EyeOff className="h-3.5 w-3.5" /> Oculta</> : <><Eye className="h-3.5 w-3.5" /> Visible</>}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
