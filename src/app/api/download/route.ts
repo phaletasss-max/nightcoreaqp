@@ -48,8 +48,8 @@ export async function GET(request: NextRequest) {
     else if (data.status === 'picker' && Array.isArray(data.picker) && data.picker[0]?.url) mediaUrl = data.picker[0].url;
 
     if (!mediaUrl) {
-      const msg = data?.error?.code || data?.text || 'No se pudo obtener el video (¿privado/region bloqueada?).';
-      return Response.json({ error: msg }, { status: 502 });
+      const detail = data?.error?.code || data?.error?.context?.service || data?.text || `status=${data?.status || 'desconocido'}`;
+      return Response.json({ error: `La instancia de descarga no entregó el video (${detail}). Prueba TikTok/Instagram o cambia COBALT_API_URL.` }, { status: 502 });
     }
 
     // Stream del archivo de vuelta al navegador → descarga en-página.
