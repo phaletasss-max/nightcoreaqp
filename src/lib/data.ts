@@ -48,9 +48,19 @@ export async function saveEvent(ev: EventItem): Promise<EventItem | void> {
     if (isNew) {
       const { id: _omit, ...rest } = ev;
       void _omit;
-      const { data, error } = await supabase.from('events').insert(rest).select().single();
-      if (error) { logError('saveEvent.insert', error); return; }
-      return data as EventItem;
+      const ins = await supabase.from('events').insert(rest).select().single();
+      if (ins.error) {
+        // Reintento solo con columnas base por si faltan las extra (migración phase-de.sql no corrida).
+        const base = {
+          title: ev.title, tagline: ev.tagline, description: ev.description, date: ev.date,
+          location: ev.location, ticket_price: ev.ticket_price, total_tickets: ev.total_tickets,
+          available_tickets: ev.available_tickets, status: ev.status, comments_enabled: ev.comments_enabled,
+        };
+        const retry = await supabase.from('events').insert(base).select().single();
+        if (retry.error) { logError('saveEvent.insert', retry.error); return; }
+        return retry.data as EventItem;
+      }
+      return ins.data as EventItem;
     }
     const { error } = await supabase.from('events').upsert(ev);
     if (error) logError('saveEvent.upsert', error);
@@ -268,9 +278,14 @@ export async function getComments(eventId: string): Promise<EventComment[]> {
 export async function addComment(eventId: string, userId: string | null, username: string, content: string, flagged = false): Promise<EventComment> {
   const row: EventComment = { id: `c-${Date.now()}`, event_id: eventId, user_id: userId, username, content, created_at: new Date().toISOString(), flagged };
   if (cfg()) {
-    const { data, error } = await supabase.from('event_comments').insert({ event_id: eventId, user_id: userId, username, content, flagged }).select().single();
-    if (error) logError('addComment', error);
-    return (data as EventComment) ?? row;
+    const ins = await supabase.from('event_comments').insert({ event_id: eventId, user_id: userId, username, content, flagged }).select().single();
+    if (ins.error) {
+      // Reintento sin 'flagged' por si la columna aún no existe (migración no corrida).
+      const retry = await supabase.from('event_comments').insert({ event_id: eventId, user_id: userId, username, content }).select().single();
+      if (retry.error) logError('addComment', retry.error);
+      return (retry.data as EventComment) ?? row;
+    }
+    return (ins.data as EventComment) ?? row;
   }
   const all = lsGet('nq_comments', DEMO_COMMENTS);
   all.unshift(row);
