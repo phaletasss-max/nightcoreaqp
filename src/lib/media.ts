@@ -44,11 +44,22 @@ export async function checkVideo(url: string): Promise<VideoInfo | null> {
   }
 }
 
-// Descarga mp3/mp4 EN-PÁGINA vía nuestra ruta /api/download (Vercel → Cobalt).
-// Sin redirección y sin servidor propio. El archivo llega como blob y se baja.
+// Descarga mp3/mp4 EN-PÁGINA. El servidor solo trae el archivo (yt-dlp); el blob
+// se guarda en el dispositivo de quien pegó el link — NO se queda en el servidor.
+// - Si hay media-service propio (Render/Arch) configurado → lo usa (YouTube con cookies).
+// - Si no → cae al proxy de Vercel → Cobalt.
 export async function downloadMedia(url: string, format: 'mp3' | 'mp4', filename: string): Promise<void> {
-  const qs = `url=${encodeURIComponent(url)}&format=${format}&filename=${encodeURIComponent(filename)}`;
-  const r = await fetch(`/api/download?${qs}`, { cache: 'no-store' });
+  let r: Response;
+  if (isMediaConfigured()) {
+    r = await fetch(`${MEDIA_URL}/api/download`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, format }),
+    });
+  } else {
+    const qs = `url=${encodeURIComponent(url)}&format=${format}&filename=${encodeURIComponent(filename)}`;
+    r = await fetch(`/api/download?${qs}`, { cache: 'no-store' });
+  }
   if (!r.ok) {
     let msg = 'Error en la descarga';
     try { const j = await r.json(); msg = j.error || msg; } catch { /* respuesta binaria/no-JSON */ }
