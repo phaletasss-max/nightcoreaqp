@@ -12,6 +12,12 @@ export function isMediaConfigured(): boolean {
   return !!MEDIA_URL && MEDIA_URL.startsWith('http') && !MEDIA_URL.includes('localhost');
 }
 
+// Las descargas ahora pasan por nuestra ruta /api/download (Vercel → Cobalt),
+// así que están disponibles SIEMPRE, sin servidor propio.
+export function downloadsAvailable(): boolean {
+  return true;
+}
+
 export interface VideoInfo {
   available: boolean;
   embeddable: boolean;
@@ -38,15 +44,16 @@ export async function checkVideo(url: string): Promise<VideoInfo | null> {
   }
 }
 
-// Descarga mp3/mp4 vía el media-service (stream → blob → descarga en el navegador).
+// Descarga mp3/mp4 EN-PÁGINA vía nuestra ruta /api/download (Vercel → Cobalt).
+// Sin redirección y sin servidor propio. El archivo llega como blob y se baja.
 export async function downloadMedia(url: string, format: 'mp3' | 'mp4', filename: string): Promise<void> {
-  if (!isMediaConfigured()) throw new Error('Descarga disponible cuando el media-service esté conectado');
-  const r = await fetch(`${MEDIA_URL}/api/download`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url, format }),
-  });
-  if (!r.ok) throw new Error('Error en la descarga');
+  const qs = `url=${encodeURIComponent(url)}&format=${format}&filename=${encodeURIComponent(filename)}`;
+  const r = await fetch(`/api/download?${qs}`, { cache: 'no-store' });
+  if (!r.ok) {
+    let msg = 'Error en la descarga';
+    try { const j = await r.json(); msg = j.error || msg; } catch { /* respuesta binaria/no-JSON */ }
+    throw new Error(msg);
+  }
   const blob = await r.blob();
   const objUrl = URL.createObjectURL(blob);
   const a = document.createElement('a');

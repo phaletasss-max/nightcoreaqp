@@ -391,19 +391,17 @@ export default function PlaylistPage() {
                       className="h-9 w-9 rounded-lg border border-border text-muted hover:text-white flex items-center justify-center transition-colors">
                       {copiedId === song.id ? <CheckCircle2 className="h-4 w-4 text-green-400" /> : <Link2 className="h-4 w-4" />}
                     </button>
-                    {/* Botones de Descarga */}
-                    {mediaOn && (
-                      <div className="hidden sm:flex items-center gap-1 border-l border-border pl-2 ml-1">
-                        <button onClick={() => handleDownload(song, 'mp3')} disabled={downloadingId === song.id}
-                          className="h-9 px-2 rounded-lg border border-border text-xs text-muted hover:text-white hover:border-white transition-colors flex items-center gap-1">
-                          {downloadingId === song.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />} MP3
-                        </button>
-                        <button onClick={() => handleDownload(song, 'mp4')} disabled={downloadingId === song.id}
-                          className="h-9 px-2 rounded-lg border border-border text-xs text-muted hover:text-neon-cyan hover:border-neon-cyan transition-colors flex items-center gap-1">
-                          {downloadingId === song.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Video className="h-3 w-3" />} MP4
-                        </button>
-                      </div>
-                    )}
+                    {/* Botones de Descarga (en-página, vía /api/download) */}
+                    <div className="hidden sm:flex items-center gap-1 border-l border-border pl-2 ml-1">
+                      <button onClick={() => handleDownload(song, 'mp3')} disabled={downloadingId === song.id}
+                        className="h-9 px-2 rounded-lg border border-border text-xs text-muted hover:text-white hover:border-white transition-colors flex items-center gap-1">
+                        {downloadingId === song.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />} MP3
+                      </button>
+                      <button onClick={() => handleDownload(song, 'mp4')} disabled={downloadingId === song.id}
+                        className="h-9 px-2 rounded-lg border border-border text-xs text-muted hover:text-neon-cyan hover:border-neon-cyan transition-colors flex items-center gap-1">
+                        {downloadingId === song.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Video className="h-3 w-3" />} MP4
+                      </button>
+                    </div>
 
                     {/* Miniatura del Video */}
                     {yt && (

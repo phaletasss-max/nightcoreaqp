@@ -11,7 +11,7 @@ import {
   Loader2, PlayCircle, Camera, Sparkles, Zap, ArrowRight,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
-import { downloadMedia, checkVideo, isMediaConfigured, storeBackup } from '@/lib/media';
+import { downloadMedia, isMediaConfigured, storeBackup } from '@/lib/media';
 import { addSong, getSongs } from '@/lib/data';
 import type { Song } from '@/lib/types';
 import { usePlayer } from '@/context/PlayerContext';
@@ -69,20 +69,9 @@ export default function DescargasPage() {
       const cleanUrl = (u: string) => u.split('&list=')[0].split('?list=')[0];
       const cUrl = cleanUrl(url);
 
-      if (!mediaOn) {
-        setError('Las descargas (yt-dlp) están desactivadas: el servicio no está conectado.');
-        setLoading(false);
-        return;
-      }
-
-      // Verificar disponibilidad (solo en local con media-service)
-      const info = await checkVideo(cUrl);
-      if (info && !info.available) {
-        throw new Error('Ese enlace no está disponible o es privado.');
-      }
-
-      const filename = info?.title || `descarga_${Date.now()}`;
-      await downloadMedia(cUrl, format, filename.replace(/[^a-z0-9]/gi, '_').substring(0, 50));
+      // Descarga en-página vía /api/download (Vercel → Cobalt). Sin servidor propio.
+      const filename = `${platform}_${Date.now()}`;
+      await downloadMedia(cUrl, format, filename);
       setSuccess(true);
       addPoints(3);
       setTimeout(() => setSuccess(false), 3000);
@@ -226,17 +215,15 @@ export default function DescargasPage() {
 
         {/* Botones de acción */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {mediaOn && (
-            <button
-              onClick={handleDownload}
-              disabled={!url.trim() || loading}
-              className="btn btn-primary w-full"
-            >
-              {loading
-                ? <><Loader2 className="h-4 w-4 animate-spin" /> Descargando…</>
-                : <><Download className="h-4 w-4" /> Descargar</>}
-            </button>
-          )}
+          <button
+            onClick={handleDownload}
+            disabled={!url.trim() || loading}
+            className="btn btn-primary w-full"
+          >
+            {loading
+              ? <><Loader2 className="h-4 w-4 animate-spin" /> Descargando…</>
+              : <><Download className="h-4 w-4" /> Descargar</>}
+          </button>
           {mediaOn && (
             <button
               type="button"
@@ -292,11 +279,9 @@ export default function DescargasPage() {
           </button>
         </div>
 
-        {!mediaOn && (
-          <p className="text-[11px] text-muted-2 text-center border-t border-border pt-3">
-            Las descargas con yt-dlp se activan al conectar el servicio. Por ahora puedes sugerir canciones al DJ. ✦
-          </p>
-        )}
+        <p className="text-[11px] text-muted-2 text-center border-t border-border pt-3">
+          La descarga ocurre dentro de la página (sin redirección). MP3/MP4 de YouTube, TikTok e Instagram.
+        </p>
       </div>
 
       {/* Formulario de sugerencia al DJ */}
