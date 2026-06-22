@@ -9,6 +9,12 @@ const SUPPORTED = [
   'instagram.com', 'tiktok.com', 'vm.tiktok.com', 'twitter.com', 'x.com',
 ];
 
+// Si se define YTDLP_COOKIES (ruta a un cookies.txt exportado de YouTube),
+// se lo pasamos a yt-dlp. Necesario para que YouTube no bloquee en servidores.
+function cookieArgs() {
+  return process.env.YTDLP_COOKIES ? ['--cookies', process.env.YTDLP_COOKIES] : [];
+}
+
 function validateUrl(url) {
   try {
     const host = new URL(url).hostname.replace(/^www\./, '');
@@ -23,7 +29,7 @@ function validateUrl(url) {
 function getInfo(url) {
   return new Promise((resolve, reject) => {
     if (!validateUrl(url)) return reject(new Error('URL no soportada'));
-    const proc = spawn('yt-dlp', ['--no-playlist', '--dump-json', '--no-download', url]);
+    const proc = spawn('yt-dlp', [...cookieArgs(), '--no-playlist', '--dump-json', '--no-download', url]);
     let out = '';
     let err = '';
     proc.stdout.on('data', (d) => (out += d.toString()));
@@ -53,7 +59,7 @@ function getInfo(url) {
 
 // Construye los args de yt-dlp según formato/calidad. Salida a stdout ('-o -').
 function buildArgs(url, format, quality) {
-  let args = ['--no-playlist'];
+  let args = [...cookieArgs(), '--no-playlist'];
   if (format === 'mp3') {
     args = args.concat(['-x', '--audio-format', 'mp3', '--audio-quality', '0']);
   } else if (url.includes('tiktok.com')) {
