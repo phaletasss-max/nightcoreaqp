@@ -200,16 +200,17 @@ export async function addSong(input: Pick<Song, 'title' | 'artist' | 'youtube_ur
 // Persiste el voto. Devuelve el nuevo votes_count. La math optimista la hace la página.
 export async function setSongVote(songId: string, vote: VoteType | null, userId: string | null): Promise<void> {
   if (cfg() && userId) {
-    try {
-      if (vote === null) {
-        await supabase.from('song_votes').delete().match({ song_id: songId, user_id: userId });
-      } else {
-        await supabase.from('song_votes').upsert({ song_id: songId, user_id: userId, vote_type: vote });
-      }
-      return;
-    } catch (e) {
-      logError('setSongVote', e, { songId, vote });
+    if (vote === null) {
+      const { error } = await supabase.from('song_votes').delete().match({ song_id: songId, user_id: userId });
+      if (error) logError('setSongVote.delete', error, { songId });
+    } else {
+      // La columna es 'vote' (no 'vote_type') y el conflicto es por (song_id,user_id).
+      const { error } = await supabase
+        .from('song_votes')
+        .upsert({ song_id: songId, user_id: userId, vote }, { onConflict: 'song_id,user_id' });
+      if (error) logError('setSongVote.upsert', error, { songId, vote });
     }
+    return;
   }
   // Local fallback (optimista, no requiere persistencia estricta para probar)
   const all = lsGet<Song[]>('nq_songs', []);
