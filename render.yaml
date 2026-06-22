@@ -1,0 +1,18 @@
+# Blueprint de Render para el media-service (descargas yt-dlp).
+# Úsalo con: Render → New → Blueprint → selecciona este repo.
+services:
+  - type: web
+    name: nightcore-media
+    runtime: docker
+    repo: https://github.com/phaletasss-max/nightcoreaqp
+    rootDir: media-service
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      - key: ALLOWED_ORIGINS
+        value: https://nightcoreaqp-five.vercel.app
+      # Para YouTube: sube cookies.txt como Secret File y descomenta:
+      # - key: YTDLP_COOKIES
+      #   value: /etc/secrets/cookies.txt
