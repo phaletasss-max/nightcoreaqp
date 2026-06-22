@@ -67,7 +67,14 @@ export default function DescargasPage() {
 
     try {
       const cleanUrl = (u: string) => u.split('&list=')[0].split('?list=')[0];
-      const cUrl = cleanUrl(url);
+      const cUrl = cleanUrl(url.trim());
+
+      // Validar que sea un enlace real de una plataforma soportada (evita pegar basura).
+      if (!/^https?:\/\//i.test(cUrl) || !/(youtu\.?be|youtube\.com|tiktok\.com|instagram\.com)/i.test(cUrl)) {
+        setError('Pega un enlace válido de YouTube, TikTok o Instagram (debe empezar con http).');
+        setLoading(false);
+        return;
+      }
 
       // Descarga en-página vía /api/download (Vercel → Cobalt). Sin servidor propio.
       const filename = `${platform}_${Date.now()}`;
