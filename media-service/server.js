@@ -4,11 +4,31 @@
 
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
+const multer = require('multer');
 const { getInfo, streamDownload, downloadToBuffer } = require('./lib/downloader');
 const storage = require('./lib/storage');
+const FileConverter = require('./lib/converter');
 
 const app = express();
 app.use(express.json());
+
+// Conversor de archivos (LibreOffice / ImageMagick / FFmpeg).
+const converter = new FileConverter();
+const uploadDir = path.join(__dirname, 'tmp-uploads');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+const upload = multer({ dest: uploadDir, limits: { fileSize: 100 * 1024 * 1024 } });
+
+const CONVERSIONS = {
+  'pdf-to-word': { name: 'PDF a Word',  input: ['pdf'],          output: 'docx', handler: 'pdfToWord' },
+  'word-to-pdf': { name: 'Word a PDF',  input: ['doc', 'docx'],  output: 'pdf',  handler: 'wordToPdf' },
+  'jpg-to-png':  { name: 'JPG a PNG',   input: ['jpg', 'jpeg'],  output: 'png',  handler: 'jpgToPng' },
+  'png-to-jpg':  { name: 'PNG a JPG',   input: ['png'],          output: 'jpg',  handler: 'pngToJpg' },
+  'webp-to-jpg': { name: 'WebP a JPG',  input: ['webp'],         output: 'jpg',  handler: 'webpToJpg' },
+  'jpg-to-webp': { name: 'JPG a WebP',  input: ['jpg', 'jpeg'],  output: 'webp', handler: 'jpgToWebp' },
+  'mp4-to-mp3':  { name: 'MP4 a MP3',   input: ['mp4'],          output: 'mp3',  handler: 'mp4ToMp3' },
+};
 
 // CORS: solo el frontend autorizado (coma-separado en ALLOWED_ORIGINS).
 const allowed = (process.env.ALLOWED_ORIGINS || '*').split(',').map((s) => s.trim());
@@ -87,6 +107,39 @@ app.post('/api/store', async (req, res) => {
   } catch (err) {
     log('STORE', `Error: ${err.message}`);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ── CONVERSIÓN DE ARCHIVOS ───────────────────────────────────────────────────
+// GET /api/convert/options → lista de conversiones disponibles.
+app.get('/api/convert/options', (req, res) => {
+  res.json({
+    options: Object.entries(CONVERSIONS).map(([id, c]) => ({ id, name: c.name, input: c.input, output: c.output })),
+  });
+});
+
+// POST /api/convert/:tipo (multipart, campo "file") → devuelve el archivo convertido.
+app.post('/api/convert/:tipo', upload.single('file'), async (req, res) => {
+  const conv = CONVERSIONS[req.params.tipo];
+  if (!conv) { if (req.file) fs.unlink(req.file.path, () => {}); return res.status(400).json({ error: 'Conversión no soportada' }); }
+  if (!req.file) return res.status(400).json({ error: 'Falta el archivo' });
+
+  const inputExt = (req.file.originalname.split('.').pop() || '').toLowerCase();
+  if (!conv.input.includes(inputExt)) {
+    fs.unlink(req.file.path, () => {});
+    return res.status(400).json({ error: `Extensión .${inputExt} no válida. Usa: ${conv.input.join(', ')}` });
+  }
+
+  try {
+    log('CONVERT', `${req.params.tipo} ← ${req.file.originalname}`);
+    const result = await converter[conv.handler](req.file.path);
+    res.download(result.path, result.filename, () => {
+      setTimeout(() => { result.cleanup(); fs.unlink(req.file.path, () => {}); }, 5000);
+    });
+  } catch (err) {
+    fs.unlink(req.file.path, () => {});
+    log('CONVERT', `Error: ${err.message}`);
+    if (!res.headersSent) res.status(500).json({ error: err.message });
   }
 });
 

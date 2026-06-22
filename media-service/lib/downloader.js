@@ -4,12 +4,16 @@
 
 const { spawn } = require('child_process');
 
-const SUPPORTED = ['youtube.com', 'youtu.be', 'facebook.com', 'instagram.com', 'tiktok.com'];
+const SUPPORTED = [
+  'youtube.com', 'youtu.be', 'facebook.com', 'fb.watch',
+  'instagram.com', 'tiktok.com', 'vm.tiktok.com', 'twitter.com', 'x.com',
+];
 
 function validateUrl(url) {
   try {
-    const host = new URL(url).hostname.replace('www.', '');
-    return SUPPORTED.some((p) => host.includes(p));
+    const host = new URL(url).hostname.replace(/^www\./, '');
+    // Coincidencia exacta o subdominio real (evita "youtube.com.attacker.dev").
+    return SUPPORTED.some((p) => host === p || host.endsWith('.' + p));
   } catch {
     return false;
   }

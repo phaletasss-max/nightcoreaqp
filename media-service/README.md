@@ -8,7 +8,8 @@ Adaptado de `bot-erp`.
 
 ## Requisitos (Arch Linux)
 ```bash
-sudo pacman -S yt-dlp ffmpeg nodejs npm
+# Descargas (yt-dlp) + conversión de archivos (LibreOffice/ImageMagick/FFmpeg)
+sudo pacman -S yt-dlp ffmpeg imagemagick libreoffice-fresh nodejs npm
 # Mantén yt-dlp actualizado (YouTube cambia seguido):
 #   sudo pacman -Syu yt-dlp   (o)   yt-dlp -U
 ```
@@ -42,6 +43,11 @@ Luego pon esa URL en el frontend: `NEXT_PUBLIC_MEDIA_SERVICE_URL=https://media.t
 | POST | `/api/info` | `{ url }` | `{ available, embeddable, title, author, thumbnail, availability }` — el "comprobante" |
 | POST | `/api/download` | `{ url, format, quality }` | stream del archivo (mp3/mp4) |
 | POST | `/api/store` | `{ url, format }` | `{ url }` — descarga y sube a Supabase Storage |
+| GET | `/api/convert/options` | — | lista de conversiones disponibles |
+| POST | `/api/convert/:tipo` | multipart, campo `file` | el archivo convertido (descarga) |
+
+**Conversiones** (`:tipo`): `pdf-to-word`, `word-to-pdf`, `jpg-to-png`, `png-to-jpg`, `webp-to-jpg`, `jpg-to-webp`, `mp4-to-mp3`.
+Requiere instalar `npm install` (ahora incluye `multer`) y tener LibreOffice/ImageMagick/FFmpeg en el sistema.
 
 ## Storage en Supabase
 Crea un bucket **público** llamado `media` (Storage → New bucket). La clave de servicio

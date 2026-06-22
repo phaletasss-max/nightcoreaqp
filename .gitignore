@@ -47,5 +47,5 @@ next-env.d.ts
 # Esquema viejo duplicado (canónico: supabase/schema.sql)
 /supabase_schema.sql
 
-# bot-erp: se publicará como repo propio (Fase F · "convertidor"), no va aquí
-/bot-erp
+# convertidor: software propio open-source, se publica como repo aparte, no va aquí
+/convertidor

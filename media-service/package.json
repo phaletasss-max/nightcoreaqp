@@ -2,7 +2,7 @@
   "name": "nightcore-media-service",
   "version": "1.0.0",
   "private": true,
-  "description": "Microservicio de medios para Nightcore AQP: verifica/descarga YouTube con yt-dlp y respalda en Supabase Storage. Corre en el servidor Arch (no en Vercel).",
+  "description": "Microservicio de medios para Nightcore AQP: verifica/descarga (yt-dlp) y convierte archivos (LibreOffice/ImageMagick/FFmpeg), con respaldo en Supabase Storage. Corre en el servidor Arch (no en Vercel).",
   "type": "commonjs",
   "main": "server.js",
   "scripts": {
@@ -12,6 +12,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
     "cors": "^2.8.6",
-    "express": "^4.22.2"
+    "express": "^4.22.2",
+    "multer": "^1.4.5-lts.1"
   }
 }
