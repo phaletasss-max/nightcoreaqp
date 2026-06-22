@@ -14,6 +14,8 @@ COPY package*.json ./
 RUN npm install --omit=dev
 COPY . .
 
-ENV PORT=8787
-EXPOSE 8787
+# NO fijamos PORT: Render (y otros hosts) inyectan su propia variable PORT en
+# runtime y server.js la usa (process.env.PORT). Fijarla aquí causaba que la app
+# escuchara en 8787 mientras Render esperaba otro puerto → health-check fallido → reinicios.
+EXPOSE 10000
 CMD ["node", "server.js"]
