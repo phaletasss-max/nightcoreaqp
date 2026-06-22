@@ -9,11 +9,9 @@ import React, { useState } from 'react';
 import {
   Download, Link2, Music, Video, AlertCircle, CheckCircle2,
   Loader2, PlayCircle, Camera, Sparkles, Zap, ArrowRight,
-  FileText, RefreshCw, UploadCloud, ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { downloadMedia, checkVideo, isMediaConfigured, storeBackup } from '@/lib/media';
-import { getConvertOptions, convertFile, type ConvertOption } from '@/lib/convert';
 import { addSong, getSongs } from '@/lib/data';
 import type { Song } from '@/lib/types';
 import { usePlayer } from '@/context/PlayerContext';
@@ -53,41 +51,9 @@ export default function DescargasPage() {
 
   const [songs, setSongs] = useState<Song[]>([]);
 
-  // Convertidor de archivos
-  const [convOptions, setConvOptions] = useState<ConvertOption[]>([]);
-  const [convType, setConvType] = useState('');
-  const [convFile, setConvFile] = useState<File | null>(null);
-  const [converting, setConverting] = useState(false);
-  const [convError, setConvError] = useState<string | null>(null);
-  const [convDone, setConvDone] = useState(false);
-
   React.useEffect(() => {
     getSongs().then(setSongs);
-    getConvertOptions().then((opts) => {
-      setConvOptions(opts);
-      if (opts.length) setConvType((t) => t || opts[0].id);
-    });
   }, []);
-
-  const selectedConv = convOptions.find((o) => o.id === convType);
-
-  const handleConvert = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!convType || !convFile) return;
-    setConverting(true); setConvError(null); setConvDone(false);
-    try {
-      const base = convFile.name.replace(/\.[^.]+$/, '');
-      await convertFile(convType, convFile, `${base}.${selectedConv?.output || 'out'}`);
-      setConvDone(true);
-      setConvFile(null);
-      addPoints(2);
-      setTimeout(() => setConvDone(false), 3000);
-    } catch (err) {
-      setConvError(err instanceof Error ? err.message : 'Error en la conversión');
-    } finally {
-      setConverting(false);
-    }
-  };
 
   const platform = url ? detectPlatform(url) : 'unknown';
   const pInfo = platformInfo[platform];
@@ -104,12 +70,7 @@ export default function DescargasPage() {
       const cUrl = cleanUrl(url);
 
       if (!mediaOn) {
-        // Sin servidor propio, la descarga la hace un servicio externo (que corre
-        // yt-dlp de su lado). Abre el descargador con el enlace ya cargado.
-        window.open(`https://ssyoutube.com/youtube-video-downloader?url=${encodeURIComponent(cUrl)}`, '_blank', 'noopener,noreferrer');
-        setSuccess(true);
-        addPoints(1);
-        setTimeout(() => setSuccess(false), 3000);
+        setError('Las descargas (yt-dlp) están desactivadas: el servicio no está conectado.');
         setLoading(false);
         return;
       }
@@ -265,19 +226,17 @@ export default function DescargasPage() {
 
         {/* Botones de acción */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <button
-            onClick={handleDownload}
-            disabled={!url.trim() || loading}
-            className="btn btn-primary w-full"
-          >
-            {loading ? (
-              <><Loader2 className="h-4 w-4 animate-spin" /> Descargando…</>
-            ) : mediaOn ? (
-              <><Download className="h-4 w-4" /> Descargar</>
-            ) : (
-              <><ExternalLink className="h-4 w-4" /> Descargar</>
-            )}
-          </button>
+          {mediaOn && (
+            <button
+              onClick={handleDownload}
+              disabled={!url.trim() || loading}
+              className="btn btn-primary w-full"
+            >
+              {loading
+                ? <><Loader2 className="h-4 w-4 animate-spin" /> Descargando…</>
+                : <><Download className="h-4 w-4" /> Descargar</>}
+            </button>
+          )}
           {mediaOn && (
             <button
               type="button"
@@ -334,8 +293,8 @@ export default function DescargasPage() {
         </div>
 
         {!mediaOn && (
-          <p className="text-[11px] text-muted-2 text-center flex items-center justify-center gap-1.5 border-t border-border pt-3">
-            <ExternalLink className="h-3 w-3" /> La descarga se abre en un descargador externo (sitio de terceros).
+          <p className="text-[11px] text-muted-2 text-center border-t border-border pt-3">
+            Las descargas con yt-dlp se activan al conectar el servicio. Por ahora puedes sugerir canciones al DJ. ✦
           </p>
         )}
       </div>
@@ -395,63 +354,6 @@ export default function DescargasPage() {
           ))}
         </div>
       </div>
-
-      {/* Convertidor de archivos (solo cuando hay servicio conectado) */}
-      {mediaOn && (
-      <div className="card p-6 space-y-4 accent-lime">
-        <div className="flex items-center gap-3">
-          <RefreshCw className="h-5 w-5 text-neon-lime glow-lime" />
-          <div>
-            <h3 className="section-title text-lg">Convertidor de archivos</h3>
-            <p className="text-sm text-muted mt-0.5">PDF ⇄ Word, JPG/PNG/WebP y MP4 → MP3. Tus archivos, otros formatos.</p>
-          </div>
-        </div>
-
-        {convOptions.length === 0 ? (
-          <p className="text-[11px] text-muted-2 text-center py-6 border border-dashed border-border rounded-xl">
-            ⚙️ El convertidor se activa al conectar el servicio (media-service en el servidor).
-          </p>
-        ) : (
-          <form onSubmit={handleConvert} className="space-y-4">
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <label className="label">Tipo de conversión</label>
-                <select className="input" value={convType} onChange={(e) => { setConvType(e.target.value); setConvFile(null); setConvError(null); }}>
-                  {convOptions.map((o) => (
-                    <option key={o.id} value={o.id}>{o.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="label">Archivo {selectedConv && <span className="text-muted-2 normal-case">({selectedConv.input.join(', ')})</span>}</label>
-                <label className={`border-2 border-dashed ${convFile ? 'border-neon-lime bg-neon-lime/10' : 'border-border bg-white/[0.02] hover:border-neon-lime'} rounded-xl p-3 flex items-center justify-center gap-2 cursor-pointer transition-colors text-center text-xs h-[42px]`}>
-                  <input type="file" className="hidden"
-                    accept={selectedConv ? selectedConv.input.map((e) => '.' + e).join(',') : undefined}
-                    onChange={(e) => { setConvFile(e.target.files?.[0] || null); setConvError(null); }} />
-                  {convFile ? <><FileText className="h-4 w-4 text-neon-lime" /> <span className="text-neon-lime font-bold truncate max-w-[160px]">{convFile.name}</span></>
-                    : <><UploadCloud className="h-4 w-4 text-muted-2" /> <span className="text-muted-2">Elegir archivo</span></>}
-                </label>
-              </div>
-            </div>
-
-            {convError && (
-              <div className="badge badge-red w-full justify-start py-2.5 px-3 normal-case tracking-normal text-xs">
-                <AlertCircle className="h-4 w-4 shrink-0" /> <span>{convError}</span>
-              </div>
-            )}
-            {convDone && (
-              <div className="badge badge-lime w-full justify-start py-2.5 px-3 normal-case tracking-normal text-xs">
-                <CheckCircle2 className="h-4 w-4 shrink-0" /> <span>¡Listo! Archivo convertido y descargado. (+2 pts)</span>
-              </div>
-            )}
-
-            <button type="submit" disabled={!convFile || converting} className="btn btn-lime w-full text-black hover:bg-neon-lime/80">
-              {converting ? <><Loader2 className="h-4 w-4 animate-spin" /> Convirtiendo…</> : <><RefreshCw className="h-4 w-4" /> Convertir y descargar</>}
-            </button>
-          </form>
-        )}
-      </div>
-      )}
 
       {/* Reglas */}
       <div className="card p-5 space-y-3">
