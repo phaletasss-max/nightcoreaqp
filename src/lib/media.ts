@@ -33,11 +33,16 @@ export interface VideoInfo {
 export async function checkVideo(url: string): Promise<VideoInfo | null> {
   if (!isMediaConfigured()) return null;
   try {
+    // Timeout: si el servicio está dormido/lento, no colgamos la UI (cae al fallback).
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 8000);
     const r = await fetch(`${MEDIA_URL}/api/info`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url }),
+      signal: ctrl.signal,
     });
+    clearTimeout(t);
     return (await r.json()) as VideoInfo;
   } catch {
     return { available: false, embeddable: false, error: 'No se pudo contactar el media-service' };

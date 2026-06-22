@@ -16,16 +16,19 @@ app.use(cors({ origin: allowed.includes('*') ? true : allowed }));
 
 const log = (lvl, msg) => console.log(`[${new Date().toISOString()}] [${lvl}] ${msg}`);
 
-// Salud + verificación de yt-dlp.
+// Health check INSTANTÁNEO (sin spawnear nada) para que Render no haga timeout.
 app.get('/health', (req, res) => {
+  res.json({ status: 'OK', storage: storage.isConfigured() });
+});
+
+// Verificación de yt-dlp aparte (puede tardar; no la use el health check).
+app.get('/api/ytcheck', (req, res) => {
   const { spawn } = require('child_process');
   const check = spawn('yt-dlp', ['--version']);
   let version = '';
   check.stdout.on('data', (d) => (version += d));
-  check.on('error', () => res.json({ status: 'OK', yt_dlp: false, storage: storage.isConfigured() }));
-  check.on('close', (code) =>
-    res.json({ status: 'OK', yt_dlp: code === 0, yt_dlp_version: version.trim() || null, storage: storage.isConfigured() }),
-  );
+  check.on('error', () => res.json({ yt_dlp: false }));
+  check.on('close', (code) => res.json({ yt_dlp: code === 0, yt_dlp_version: version.trim() || null }));
 });
 
 // Verificar disponibilidad de un link (el "comprobante" al sugerir canción).
