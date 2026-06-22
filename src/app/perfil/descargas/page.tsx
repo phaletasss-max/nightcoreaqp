@@ -104,10 +104,12 @@ export default function DescargasPage() {
       const cUrl = cleanUrl(url);
 
       if (!mediaOn) {
-        // Sin servicio conectado no se puede descargar dentro de la web (yt-dlp es
-        // un binario que Vercel no corre). No redirigimos en silencio: avisamos y
-        // ofrecemos un descargador externo EXPLÍCITO (botón abajo).
-        setError('Las descargas dentro de la web necesitan el servicio (yt-dlp) conectado. Mientras tanto, usa el botón "Descargador externo" de abajo.');
+        // Sin servidor propio, la descarga la hace un servicio externo (que corre
+        // yt-dlp de su lado). Abre el descargador con el enlace ya cargado.
+        window.open(`https://ssyoutube.com/youtube-video-downloader?url=${encodeURIComponent(cUrl)}`, '_blank', 'noopener,noreferrer');
+        setSuccess(true);
+        addPoints(1);
+        setTimeout(() => setSuccess(false), 3000);
         setLoading(false);
         return;
       }
@@ -270,28 +272,32 @@ export default function DescargasPage() {
           >
             {loading ? (
               <><Loader2 className="h-4 w-4 animate-spin" /> Descargando…</>
-            ) : (
+            ) : mediaOn ? (
               <><Download className="h-4 w-4" /> Descargar</>
+            ) : (
+              <><ExternalLink className="h-4 w-4" /> Descargar</>
             )}
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (!url.trim()) return;
-              const MEDIA_URL = (process.env.NEXT_PUBLIC_MEDIA_SERVICE_URL || '').replace(/\/$/, '');
-              const cleanUrl = (u: string) => u.split('&list=')[0].split('?list=')[0];
-              playItem({ 
-                 type: 'stream', 
-                 url: `${MEDIA_URL}/api/download?url=${encodeURIComponent(cleanUrl(url))}&format=mp4`,
-                 title: 'Vista previa',
-                 artist: 'Descargas'
-              });
-            }}
-            disabled={!url.trim() || loading}
-            className="btn btn-lime w-full text-black hover:bg-neon-lime/80"
-          >
-            <PlayCircle className="h-4 w-4" /> Ver en fondo
-          </button>
+          {mediaOn && (
+            <button
+              type="button"
+              onClick={() => {
+                if (!url.trim()) return;
+                const MEDIA_URL = (process.env.NEXT_PUBLIC_MEDIA_SERVICE_URL || '').replace(/\/$/, '');
+                const cleanUrl = (u: string) => u.split('&list=')[0].split('?list=')[0];
+                playItem({
+                   type: 'stream',
+                   url: `${MEDIA_URL}/api/download?url=${encodeURIComponent(cleanUrl(url))}&format=mp4`,
+                   title: 'Vista previa',
+                   artist: 'Descargas'
+                });
+              }}
+              disabled={!url.trim() || loading}
+              className="btn btn-lime w-full text-black hover:bg-neon-lime/80"
+            >
+              <PlayCircle className="h-4 w-4" /> Ver en fondo
+            </button>
+          )}
           <button
             onClick={async () => {
               setSuggestMode(!suggestMode);
@@ -328,23 +334,9 @@ export default function DescargasPage() {
         </div>
 
         {!mediaOn && (
-          <div className="space-y-2 border-t border-border pt-3">
-            <p className="text-[11px] text-muted-2 text-center">
-              Las descargas directas se activan al conectar el servicio (yt-dlp en tu servidor). Mientras tanto, puedes usar un descargador externo (sitio de terceros):
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                if (!url.trim()) return;
-                const cUrl = url.split('&list=')[0].split('?list=')[0];
-                window.open(`https://ssyoutube.com/youtube-video-downloader?url=${encodeURIComponent(cUrl)}`, '_blank', 'noopener,noreferrer');
-              }}
-              disabled={!url.trim()}
-              className="btn btn-ghost w-full text-xs"
-            >
-              <ExternalLink className="h-3.5 w-3.5" /> Abrir en descargador externo
-            </button>
-          </div>
+          <p className="text-[11px] text-muted-2 text-center flex items-center justify-center gap-1.5 border-t border-border pt-3">
+            <ExternalLink className="h-3 w-3" /> La descarga se abre en un descargador externo (sitio de terceros).
+          </p>
         )}
       </div>
 
@@ -404,7 +396,8 @@ export default function DescargasPage() {
         </div>
       </div>
 
-      {/* Convertidor de archivos */}
+      {/* Convertidor de archivos (solo cuando hay servicio conectado) */}
+      {mediaOn && (
       <div className="card p-6 space-y-4 accent-lime">
         <div className="flex items-center gap-3">
           <RefreshCw className="h-5 w-5 text-neon-lime glow-lime" />
@@ -458,6 +451,7 @@ export default function DescargasPage() {
           </form>
         )}
       </div>
+      )}
 
       {/* Reglas */}
       <div className="card p-5 space-y-3">
