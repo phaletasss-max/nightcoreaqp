@@ -9,7 +9,7 @@ import React, { useState } from 'react';
 import {
   Download, Link2, Music, Video, AlertCircle, CheckCircle2,
   Loader2, PlayCircle, Camera, Sparkles, Zap, ArrowRight,
-  FileText, RefreshCw, UploadCloud,
+  FileText, RefreshCw, UploadCloud, ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { downloadMedia, checkVideo, isMediaConfigured, storeBackup } from '@/lib/media';
@@ -104,11 +104,10 @@ export default function DescargasPage() {
       const cUrl = cleanUrl(url);
 
       if (!mediaOn) {
-        // Redirigir a servicio online en Vercel
-        window.open(`https://ssyoutube.com/en171/youtube-video-downloader?url=${encodeURIComponent(cUrl)}`, '_blank');
-        setSuccess(true);
-        addPoints(1);
-        setTimeout(() => setSuccess(false), 3000);
+        // Sin servicio conectado no se puede descargar dentro de la web (yt-dlp es
+        // un binario que Vercel no corre). No redirigimos en silencio: avisamos y
+        // ofrecemos un descargador externo EXPLÍCITO (botón abajo).
+        setError('Las descargas dentro de la web necesitan el servicio (yt-dlp) conectado. Mientras tanto, usa el botón "Descargador externo" de abajo.');
         setLoading(false);
         return;
       }
@@ -329,9 +328,23 @@ export default function DescargasPage() {
         </div>
 
         {!mediaOn && (
-          <p className="text-[11px] text-muted-2 text-center">
-            ⚡ El servicio de descarga se está configurando. Pronto estará disponible para descargas directas.
-          </p>
+          <div className="space-y-2 border-t border-border pt-3">
+            <p className="text-[11px] text-muted-2 text-center">
+              Las descargas directas se activan al conectar el servicio (yt-dlp en tu servidor). Mientras tanto, puedes usar un descargador externo (sitio de terceros):
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                if (!url.trim()) return;
+                const cUrl = url.split('&list=')[0].split('?list=')[0];
+                window.open(`https://ssyoutube.com/youtube-video-downloader?url=${encodeURIComponent(cUrl)}`, '_blank', 'noopener,noreferrer');
+              }}
+              disabled={!url.trim()}
+              className="btn btn-ghost w-full text-xs"
+            >
+              <ExternalLink className="h-3.5 w-3.5" /> Abrir en descargador externo
+            </button>
+          </div>
         )}
       </div>
 
