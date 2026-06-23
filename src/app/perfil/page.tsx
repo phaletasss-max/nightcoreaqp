@@ -7,7 +7,7 @@ import {
   Music, Sparkles, Plus, Trash2, ExternalLink, Check, Loader2, Lock, Globe
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
-import { getAttendees, getUserActivity, addSong, uploadMediaFile, updateProfilePrivacy } from '@/lib/data';
+import { getAttendees, getUserActivity, addSong, uploadMediaFile, updateProfilePrivacy, updateProfileAvatar } from '@/lib/data';
 import type { UserActivity } from '@/lib/data';
 import type { Attendee } from '@/lib/types';
 
@@ -48,6 +48,8 @@ export default function PerfilPage() {
   const [localBg, setLocalBg] = useState('');
   const [localBgOpacity, setLocalBgOpacity] = useState(0.15);
   const [uploadingBg, setUploadingBg] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -172,6 +174,28 @@ export default function PerfilPage() {
     }
   };
 
+  // Sincroniza el avatar mostrado con el del perfil (Supabase) cuando carga/cambia.
+  useEffect(() => { setAvatarUrl(profile?.avatar_url || ''); }, [profile?.avatar_url]);
+
+  const handleAvatarUpload = async (file: File | undefined) => {
+    if (!file || !profile?.id) return;
+    setUploadingAvatar(true);
+    try {
+      const url = await uploadMediaFile(file);
+      if (url) {
+        setAvatarUrl(url);
+        await updateProfileAvatar(profile.id, url);
+        await refresh();
+      } else {
+        alert('No se pudo subir la foto (revisa el bucket "media" en Supabase).');
+      }
+    } catch {
+      alert('Error al subir la foto de perfil.');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   const handlePush = () => {
     if (pushEnabled) return;
     setLoadingPush(true);
@@ -282,9 +306,19 @@ export default function PerfilPage() {
               <img src={localBg} className="absolute inset-0 w-full h-full object-cover mix-blend-overlay pointer-events-none blur-sm" style={{ opacity: Math.min(localBgOpacity * 2, 0.6) }} alt="card bg" />
             )}
             <div className="relative z-10 flex flex-col items-center text-center gap-3">
-              <div className="h-20 w-20 rounded-full bg-neon-pink/15 border border-neon-pink/30 flex items-center justify-center overflow-hidden">
-                <User className="h-9 w-9 text-neon-pink" />
-              </div>
+              <label className="relative h-20 w-20 rounded-full bg-neon-pink/15 border border-neon-pink/30 flex items-center justify-center overflow-hidden cursor-pointer group/avatar" title="Cambiar foto de perfil">
+                {avatarUrl ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={avatarUrl} alt="avatar" className="absolute inset-0 w-full h-full object-cover" />
+                ) : (
+                  <User className="h-9 w-9 text-neon-pink" />
+                )}
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
+                  {uploadingAvatar ? <Loader2 className="h-5 w-5 text-white animate-spin" /> : <Camera className="h-5 w-5 text-white" />}
+                </div>
+                <input type="file" accept="image/*" className="hidden" disabled={uploadingAvatar}
+                  onChange={(e) => handleAvatarUpload(e.target.files?.[0])} />
+              </label>
               <div>
                 <h2 className="text-xl font-extrabold text-white">
                   {displayName}

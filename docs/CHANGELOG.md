@@ -4,6 +4,18 @@ Historial real de lo construido. Lo más reciente arriba.
 
 ---
 
+## 2026-06-23 — Subida de imágenes (avatar + flyer)
+
+- ✅ **Foto de perfil (avatar)**: el avatar del perfil ahora se puede subir (antes era
+  siempre un icono). Sube a Storage (`uploadMediaFile`) → `profiles.avatar_url`
+  (`updateProfileAvatar` en la capa de datos) y se refresca la sesión. Hover = cámara.
+- ✅ **Flyer de evento por archivo**: el formulario de `/admin → Eventos` ahora permite
+  **subir un archivo** (imagen/MP4/MP3) además de pegar URL.
+- Verificado en preview: home sin el bucle (consola limpia), perfil con avatar + botón
+  Consola, playlist con panel de Spotify.
+
+---
+
 ## 2026-06-23 — Fixes de estabilidad + opacidad por sección
 
 ### Bugfix crítico

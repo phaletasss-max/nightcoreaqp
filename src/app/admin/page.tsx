@@ -12,7 +12,7 @@ import {
   getAttendees, launchSurvey, setSongFileUrl, clearSongs,
   getProfiles, updateProfileRole, deleteProfile, getAllComments, deleteCostume,
   adminResetPassword, deleteComment, getCostumes, getSiteSettings, updateSiteSetting,
-  getBannedWords, addBannedWord, removeBannedWord, approveComment,
+  getBannedWords, addBannedWord, removeBannedWord, approveComment, uploadMediaFile,
 } from '@/lib/data';
 import Link from 'next/link';
 import { downloadMedia, storeBackup, isMediaConfigured } from '@/lib/media';
@@ -69,6 +69,7 @@ export default function AdminPage() {
   const [evComments, setEvComments] = useState(true);
   
   const [evFlyer, setEvFlyer] = useState('');
+  const [uploadingFlyer, setUploadingFlyer] = useState(false);
   const [evThemes, setEvThemes] = useState('');
   const [evDetails, setEvDetails] = useState('');
   const [evGoogleMaps, setEvGoogleMaps] = useState('');
@@ -436,7 +437,25 @@ export default function AdminPage() {
             <div><label className="label">Tagline</label><input className="input" value={evTagline} onChange={(e) => setEvTagline(e.target.value)} placeholder="Ej. Miku & FNAF" /></div>
             <div><label className="label">Descripción</label><textarea className="input resize-none" rows={3} value={evDesc} onChange={(e) => setEvDesc(e.target.value)} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="label">Flyer URL (Imagen, MP4, MP3)</label><input className="input" value={evFlyer} onChange={(e) => setEvFlyer(e.target.value)} placeholder="https://..." /></div>
+              <div>
+                <label className="label">Flyer (Imagen, MP4, MP3)</label>
+                <input className="input" value={evFlyer} onChange={(e) => setEvFlyer(e.target.value)} placeholder="https://... o sube un archivo" />
+                <label className="mt-1.5 flex items-center justify-center gap-1.5 py-1.5 border border-dashed border-neon-cyan/40 hover:bg-neon-cyan/10 rounded cursor-pointer text-[10px] font-bold text-neon-cyan transition-colors">
+                  {uploadingFlyer ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+                  {uploadingFlyer ? 'Subiendo...' : 'Subir archivo'}
+                  <input type="file" accept="image/*,video/mp4,audio/mp3" className="hidden" disabled={uploadingFlyer}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setUploadingFlyer(true);
+                      try {
+                        const url = await uploadMediaFile(file);
+                        if (url) setEvFlyer(url);
+                        else alert('No se pudo subir (revisa el bucket "media").');
+                      } finally { setUploadingFlyer(false); }
+                    }} />
+                </label>
+              </div>
               <div><label className="label">Temáticas</label><input className="input" value={evThemes} onChange={(e) => setEvThemes(e.target.value)} placeholder="Cyberpunk, Vocaloid" /></div>
             </div>
             <div><label className="label">Detalles del Flyer (Bullets)</label><textarea className="input resize-none" rows={2} value={evDetails} onChange={(e) => setEvDetails(e.target.value)} placeholder="Shots gratis, Cóctel gratis..." /></div>

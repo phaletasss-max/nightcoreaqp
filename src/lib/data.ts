@@ -350,6 +350,17 @@ export async function getProfileById(id: string): Promise<Profile | null> {
   return lsGet<Profile[]>('nq_profiles', []).find((p) => p.id === id) ?? null;
 }
 
+// Guarda la foto de perfil (subida a Storage por uploadMediaFile).
+export async function updateProfileAvatar(id: string, url: string): Promise<void> {
+  if (cfg()) {
+    const { error } = await supabase.from('profiles').update({ avatar_url: url }).eq('id', id);
+    if (error) logError('updateProfileAvatar', error, { id });
+    return;
+  }
+  const all = lsGet<Profile[]>('nq_profiles', []).map((p) => p.id === id ? { ...p, avatar_url: url } : p);
+  lsSet('nq_profiles', all);
+}
+
 export async function updateProfilePrivacy(id: string, isPrivate: boolean): Promise<void> {
   if (cfg()) {
     const { error } = await supabase.from('profiles').update({ is_private: isPrivate }).eq('id', id);
