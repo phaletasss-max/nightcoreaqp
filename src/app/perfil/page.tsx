@@ -587,16 +587,16 @@ export default function PerfilPage() {
                 <Sparkles className="h-5 w-5" /> Playlist de Spotify
               </h2>
               <p className="text-xs text-muted">
-                Vincula tu playlist favorita de Spotify para tenerla integrada directamente en tu perfil.
+                Pega el enlace de una playlist <strong>pública</strong> de Spotify para ver sus canciones y sugerirlas al DJ. (Las canciones sugeridas van a la playlist general, donde todos pueden votar.)
               </p>
-              
+
               <form onSubmit={handleSaveSpotify} className="flex gap-2">
-                <input 
-                  type="text" 
-                  className="input text-xs" 
-                  value={spotifyUrl} 
-                  onChange={(e) => setSpotifyUrl(e.target.value)} 
-                  placeholder="Ej. https://open.spotify.com/playlist/37i9dQZF1DX10zKzsJ2jva..." 
+                <input
+                  type="text"
+                  className="input text-xs"
+                  value={spotifyUrl}
+                  onChange={(e) => setSpotifyUrl(e.target.value)}
+                  placeholder="Ej. https://open.spotify.com/playlist/tu-playlist..."
                 />
                 <button type="submit" className="btn btn-primary text-xs shrink-0 py-2">
                   Vincular Playlist
@@ -604,23 +604,9 @@ export default function PerfilPage() {
               </form>
 
               {spotifyPlaylistId ? (
-                <div className="pt-2">
-                  <iframe
-                    src={`https://open.spotify.com/embed/playlist/${spotifyPlaylistId}?utm_source=generator&theme=0`}
-                    width="100%"
-                    height="380"
-                    frameBorder="0"
-                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                    loading="lazy"
-                    className="rounded-xl border border-border bg-black/40"
-                  ></iframe>
-                </div>
+                <p className="text-xs text-neon-lime font-bold flex items-center gap-1.5"><Check className="h-3.5 w-3.5" /> Playlist vinculada — mira sus canciones abajo y sugiérelas.</p>
               ) : (
-                <div className="text-center py-8 border border-dashed border-border rounded-xl">
-                  <Music className="h-8 w-8 text-muted-2 mx-auto mb-2 animate-pulse" />
-                  <p className="text-sm text-muted font-bold">Sin playlist vinculada</p>
-                  <p className="text-xs text-muted-2 mt-1">Inserta un enlace de compartir de Spotify arriba para reproducirla desde aquí.</p>
-                </div>
+                <p className="text-xs text-muted-2">Aún sin playlist vinculada.</p>
               )}
             </div>
 
