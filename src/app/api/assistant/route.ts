@@ -10,7 +10,16 @@ import type { NextRequest } from 'next/server';
 export const runtime = 'nodejs';
 export const maxDuration = 30;
 
-const MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+// Modelos a intentar en orden (todos con tier GRATUITO). Si el primero da 429 (cuota),
+// se prueba el siguiente. Los "-lite" y 1.5-flash suelen tener cuota gratis más alta.
+// Se puede forzar uno con GEMINI_MODEL (se intenta primero).
+const MODELS = [
+  process.env.GEMINI_MODEL,
+  'gemini-2.0-flash-lite',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-1.5-flash-8b',
+].filter(Boolean).filter((m, i, a) => a.indexOf(m) === i);
 
 // Contexto del sitio para que la asistente responda con conocimiento de la web.
 const SYSTEM = `Eres "Nightie", la asistente de la web del club Nightcore Arequipa (organiza Yorch, hecho por Los Simpatizantes de JP; comunidad de nightcore/scene, sin fines de lucro).
@@ -43,37 +52,43 @@ export async function POST(request: NextRequest) {
     parts: [{ text: String(m.text || '').slice(0, 2000) }],
   }));
 
-  try {
-    const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: SYSTEM }] },
-          contents: [...history, { role: 'user', parts: [{ text: message.slice(0, 2000) }] }],
-          generationConfig: { temperature: 0.6, maxOutputTokens: 400 },
-        }),
-        cache: 'no-store',
-      },
-    );
+  const payload = JSON.stringify({
+    system_instruction: { parts: [{ text: SYSTEM }] },
+    contents: [...history, { role: 'user', parts: [{ text: message.slice(0, 2000) }] }],
+    generationConfig: { temperature: 0.6, maxOutputTokens: 400 },
+  });
 
-    if (!r.ok) {
-      const detail = await r.text().catch(() => '');
-      // 429 = cuota/límite de la API key (tier gratuito o sin facturación). Mensaje amable.
-      if (r.status === 429) {
-        return Response.json({
-          error: 'La asistente está saturada ahorita 😅 Intenta en un ratito. (Cuota de la API de Gemini alcanzada.)',
-        }, { status: 429 });
+  try {
+    let lastStatus = 0;
+    let lastDetail = '';
+    // Probar cada modelo; si da 429 (cuota) o 404 (no disponible), pasar al siguiente.
+    for (const model of MODELS) {
+      const r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, cache: 'no-store' },
+      );
+
+      if (r.ok) {
+        const data = await r.json();
+        const reply = data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || '').join('').trim();
+        if (reply) return Response.json({ reply, model });
+        lastStatus = 502; lastDetail = 'sin texto (¿filtro de contenido?)';
+        continue;
       }
-      return Response.json({ error: `Gemini respondió ${r.status}`, detail: detail.slice(0, 300) }, { status: 502 });
+
+      lastStatus = r.status;
+      lastDetail = (await r.text().catch(() => '')).slice(0, 200);
+      // 429 (cuota) y 404 (modelo no disponible) → intentar el siguiente modelo.
+      if (r.status === 429 || r.status === 404) continue;
+      break; // otro error (401 key inválida, 400, etc.) → no insistir
     }
 
-    const data = await r.json();
-    const reply = data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || '').join('').trim();
-    if (!reply) return Response.json({ error: 'La asistente no devolvió respuesta (¿filtro de contenido?).' }, { status: 502 });
-
-    return Response.json({ reply });
+    if (lastStatus === 429) {
+      return Response.json({
+        error: 'La asistente está con mucha demanda ahorita 😅 Intenta en un ratito.',
+      }, { status: 429 });
+    }
+    return Response.json({ error: `Gemini respondió ${lastStatus || 'error'}`, detail: lastDetail }, { status: 502 });
   } catch (err) {
     return Response.json({ error: err instanceof Error ? err.message : 'Error al consultar la asistente' }, { status: 500 });
   }
