@@ -4,7 +4,7 @@
 
 const express = require('express');
 const cors = require('cors');
-const { getInfo, streamDownload, downloadToBuffer } = require('./lib/downloader');
+const { getInfo, searchYouTube, streamDownload, downloadToBuffer } = require('./lib/downloader');
 const storage = require('./lib/storage');
 
 const app = express();
@@ -54,6 +54,21 @@ app.post('/api/info', async (req, res) => {
   } catch (err) {
     log('INFO', `No disponible: ${err.message}`);
     res.json({ available: false, embeddable: false, error: err.message });
+  }
+});
+
+// Buscar en YouTube. POST /api/search { query } → { url, title, author, thumbnail }
+// Convierte un pedido de Spotify (texto) en un link de YouTube reproducible.
+app.post('/api/search', async (req, res) => {
+  const { query } = req.body || {};
+  if (!query) return res.status(400).json({ error: 'Falta query' });
+  try {
+    const r = await searchYouTube(query);
+    log('SEARCH', `"${query}" → ${r.url}`);
+    res.json(r);
+  } catch (err) {
+    log('SEARCH', `FALLÓ "${query}": ${err.message}`);
+    res.status(500).json({ error: err.message });
   }
 });
 

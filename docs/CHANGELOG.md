@@ -4,6 +4,27 @@ Historial real de lo construido. Lo más reciente arriba.
 
 ---
 
+## 2026-06-23 — Descargas YouTube en Render + Spotify reproducible
+
+### Media-service (arreglos para que YouTube funcione en Render)
+- ✅ **Fix crash read-only**: yt-dlp reescribe el cookies.txt cuando YouTube rota las
+  cookies, pero `/etc/secrets` en Render es read-only → `OSError: Read-only file system`.
+  Ahora se copia el archivo a `/tmp` (escribible) al arrancar y se usa esa ruta.
+- ✅ **deno** instalado en la imagen Docker (runtime JS que yt-dlp necesita para el reto
+  nsig de YouTube; antes: "No supported JavaScript runtime could be found").
+- ✅ Logs de error reales en `/api/download` (diagnóstico desde Render).
+
+### Spotify → reproducible y descargable
+- ✅ Nuevo endpoint `POST /api/search` (yt-dlp `ytsearch1:`) + `searchYouTube()` en el
+  cliente. Al sugerir una canción importada de Spotify, se **busca su equivalente en
+  YouTube** y se guarda ESE link → la canción queda reproducible en el player y descargable.
+  Si el media-service no responde, cae al link de Spotify (solo pedido al DJ).
+
+> Pendiente del lado del usuario: las cookies de YouTube exportadas estaban **vencidas**
+> ("cookies are no longer valid"). Hay que re-exportarlas con el método incógnito.
+
+---
+
 ## 2026-06-23 — Subida de imágenes (avatar + flyer)
 
 - ✅ **Foto de perfil (avatar)**: el avatar del perfil ahora se puede subir (antes era

@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { getSongs, addSong, setSongVote, uploadMediaFile } from '@/lib/data';
-import { checkVideo, downloadMedia, isMediaConfigured, type VideoInfo } from '@/lib/media';
+import { checkVideo, downloadMedia, isMediaConfigured, searchYouTube, type VideoInfo } from '@/lib/media';
 import type { Song, VoteType } from '@/lib/types';
 import { usePlayer, type PlayableItem } from '@/context/PlayerContext';
 
@@ -74,8 +74,17 @@ export default function PlaylistPage() {
     if (spSuggested.includes(t.id)) return;
     setSpSuggesting(t.id);
     try {
+      // Buscar el equivalente en YouTube → reproducible y descargable. Si el
+      // media-service no responde o no encuentra, cae al link de Spotify (solo pedido).
+      const ytUrl = await searchYouTube(`${t.artist} ${t.title}`);
+      const playableUrl = ytUrl || t.url;
+      const fromYt = !!ytUrl;
       const row = await addSong(
-        { title: t.title, artist: t.artist, youtube_url: t.url, genre: 'Spotify', geek_tag: 'Spotify' },
+        {
+          title: t.title, artist: t.artist, youtube_url: playableUrl,
+          genre: fromYt ? 'YouTube (de Spotify)' : 'Spotify',
+          geek_tag: fromYt ? 'YouTube' : 'Spotify',
+        },
         profile?.id ?? null, profile?.username ?? 'Tú',
       );
       setSongs((prev) => prev.some((s) => s.id === row.id) ? prev : [...prev, row]);

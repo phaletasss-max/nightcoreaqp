@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { getAttendees, getUserActivity, addSong, uploadMediaFile, updateProfilePrivacy, updateProfileAvatar } from '@/lib/data';
+import { searchYouTube } from '@/lib/media';
 import type { UserActivity } from '@/lib/data';
 import type { Attendee } from '@/lib/types';
 
@@ -159,8 +160,14 @@ export default function PerfilPage() {
     setSuggestingTrackId(t.id);
     setTracksError(null);
     try {
+      // Resolver a YouTube → reproducible/descargable; si no, cae al link de Spotify.
+      const ytUrl = await searchYouTube(`${t.artist} ${t.title}`);
       await addSong(
-        { title: t.title, artist: t.artist, youtube_url: t.url, genre: 'Spotify', geek_tag: 'Spotify' },
+        {
+          title: t.title, artist: t.artist, youtube_url: ytUrl || t.url,
+          genre: ytUrl ? 'YouTube (de Spotify)' : 'Spotify',
+          geek_tag: ytUrl ? 'YouTube' : 'Spotify',
+        },
         profile?.id ?? null,
         profile?.username ?? 'Tú',
       );

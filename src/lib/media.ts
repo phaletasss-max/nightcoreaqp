@@ -81,6 +81,29 @@ export async function downloadMedia(url: string, format: 'mp3' | 'mp4', filename
   URL.revokeObjectURL(objUrl);
 }
 
+// Busca en YouTube la mejor coincidencia de un texto y devuelve su URL. Sirve para
+// convertir un pedido de Spotify en algo reproducible/descargable. Null si no hay
+// media-service o no hay resultado.
+export async function searchYouTube(query: string): Promise<string | null> {
+  if (!isMediaConfigured()) return null;
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 20000);
+    const r = await fetch(`${MEDIA_URL}/api/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+      signal: ctrl.signal,
+    });
+    clearTimeout(t);
+    if (!r.ok) return null;
+    const data = await r.json();
+    return (data.url as string) || null;
+  } catch {
+    return null;
+  }
+}
+
 // Respalda un link en Supabase Storage (vía media-service). Devuelve la URL pública.
 export async function storeBackup(url: string, format: 'mp3' | 'mp4'): Promise<string | null> {
   if (!isMediaConfigured()) return null;

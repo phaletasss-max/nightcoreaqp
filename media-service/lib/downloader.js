@@ -3,16 +3,40 @@
 // `ffmpeg` instalados en el sistema (servidor Arch).
 
 const { spawn } = require('child_process');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 
 const SUPPORTED = [
   'youtube.com', 'youtu.be', 'facebook.com', 'fb.watch',
   'instagram.com', 'tiktok.com', 'vm.tiktok.com', 'twitter.com', 'x.com',
 ];
 
-// Si se define YTDLP_COOKIES (ruta a un cookies.txt exportado de YouTube),
-// se lo pasamos a yt-dlp. Necesario para que YouTube no bloquee en servidores.
+// yt-dlp REESCRIBE el archivo de cookies cuando YouTube las rota. En Render,
+// YTDLP_COOKIES apunta a /etc/secrets/... que es READ-ONLY → yt-dlp crashea
+// (OSError: Read-only file system). Solución: copiar las cookies a una ruta
+// escribible (/tmp) una vez al arrancar y darle ESA a yt-dlp.
+let COOKIES_PATH = null;
+(function initCookies() {
+  const src = process.env.YTDLP_COOKIES;
+  if (!src) return;
+  try {
+    const dst = path.join(os.tmpdir(), 'ytdlp-cookies.txt');
+    fs.copyFileSync(src, dst);
+    fs.chmodSync(dst, 0o600);
+    COOKIES_PATH = dst;
+    console.log(`[cookies] copiadas a ${dst} (escribible)`);
+  } catch (e) {
+    COOKIES_PATH = src;   // fallback: usar el original (puede fallar si es read-only)
+    console.log(`[cookies] no se pudo copiar (${e.message}); uso ${src}`);
+  }
+})();
+
+// Nota: yt-dlp usa `deno` como runtime JS por defecto para el reto nsig de YouTube;
+// la imagen Docker lo instala, así que no hace falta pasar --js-runtimes.
+
 function cookieArgs() {
-  return process.env.YTDLP_COOKIES ? ['--cookies', process.env.YTDLP_COOKIES] : [];
+  return COOKIES_PATH ? ['--cookies', COOKIES_PATH] : [];
 }
 
 // Traduce el stderr crudo de yt-dlp a un mensaje útil para el usuario final.
@@ -71,6 +95,39 @@ function getInfo(url) {
         });
       } catch {
         reject(new Error('No se pudo parsear la info'));
+      }
+    });
+  });
+}
+
+// Busca en YouTube la mejor coincidencia de un texto (ej. "artista - título") y
+// devuelve su URL real de YouTube. Sirve para convertir un pedido de Spotify en algo
+// reproducible/descargable.
+function searchYouTube(query) {
+  return new Promise((resolve, reject) => {
+    const q = String(query || '').trim();
+    if (!q) return reject(new Error('Falta query'));
+    const proc = spawn('yt-dlp', [...cookieArgs(), '--no-playlist', '--dump-json', '--no-download', `ytsearch1:${q}`]);
+    let out = '';
+    let err = '';
+    proc.stdout.on('data', (d) => (out += d.toString()));
+    proc.stderr.on('data', (d) => (err += d.toString()));
+    proc.on('error', () => reject(new Error('yt-dlp no disponible')));
+    proc.on('close', (code) => {
+      if (code !== 0) return reject(new Error(humanizeYtError(err) || `yt-dlp salió con código ${code}`));
+      try {
+        // ytsearch puede devolver una línea JSON (el primer resultado).
+        const first = out.trim().split('\n').filter(Boolean)[0];
+        const info = JSON.parse(first);
+        resolve({
+          url: info.webpage_url || (info.id ? `https://www.youtube.com/watch?v=${info.id}` : null),
+          title: info.title,
+          author: info.uploader,
+          thumbnail: info.thumbnail,
+          duration: info.duration,
+        });
+      } catch {
+        reject(new Error('Sin resultados de búsqueda'));
       }
     });
   });
@@ -145,4 +202,4 @@ async function downloadToBuffer(url, format, quality) {
   });
 }
 
-module.exports = { validateUrl, getInfo, streamDownload, downloadToBuffer };
+module.exports = { validateUrl, getInfo, searchYouTube, streamDownload, downloadToBuffer };
