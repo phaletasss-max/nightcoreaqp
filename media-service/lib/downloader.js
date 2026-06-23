@@ -156,27 +156,72 @@ function buildArgs(url, format, quality) {
   return args.concat(['-o', '-', url]);
 }
 
+// Args para descarga directa de VIDEO (mp4). Con salida a stdout yt-dlp no puede
+// mergear, así que pedimos un formato progresivo (un solo archivo) transmitible tal cual.
+function buildVideoArgs(url, quality) {
+  let args = [...cookieArgs(), '--no-playlist'];
+  if (url.includes('tiktok.com')) {
+    args = args.concat(['-f', 'best[ext=mp4][vcodec~="^((?!hevc).)*$"]/best[ext=mp4]/best']);
+  } else if (quality && quality !== 'best') {
+    args = args.concat(['-f', `best[height<=${quality}][ext=mp4]/best[ext=mp4]/best`]);
+  } else {
+    args = args.concat(['-f', 'best[ext=mp4]/best']);
+  }
+  return args.concat(['-o', '-', url]);
+}
+
+// MP3 real: yt-dlp (bestaudio) → ffmpeg (transcode a mp3) → cliente. Necesario porque
+// con salida a stdout yt-dlp NO postprocesa (devolvía webm/opus con extensión .mp3).
+function streamAudioMp3(url, safe, res) {
+  return new Promise((resolve, reject) => {
+    const ytdlp = spawn('yt-dlp', [...cookieArgs(), '--no-playlist', '-f', 'bestaudio/best', '-o', '-', url]);
+    const ff = spawn('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-i', 'pipe:0', '-vn', '-f', 'mp3', '-b:a', '192k', 'pipe:1']);
+    let bytes = 0;
+    let err = '';
+    ytdlp.stderr.on('data', (d) => (err += d.toString()));
+    ytdlp.stdout.on('error', () => {});
+    ytdlp.stdout.pipe(ff.stdin);
+    ff.stdin.on('error', () => {});   // ffmpeg puede cerrar la entrada antes de tiempo
+    ff.stdout.pipe(res);
+    ff.stdout.on('data', (d) => (bytes += d.length));
+    ff.stderr.on('data', () => {});
+    ytdlp.on('error', (e) => { if (!res.headersSent) res.status(500).json({ error: 'yt-dlp no disponible' }); reject(e); });
+    ff.on('error', (e) => { if (!res.headersSent) res.status(500).json({ error: 'ffmpeg no disponible' }); reject(e); });
+    ytdlp.on('close', (code) => { if (code !== 0) { try { ff.stdin.end(); } catch { /* */ } } });
+    ff.on('close', () => {
+      if (bytes === 0) {
+        const reason = humanizeYtError(err) || 'No se pudo convertir a mp3';
+        if (!res.headersSent) res.status(500).json({ error: reason });
+        return reject(new Error(reason));
+      }
+      resolve({ filename: `${safe}.mp3`, size: bytes, format: 'mp3' });
+    });
+    res.on('close', () => { try { ytdlp.kill(); } catch { /* */ } try { ff.kill(); } catch { /* */ } });
+  });
+}
+
 // Stream directo al cliente (res es el Response de Express).
 async function streamDownload(url, format, quality, res) {
   if (!validateUrl(url)) throw new Error('URL no soportada');
-  const info = await getInfo(url).catch(() => ({ title: 'audio' }));
+  const info = await getInfo(url).catch(() => ({ title: 'media' }));
   const safe = (info.title || 'media').replace(/[^a-z0-9]/gi, '_').substring(0, 50);
   const ext = format === 'mp3' ? 'mp3' : 'mp4';
   res.setHeader('Content-Disposition', `attachment; filename="${safe}.${ext}"`);
   res.setHeader('Content-Type', format === 'mp3' ? 'audio/mpeg' : 'video/mp4');
 
+  // MP3 va por el pipe de transcode (ffmpeg); mp4 se transmite directo.
+  if (format === 'mp3') return streamAudioMp3(url, safe, res);
+
   return new Promise((resolve, reject) => {
-    const proc = spawn('yt-dlp', buildArgs(url, format, quality));
+    const proc = spawn('yt-dlp', buildVideoArgs(url, quality));
     proc.stdout.pipe(res);
     let bytes = 0;
     let err = '';
     proc.stdout.on('data', (d) => (bytes += d.length));
-    proc.stderr.on('data', (d) => (err += d.toString()));   // capturar el motivo real
+    proc.stderr.on('data', (d) => (err += d.toString()));
     proc.on('error', (e) => { if (!res.headersSent) res.status(500).json({ error: 'yt-dlp no disponible en el servidor' }); reject(e); });
     proc.on('close', (code) => {
       if (code !== 0) {
-        // Surface del error real de yt-dlp (p. ej. "Sign in to confirm you're not a bot"
-        // → faltan cookies de YouTube; o video privado/no disponible).
         const reason = humanizeYtError(err) || `yt-dlp salió con código ${code}`;
         if (!res.headersSent) res.status(500).json({ error: reason });
         return reject(new Error(reason));
