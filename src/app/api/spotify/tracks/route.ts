@@ -79,7 +79,12 @@ export async function GET(request: NextRequest) {
       if (!r.ok) {
         if (r.status === 404) return Response.json({ error: 'Playlist no encontrada o privada (hazla pública)' }, { status: 404 });
         if (r.status === 401) { cachedToken = null; return Response.json({ error: 'Token de Spotify rechazado, intenta de nuevo' }, { status: 502 }); }
-        return Response.json({ error: 'Spotify respondió con un error' }, { status: 502 });
+        // Surface del status y cuerpo real de Spotify para diagnóstico.
+        const body = await r.text().catch(() => '');
+        return Response.json(
+          { error: `Spotify respondió ${r.status}`, detail: body.slice(0, 400) },
+          { status: 502 },
+        );
       }
       const page: SpotifyTracksPage = await r.json();
       for (const it of page.items ?? []) {
