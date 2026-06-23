@@ -60,6 +60,12 @@ export async function POST(request: NextRequest) {
 
     if (!r.ok) {
       const detail = await r.text().catch(() => '');
+      // 429 = cuota/límite de la API key (tier gratuito o sin facturación). Mensaje amable.
+      if (r.status === 429) {
+        return Response.json({
+          error: 'La asistente está saturada ahorita 😅 Intenta en un ratito. (Cuota de la API de Gemini alcanzada.)',
+        }, { status: 429 });
+      }
       return Response.json({ error: `Gemini respondió ${r.status}`, detail: detail.slice(0, 300) }, { status: 502 });
     }
 
