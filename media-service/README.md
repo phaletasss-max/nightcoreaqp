@@ -43,6 +43,28 @@ Luego pon esa URL en el frontend: `NEXT_PUBLIC_MEDIA_SERVICE_URL=https://media.t
 | POST | `/api/download` | `{ url, format, quality }` | stream del archivo (mp3/mp4) |
 | POST | `/api/store` | `{ url, format }` | `{ url }` — descarga y sube a Supabase Storage |
 
+## Cookies de YouTube en Render (IMPRESCINDIBLE para YouTube)
+
+YouTube bloquea las IPs de datacenter (Render). Sin cookies, `yt-dlp` recibe la petición
+pero falla con *"Sign in to confirm you're not a bot"* → no devuelve archivo. TikTok/IG/FB
+**sí** funcionan sin cookies. Para YouTube hay que dar cookies de una cuenta:
+
+1. En tu navegador (logueado en YouTube) usa la extensión **"Get cookies.txt LOCALLY"** y
+   exporta el `cookies.txt` de `youtube.com` (formato **Netscape**; la primera línea suele
+   ser `# Netscape HTTP Cookie File`).
+2. En **Render → tu servicio → Environment → Secret Files → Add Secret File**:
+   - **Filename:** `cookies.txt`
+   - **Contents:** pega TODO el contenido del archivo exportado.
+   - Render lo monta en `/etc/secrets/cookies.txt`.
+3. En **Environment → Environment Variables** añade:
+   - `YTDLP_COOKIES` = `/etc/secrets/cookies.txt`
+4. **Manual Deploy → Deploy latest commit** (o espera el auto-deploy).
+5. Probar: intenta una descarga de YouTube. En **Logs** debe salir `[DOWNLOAD] OK ...`.
+   Si sale `[DOWNLOAD] FALLÓ: ...` el mensaje dice el motivo (cookies vencidas, etc.).
+
+> Las cookies caducan cada cierto tiempo; si vuelve a fallar, re-exporta y reemplaza el
+> Secret File. Mantén `yt-dlp` actualizado (la imagen Docker baja la última versión al build).
+
 ## Storage en Supabase
 Crea un bucket **público** llamado `media` (Storage → New bucket). La clave de servicio
 (`SUPABASE_SERVICE_ROLE_KEY`) solo vive aquí, en el backend.
