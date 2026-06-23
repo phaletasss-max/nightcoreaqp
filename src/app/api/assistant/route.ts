@@ -15,10 +15,11 @@ export const maxDuration = 30;
 // Se puede forzar uno con GEMINI_MODEL (se intenta primero).
 const MODELS = [
   process.env.GEMINI_MODEL,
+  'gemini-2.5-flash-lite',     // los "lite" tienen la cuota gratis más generosa
   'gemini-2.0-flash-lite',
+  'gemini-flash-lite-latest',
+  'gemini-2.5-flash',
   'gemini-2.0-flash',
-  'gemini-1.5-flash',
-  'gemini-1.5-flash-8b',
 ].filter(Boolean).filter((m, i, a) => a.indexOf(m) === i);
 
 // Contexto del sitio para que la asistente responda con conocimiento de la web.
