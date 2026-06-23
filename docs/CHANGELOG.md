@@ -15,6 +15,10 @@ Historial real de lo construido. Lo más reciente arriba.
 - ✅ Ruta `/api/assistant` (Gemini, key server-side `GEMINI_API_KEY`) + chat flotante
   "Nightie" (`Assistant.tsx`) montado en el layout. Ayuda a los usuarios a usar la web.
   Requiere `GEMINI_API_KEY` en Vercel; sin ella, el chat avisa que no está configurada.
+- ✅ **Funciona en el tier GRATUITO**: la ruta prueba varios modelos vigentes
+  (gemini-2.5/2.0 flash-lite) y usa el primero con cuota. Verificado en producción
+  respondiendo con `gemini-2.5-flash-lite`. No requiere facturación. (Los modelos 1.5
+  ya no existen en 2026.)
 
 ### Fixes
 - ✅ **Subida de fotos/personalización**: `supabase/phase-g.sql` arregla las políticas del

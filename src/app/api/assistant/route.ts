@@ -37,27 +37,6 @@ Reglas:
 - Si no sabes algo del evento (fecha exacta, precio, lugar) que no esté en el mensaje del usuario, dilo con sinceridad y sugiere revisar la sección Eventos o preguntar a la organización.
 - No inventes datos. Respuestas cortas (2-5 frases). Nada de temas fuera del club/web salvo saludos.`;
 
-// Diagnóstico temporal: GET /api/assistant?debug=models → lista los modelos que la key
-// puede usar para generateContent (no consume cuota de generación).
-export async function GET(request: NextRequest) {
-  if (request.nextUrl.searchParams.get('debug') !== 'models') {
-    return Response.json({ ok: true, hint: 'usa ?debug=models para listar modelos' });
-  }
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) return Response.json({ error: 'falta GEMINI_API_KEY' }, { status: 503 });
-  try {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}&pageSize=200`, { cache: 'no-store' });
-    const data = await r.json();
-    if (!r.ok) return Response.json({ status: r.status, data }, { status: 502 });
-    const models = (data.models || [])
-      .filter((m: { supportedGenerationMethods?: string[] }) => m.supportedGenerationMethods?.includes('generateContent'))
-      .map((m: { name: string }) => m.name.replace('models/', ''));
-    return Response.json({ count: models.length, models });
-  } catch (err) {
-    return Response.json({ error: err instanceof Error ? err.message : 'error' }, { status: 500 });
-  }
-}
-
 export async function POST(request: NextRequest) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return Response.json({ error: 'La asistente no está configurada (falta GEMINI_API_KEY).' }, { status: 503 });
