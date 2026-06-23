@@ -4,6 +4,21 @@ Historial real de lo construido. Lo más reciente arriba.
 
 ---
 
+## 2026-06-23 — Descargador mejorado + métricas reales (cierre de sesión)
+
+### Descargas (`/perfil/descargas`)
+- ✅ **Buscador de YouTube por nombre**: escribes el nombre, eliges el resultado (con carátula
+  y duración) y se carga; también lo reproduce en fondo.
+- ✅ **Calidad + tamaño antes de bajar**: selector de calidad de MP4 (360/480/720/1080p) con su
+  peso aprox y tamaño del MP3 (vía `/api/info` del media-service).
+
+### Admin · métricas REALES
+- ✅ Reemplazados los valores de ejemplo por métricas calculadas de la BD en vivo: usuarios
+  registrados, disfraces, comentarios, votos totales, **conversión interés→confirmado**,
+  **asistencia por evento** (barras reales), **canción más votada**, comentarios por revisar.
+
+---
+
 ## 2026-06-23 — Clave destructiva definitiva + doc maestra
 
 - ✅ `ADMIN_DANGER_KEY` = `VcsgDSnLgQcH@` (acciones destructivas en /admin).

@@ -78,7 +78,7 @@ Las páginas solo llaman a la capa [src/lib/data.ts](../src/lib/data.ts). Notas:
 | `/disfraces` | [disfraces/page.tsx](../src/app/disfraces/page.tsx) | Subir cosplay (foto+evento+fecha), votar, comentar. |
 | `/perfil` | [perfil/page.tsx](../src/app/perfil/page.tsx) | Perfil propio: avatar subible, stats, insignias, privacidad, guardar canciones favoritas, vincular Spotify, botón **Consola** (si staff). |
 | `/perfil/[id]` | [perfil/[id]/page.tsx](../src/app/perfil/[id]/page.tsx) | Perfil público (respeta `is_private`). |
-| `/perfil/descargas` | [perfil/descargas/page.tsx](../src/app/perfil/descargas/page.tsx) | Descargador directo (pega link → MP3/MP4). |
+| `/perfil/descargas` | [perfil/descargas/page.tsx](../src/app/perfil/descargas/page.tsx) | Descargador: **buscar YouTube por nombre**, pegar link, elegir **calidad+tamaño** (MP4/MP3), ver en fondo, sugerir al DJ. |
 | `/admin` | [admin/page.tsx](../src/app/admin/page.tsx) | **Consola DJ/admin** (solo rol real o clave maestra). CRUD eventos, cola DJ, moderación, usuarios, encuestas, diseño. **Clave de seguridad** en acciones destructivas. |
 | `/encuestas` | [encuestas/page.tsx](../src/app/encuestas/page.tsx) | Redirige a `/`. |
 
@@ -176,6 +176,7 @@ requiere `auth.uid()` propio; staff (`is_staff()`) puede moderar/borrar.
 | Disfraces, encuestas, racha, temáticas | ✅ |
 | Perfiles + privacidad + avatar + guardar canciones | ✅ |
 | Gestor de diseño en vivo | ✅ |
+| Métricas reales en admin (KPIs, conversión, asistencia por evento) | ✅ calculadas de la BD |
 | Subida de imágenes (avatar/flyer/fondos) | ✅ (requiere `phase-g.sql`) |
 | Moderación (palabras + comentarios) | ✅ |
 | Notificaciones / PWA | ❌ pendiente (ver §12) |
