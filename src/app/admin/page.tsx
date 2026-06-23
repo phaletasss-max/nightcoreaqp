@@ -169,6 +169,20 @@ export default function AdminPage() {
     rsvps.filter((r) => r.event_id === eventId && (!type || r.status === type)).length;
   const totalConfirmed = rsvps.filter((r) => r.status === 'confirmed').length;
 
+  // ── Métricas reales (calculadas de los datos cargados) ──
+  const totalInterested = rsvps.filter((r) => r.status === 'interested').length;
+  const totalRsvp = totalConfirmed + totalInterested;
+  const conversion = totalRsvp ? Math.round((totalConfirmed / totalRsvp) * 100) : 0;
+  const topSong = [...songs].sort((a, b) => b.votes_count - a.votes_count)[0];
+  const totalVotes = songs.reduce((s, x) => s + Math.max(x.votes_count, 0), 0);
+  const flaggedComments = comments.filter((c) => c.flagged).length;
+  // Asistencia por evento (para la barra de "asistencia por evento").
+  const eventStats = events
+    .map((e) => ({ title: e.title, confirmed: countRsvp(e.id, 'confirmed'), total: countRsvp(e.id) }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 4);
+  const maxEventTotal = Math.max(1, ...eventStats.map((e) => e.total));
+
   const toggleStatus = async (ev: EventItem) => {
     const order: EventStatus[] = ['planning', 'confirmed', 'paused'];
     const next = order[(order.indexOf(ev.status) + 1) % 3];
@@ -334,26 +348,49 @@ export default function AdminPage() {
             ))}
           </div>
 
+          {/* Segunda fila de KPIs reales */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { label: 'Usuarios registrados', value: profiles.length },
+              { label: 'Disfraces', value: costumes.length },
+              { label: 'Comentarios', value: comments.length },
+              { label: 'Votos totales', value: totalVotes },
+            ].map((k) => (
+              <div key={k.label} className="card p-4">
+                <span className="text-2xl font-extrabold text-white block">{k.value}</span>
+                <span className="text-[10px] text-muted-2 uppercase font-bold">{k.label}</span>
+              </div>
+            ))}
+          </div>
+
           <div className="grid lg:grid-cols-2 gap-6">
+            {/* Asistencia por evento (real) */}
             <div className="card accent-cyan p-6 space-y-4">
-              <h3 className="section-title text-base flex items-center gap-2"><BarChart3 className="h-5 w-5 text-neon-cyan" /> Preferencia de día</h3>
-              {[{ l: 'Sábado noche', p: 65 }, { l: 'Viernes noche', p: 25 }, { l: 'Matinée domingo', p: 10 }].map((s) => (
-                <div key={s.l} className="space-y-1">
-                  <div className="flex justify-between text-xs font-bold"><span className="text-muted">{s.l}</span><span className="text-neon-cyan">{s.p}%</span></div>
-                  <div className="track"><span style={{ width: `${s.p}%` }} /></div>
+              <h3 className="section-title text-base flex items-center gap-2"><BarChart3 className="h-5 w-5 text-neon-cyan" /> Asistencia por evento</h3>
+              {eventStats.length === 0 ? (
+                <p className="text-xs text-muted-2 py-4 text-center">Sin reservas todavía.</p>
+              ) : eventStats.map((e) => (
+                <div key={e.title} className="space-y-1">
+                  <div className="flex justify-between text-xs font-bold">
+                    <span className="text-muted truncate max-w-[180px]">{e.title}</span>
+                    <span className="text-neon-cyan">{e.total} ({e.confirmed} conf.)</span>
+                  </div>
+                  <div className="track"><span style={{ width: `${Math.round((e.total / maxEventTotal) * 100)}%` }} /></div>
                 </div>
               ))}
             </div>
+            {/* Resumen real */}
             <div className="card p-6 space-y-3">
-              <h3 className="section-title text-base flex items-center gap-2"><TrendingUp className="h-5 w-5 text-neon-purple" /> Proyección AQP</h3>
+              <h3 className="section-title text-base flex items-center gap-2"><TrendingUp className="h-5 w-5 text-neon-purple" /> Resumen del club</h3>
               {[
-                ['Evento pasado', '98 asistentes'],
-                ['Próximo (proyección)', '135 asistentes'],
-                ['Conversión interés→confirmado', '72.4%'],
-                ['Género más sugerido', 'Eurobeat & Vocaloid'],
+                ['Interesados (RSVP)', String(totalInterested)],
+                ['Confirmados (RSVP)', String(totalConfirmed)],
+                ['Conversión interés→confirmado', `${conversion}%`],
+                ['Canción más votada', topSong ? `${topSong.title} (${topSong.votes_count})` : '—'],
+                ['Comentarios por revisar', String(flaggedComments)],
               ].map(([k, v], i, arr) => (
-                <div key={k} className={`flex justify-between text-sm ${i < arr.length - 1 ? 'border-b border-border pb-2' : ''}`}>
-                  <span className="text-muted">{k}</span><span className="font-bold text-white">{v}</span>
+                <div key={k} className={`flex justify-between text-sm gap-3 ${i < arr.length - 1 ? 'border-b border-border pb-2' : ''}`}>
+                  <span className="text-muted shrink-0">{k}</span><span className="font-bold text-white truncate text-right">{v}</span>
                 </div>
               ))}
             </div>

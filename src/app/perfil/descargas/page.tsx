@@ -5,16 +5,22 @@
 // usando el media-service (yt-dlp). También pueden sugerir canciones
 // para la playlist del DJ directamente desde aquí.
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Download, Link2, Music, Video, AlertCircle, CheckCircle2,
-  Loader2, PlayCircle, Camera, Sparkles, Zap, ArrowRight,
+  Loader2, PlayCircle, Camera, Sparkles, Zap, ArrowRight, Search,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
-import { downloadMedia, isMediaConfigured, storeBackup } from '@/lib/media';
+import { downloadMedia, isMediaConfigured, storeBackup, checkVideo, searchYouTubeList, type VideoInfo, type YtSearchResult } from '@/lib/media';
 import { addSong, getSongs } from '@/lib/data';
 import type { Song } from '@/lib/types';
 import { usePlayer } from '@/context/PlayerContext';
+
+function getYouTubeId(url: string) {
+  const m = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
+  return m && m[2].length === 11 ? m[2] : null;
+}
+const fmtMb = (mb?: number | null) => (mb != null ? `~${mb} MB` : '');
 
 type Platform = 'youtube' | 'instagram' | 'tiktok' | 'unknown';
 
@@ -38,9 +44,19 @@ export default function DescargasPage() {
 
   const [url, setUrl] = useState('');
   const [format, setFormat] = useState<'mp3' | 'mp4'>('mp4');
+  const [quality, setQuality] = useState<string>('best');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  // Info del enlace (calidades + tamaños) — se consulta al media-service.
+  const [info, setInfo] = useState<VideoInfo | null>(null);
+  const [infoLoading, setInfoLoading] = useState(false);
+
+  // Buscador de YouTube
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<YtSearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
 
   // Sugerir canción
   const [suggestMode, setSuggestMode] = useState(false);
@@ -59,6 +75,48 @@ export default function DescargasPage() {
   const pInfo = platformInfo[platform];
   const { playItem } = usePlayer();
 
+  const cleanLink = (u: string) => u.split('&list=')[0].split('?list=')[0].trim();
+
+  // Consulta calidades + tamaños del enlace (debounce) vía media-service.
+  useEffect(() => {
+    const cUrl = cleanLink(url);
+    if (!cUrl || !mediaOn || !/(youtu\.?be|youtube\.com|tiktok\.com|instagram\.com)/i.test(cUrl)) {
+      setInfo(null);
+      return;
+    }
+    let active = true;
+    setInfoLoading(true);
+    const t = setTimeout(async () => {
+      const i = await checkVideo(cUrl);
+      if (!active) return;
+      setInfo(i);
+      setInfoLoading(false);
+      setQuality('best');
+    }, 700);
+    return () => { active = false; clearTimeout(t); };
+  }, [url, mediaOn]);
+
+  const doSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    if (!q) return;
+    if (!mediaOn) { setError('La búsqueda necesita el media-service conectado.'); return; }
+    setSearching(true); setError(null); setSearchResults([]);
+    try {
+      const results = await searchYouTubeList(q, 6);
+      if (!results.length) setError('Sin resultados. Prueba con otro nombre.');
+      else setSearchResults(results);
+    } finally { setSearching(false); }
+  };
+
+  const pickResult = (t: YtSearchResult, play = false) => {
+    setUrl(t.url);
+    setSearchResults([]);
+    setSearchQuery('');
+    setError(null);
+    if (play) playItem({ type: 'yt', id: getYouTubeId(t.url) || '', title: t.title || 'Previa', artist: t.author || 'YouTube' });
+  };
+
   const handleDownload = async () => {
     if (!url.trim()) return;
     setError(null);
@@ -76,9 +134,9 @@ export default function DescargasPage() {
         return;
       }
 
-      // Descarga en-página vía /api/download (Vercel → Cobalt). Sin servidor propio.
+      // Descarga en-página. Pasa la calidad elegida para MP4.
       const filename = `${platform}_${Date.now()}`;
-      await downloadMedia(cUrl, format, filename);
+      await downloadMedia(cUrl, format, filename, format === 'mp4' ? quality : undefined);
       setSuccess(true);
       addPoints(3);
       setTimeout(() => setSuccess(false), 3000);
@@ -156,6 +214,36 @@ export default function DescargasPage() {
         </p>
       </div>
 
+      {/* Buscador de YouTube por nombre */}
+      {mediaOn && (
+        <div className="card p-5 space-y-3 accent-cyan">
+          <label className="label flex items-center gap-2"><Search className="h-3.5 w-3.5" /> Buscar en YouTube por nombre</label>
+          <form onSubmit={doSearch} className="flex gap-2">
+            <input className="input flex-1" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Ej. Alan Walker Faded nightcore" />
+            <button type="submit" disabled={searching} className="btn btn-cyan shrink-0">
+              {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />} Buscar
+            </button>
+          </form>
+          {searchResults.length > 0 && (
+            <div className="max-h-80 overflow-y-auto space-y-1.5 pr-1">
+              {searchResults.map((t) => (
+                <div key={t.url} className="flex items-center gap-3 p-2 rounded-lg border border-border bg-white/[0.02]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {t.thumbnail && <img src={t.thumbnail} alt="" className="h-10 w-16 rounded object-cover shrink-0" />}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-white truncate">{t.title}</p>
+                    <p className="text-xs text-muted truncate">{t.author}{t.duration ? ` · ${Math.floor(t.duration / 60)}:${String(Math.floor(t.duration % 60)).padStart(2, '0')}` : ''}</p>
+                  </div>
+                  <button onClick={() => pickResult(t, true)} title="Elegir y ver en fondo" className="btn btn-lime text-black text-xs px-2.5 py-1.5 shrink-0">
+                    <PlayCircle className="h-3.5 w-3.5" /> Elegir
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Input principal */}
       <div className="card p-6 sm:p-8 space-y-5 accent-magenta">
         <div className="space-y-2">
@@ -204,9 +292,33 @@ export default function DescargasPage() {
               }`}
             >
               <Music className="h-4 w-4" /> MP3 (Audio)
+              {info?.audioSizeMb != null && <span className="text-[10px] font-mono text-muted-2">{fmtMb(info.audioSizeMb)}</span>}
             </button>
           </div>
         </div>
+
+        {/* Calidad + tamaño (MP4) */}
+        {format === 'mp4' && (
+          <div className="space-y-2">
+            <label className="label flex items-center justify-between">
+              <span>Calidad del video</span>
+              {infoLoading && <span className="text-[10px] text-neon-cyan flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> consultando tamaños…</span>}
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => setQuality('best')}
+                className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${quality === 'best' ? 'border-neon-magenta/50 bg-neon-magenta/10 text-neon-magenta' : 'border-border text-muted hover:text-white'}`}>
+                Mejor
+              </button>
+              {(info?.video ?? []).map((v) => (
+                <button key={v.height} type="button" onClick={() => setQuality(String(v.height))}
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors flex items-center gap-1.5 ${quality === String(v.height) ? 'border-neon-cyan/50 bg-neon-cyan/10 text-neon-cyan' : 'border-border text-muted hover:text-white'}`}>
+                  {v.height}p {v.sizeMb != null && <span className="text-[10px] font-mono text-muted-2">{fmtMb(v.sizeMb)}</span>}
+                </button>
+              ))}
+            </div>
+            {!mediaOn && <p className="text-[10px] text-muted-2">Las calidades/tamaños aparecen al conectar el media-service.</p>}
+          </div>
+        )}
 
         {/* Errores y éxito */}
         {error && (
