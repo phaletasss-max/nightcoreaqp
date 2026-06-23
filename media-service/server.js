@@ -60,12 +60,13 @@ app.post('/api/info', async (req, res) => {
 // Buscar en YouTube. POST /api/search { query } → { url, title, author, thumbnail }
 // Convierte un pedido de Spotify (texto) en un link de YouTube reproducible.
 app.post('/api/search', async (req, res) => {
-  const { query } = req.body || {};
+  const { query, limit } = req.body || {};
   if (!query) return res.status(400).json({ error: 'Falta query' });
   try {
-    const r = await searchYouTube(query);
-    log('SEARCH', `"${query}" → ${r.url}`);
-    res.json(r);
+    const results = await searchYouTube(query, limit);
+    log('SEARCH', `"${query}" → ${results.length} resultados`);
+    // Compat: `url` = mejor resultado (lo usa el auto-resolve de Spotify); `results` = lista.
+    res.json({ url: results[0]?.url || null, title: results[0]?.title || null, results });
   } catch (err) {
     log('SEARCH', `FALLÓ "${query}": ${err.message}`);
     res.status(500).json({ error: err.message });

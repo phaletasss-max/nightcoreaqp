@@ -118,14 +118,15 @@ function getInfo(url) {
   });
 }
 
-// Busca en YouTube la mejor coincidencia de un texto (ej. "artista - título") y
-// devuelve su URL real de YouTube. Sirve para convertir un pedido de Spotify en algo
-// reproducible/descargable.
-function searchYouTube(query) {
+// Busca en YouTube por texto (ej. "artista - título") y devuelve hasta `limit`
+// resultados (cada uno con su URL real). Sirve tanto para resolver un pedido de
+// Spotify (tomar el [0]) como para una búsqueda manual donde el usuario elige.
+function searchYouTube(query, limit = 5) {
   return new Promise((resolve, reject) => {
     const q = String(query || '').trim();
     if (!q) return reject(new Error('Falta query'));
-    const proc = spawn('yt-dlp', [...cookieArgs(), '--no-playlist', '--dump-json', '--no-download', `ytsearch1:${q}`]);
+    const n = Math.min(Math.max(parseInt(limit, 10) || 5, 1), 10);
+    const proc = spawn('yt-dlp', [...cookieArgs(), '--no-playlist', '--dump-json', '--no-download', `ytsearch${n}:${q}`]);
     let out = '';
     let err = '';
     proc.stdout.on('data', (d) => (out += d.toString()));
@@ -133,20 +134,21 @@ function searchYouTube(query) {
     proc.on('error', () => reject(new Error('yt-dlp no disponible')));
     proc.on('close', (code) => {
       if (code !== 0) return reject(new Error(humanizeYtError(err) || `yt-dlp salió con código ${code}`));
-      try {
-        // ytsearch puede devolver una línea JSON (el primer resultado).
-        const first = out.trim().split('\n').filter(Boolean)[0];
-        const info = JSON.parse(first);
-        resolve({
-          url: info.webpage_url || (info.id ? `https://www.youtube.com/watch?v=${info.id}` : null),
-          title: info.title,
-          author: info.uploader,
-          thumbnail: info.thumbnail,
-          duration: info.duration,
-        });
-      } catch {
-        reject(new Error('Sin resultados de búsqueda'));
-      }
+      // ytsearchN devuelve una línea JSON por resultado.
+      const results = out.trim().split('\n').filter(Boolean).map((line) => {
+        try {
+          const info = JSON.parse(line);
+          return {
+            url: info.webpage_url || (info.id ? `https://www.youtube.com/watch?v=${info.id}` : null),
+            title: info.title,
+            author: info.uploader,
+            thumbnail: info.thumbnail,
+            duration: info.duration,
+          };
+        } catch { return null; }
+      }).filter((r) => r && r.url);
+      if (!results.length) return reject(new Error('Sin resultados de búsqueda'));
+      resolve(results);
     });
   });
 }

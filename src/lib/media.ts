@@ -108,6 +108,30 @@ export async function searchYouTube(query: string): Promise<string | null> {
   }
 }
 
+export interface YtSearchResult { url: string; title?: string; author?: string; thumbnail?: string; duration?: number }
+
+// Busca en YouTube y devuelve varios resultados (para que el usuario elija). Vacío
+// si no hay media-service o no hay resultados.
+export async function searchYouTubeList(query: string, limit = 6): Promise<YtSearchResult[]> {
+  if (!isMediaConfigured()) return [];
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 25000);
+    const r = await fetch(`${MEDIA_URL}/api/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, limit }),
+      signal: ctrl.signal,
+    });
+    clearTimeout(t);
+    if (!r.ok) return [];
+    const data = await r.json();
+    return (data.results as YtSearchResult[]) || [];
+  } catch {
+    return [];
+  }
+}
+
 // Respalda un link en Supabase Storage (vía media-service). Devuelve la URL pública.
 export async function storeBackup(url: string, format: 'mp3' | 'mp4'): Promise<string | null> {
   if (!isMediaConfigured()) return null;

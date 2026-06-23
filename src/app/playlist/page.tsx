@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { getSongs, addSong, setSongVote, uploadMediaFile } from '@/lib/data';
-import { checkVideo, isMediaConfigured, searchYouTube, type VideoInfo } from '@/lib/media';
+import { checkVideo, isMediaConfigured, searchYouTube, searchYouTubeList, type VideoInfo, type YtSearchResult } from '@/lib/media';
 import type { Song, VoteType } from '@/lib/types';
 import { usePlayer, type PlayableItem } from '@/context/PlayerContext';
 import DownloadMenu from '@/components/DownloadMenu';
@@ -68,6 +68,48 @@ export default function PlaylistPage() {
       setSpError('No se pudo conectar con Spotify.');
     } finally {
       setSpLoading(false);
+    }
+  };
+
+  // ── Buscar canción por nombre (YouTube, vía media-service) ──
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<YtSearchResult[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchSuggested, setSearchSuggested] = useState<string[]>([]);
+  const [searchSuggesting, setSearchSuggesting] = useState<string | null>(null);
+
+  const doSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    if (!q) return;
+    if (!isMediaConfigured()) { setSearchError('La búsqueda necesita el media-service conectado.'); return; }
+    setSearchLoading(true); setSearchError(null); setSearchResults([]);
+    try {
+      const results = await searchYouTubeList(q, 6);
+      if (!results.length) setSearchError('Sin resultados. Prueba con otro nombre.');
+      else setSearchResults(results);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const suggestFromSearch = async (t: YtSearchResult) => {
+    if (searchSuggested.includes(t.url)) return;
+    setSearchSuggesting(t.url);
+    try {
+      const row = await addSong(
+        { title: t.title || 'Sin título', artist: t.author || 'YouTube', youtube_url: t.url, genre: 'YouTube', geek_tag: 'YouTube' },
+        profile?.id ?? null, profile?.username ?? 'Tú',
+      );
+      setSongs((prev) => prev.some((s) => s.id === row.id) ? prev : [...prev, row]);
+      setSearchSuggested((prev) => [...prev, t.url]);
+      addPoints(5);
+    } catch {
+      setSearchError('No se pudo sugerir. Intenta de nuevo.');
+    } finally {
+      setSearchSuggesting(null);
     }
   };
 
@@ -280,14 +322,60 @@ export default function PlaylistPage() {
             >
               <Play className="h-4 w-4" /> Reproducir todo
             </button>
-            <button onClick={() => { setShowSpotify((v) => !v); setShowForm(false); }} className="btn btn-lime text-black hover:bg-neon-lime/80">
+            <button onClick={() => { setShowSearch((v) => !v); setShowForm(false); setShowSpotify(false); }} className="btn btn-cyan">
+              <Search className="h-4 w-4" /> Buscar canción
+            </button>
+            <button onClick={() => { setShowSpotify((v) => !v); setShowForm(false); setShowSearch(false); }} className="btn btn-lime text-black hover:bg-neon-lime/80">
               <Music3 className="h-4 w-4" /> Importar de Spotify
             </button>
-            <button onClick={() => { setShowForm(!showForm); setShowSpotify(false); }} className="btn btn-primary">
+            <button onClick={() => { setShowForm(!showForm); setShowSpotify(false); setShowSearch(false); }} className="btn btn-primary">
               <Plus className="h-4 w-4" /> Sugerir canción
             </button>
           </div>
         </div>
+
+        {/* Buscar canción por nombre en YouTube → sugerir al DJ */}
+        {showSearch && (
+          <div className="card accent-cyan p-5 space-y-4 animate-fade-in">
+            <div>
+              <h3 className="font-bold text-white flex items-center gap-2"><Search className="h-5 w-5 text-neon-cyan" /> Buscar canción</h3>
+              <p className="text-xs text-muted mt-1">Escribe el nombre (artista + título) y elige el resultado de YouTube. Queda reproducible y descargable.</p>
+            </div>
+            <form onSubmit={doSearch} className="flex gap-2">
+              <input className="input flex-1" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Ej. Alan Walker Faded nightcore" />
+              <button type="submit" disabled={searchLoading} className="btn btn-cyan shrink-0">
+                {searchLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />} Buscar
+              </button>
+            </form>
+            {searchError && (
+              <div className="badge badge-red w-full justify-start py-2 px-3 normal-case tracking-normal text-xs">
+                <AlertCircle className="h-4 w-4 shrink-0" /> <span>{searchError}</span>
+              </div>
+            )}
+            {searchResults.length > 0 && (
+              <div className="max-h-96 overflow-y-auto space-y-1.5 pr-1">
+                {searchResults.map((t) => {
+                  const done = searchSuggested.includes(t.url);
+                  return (
+                    <div key={t.url} className="flex items-center gap-3 p-2 rounded-lg border border-border bg-white/[0.02]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {t.thumbnail && <img src={t.thumbnail} alt="" className="h-10 w-16 rounded object-cover shrink-0" />}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-white truncate">{t.title}</p>
+                        <p className="text-xs text-muted truncate">{t.author}{t.duration ? ` · ${Math.floor(t.duration / 60)}:${String(Math.floor(t.duration % 60)).padStart(2, '0')}` : ''}</p>
+                      </div>
+                      <button onClick={() => suggestFromSearch(t)} disabled={done || searchSuggesting === t.url}
+                        className={`btn shrink-0 text-xs px-3 py-1.5 ${done ? 'btn-ghost text-neon-lime' : 'btn-primary'}`}>
+                        {searchSuggesting === t.url ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : done ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+                        {done ? 'Sugerida' : 'Sugerir'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Importar desde Spotify → sugerir al DJ */}
         {showSpotify && (
