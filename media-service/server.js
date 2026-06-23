@@ -63,8 +63,10 @@ app.post('/api/download', async (req, res) => {
   if (!url) return res.status(400).json({ error: 'Falta url' });
   try {
     log('DOWNLOAD', `${format} ${url}`);
-    await streamDownload(url, format, quality, res);
+    const r = await streamDownload(url, format, quality, res);
+    log('DOWNLOAD', `OK ${r.filename} (${(r.size / 1e6).toFixed(1)}MB)`);
   } catch (err) {
+    log('DOWNLOAD', `FALLÓ: ${err.message}`);   // ← el motivo real aparece en los logs de Render
     if (!res.headersSent) res.status(500).json({ error: err.message });
   }
 });
@@ -77,6 +79,7 @@ app.get('/api/download', async (req, res) => {
     log('DOWNLOAD_GET', `${format} ${url}`);
     await streamDownload(url, format, quality, res);
   } catch (err) {
+    log('DOWNLOAD_GET', `FALLÓ: ${err.message}`);
     if (!res.headersSent) res.status(500).json({ error: err.message });
   }
 });
