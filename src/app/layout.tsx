@@ -6,6 +6,7 @@ import { AuthProvider } from "@/lib/auth";
 import { PlayerProvider } from "@/context/PlayerContext";
 import GlobalPlayer from "@/components/GlobalPlayer";
 import DesignLoader from "@/components/DesignLoader";
+import Assistant from "@/components/Assistant";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,6 +42,7 @@ export default function RootLayout({
           <PlayerProvider>
             <DesignLoader />
             <GlobalPlayer />
+            <Assistant />
             <Navbar />
 
             <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 z-10 relative">

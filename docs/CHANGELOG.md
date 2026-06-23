@@ -4,6 +4,26 @@ Historial real de lo construido. Lo más reciente arriba.
 
 ---
 
+## 2026-06-23 — Calidades de descarga, asistente Gemini, fixes
+
+### Descargas
+- ✅ **Calidad + tamaño antes de bajar**: `getInfo` resume las calidades de MP4 (altura +
+  tamaño aprox) y el tamaño del MP3. Nuevo `DownloadMenu` ("Descargar ▾") muestra las
+  opciones con su peso y deja elegir antes de descargar.
+
+### Asistente (Gemini)
+- ✅ Ruta `/api/assistant` (Gemini, key server-side `GEMINI_API_KEY`) + chat flotante
+  "Nightie" (`Assistant.tsx`) montado en el layout. Ayuda a los usuarios a usar la web.
+  Requiere `GEMINI_API_KEY` en Vercel; sin ella, el chat avisa que no está configurada.
+
+### Fixes
+- ✅ **Subida de fotos/personalización**: `supabase/phase-g.sql` arregla las políticas del
+  bucket `media` (error "new row violates row-level security policy").
+- 🔎 **Spotify 502 diagnosticado**: el endpoint ahora revela el status real → Spotify
+  devuelve **403 Forbidden** (restricción del lado de Spotify, no bug nuestro).
+
+---
+
 ## 2026-06-23 — Descargas YouTube en Render + Spotify reproducible
 
 ### Media-service (arreglos para que YouTube funcione en Render)
