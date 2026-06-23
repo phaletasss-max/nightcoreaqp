@@ -4,6 +4,18 @@ Historial real de lo construido. Lo más reciente arriba.
 
 ---
 
+## 2026-06-23 — Clave de seguridad admin, fixes de player y asistente
+
+- ✅ **Clave de seguridad para acciones destructivas** en `/admin`: vaciar playlist,
+  eliminar usuarios o eventos piden una clave extra (`ADMIN_DANGER_KEY`) además del confirm.
+  Barrera anti-accidentes (la seguridad real sigue siendo la RLS de Supabase).
+- ✅ **Warning de postMessage de YouTube eliminado**: el player solo postea al iframe
+  cuando ya cargó (flag `iframeReadyRef` + `onLoad`). Adiós a "target origin does not match".
+- ✅ **Asistente más resistente**: reintenta con otro modelo también ante 5xx transitorios
+  de Google (antes un 500/503 puntual daba 502). Mensaje amable si todos fallan.
+
+---
+
 ## 2026-06-23 — Calidades de descarga, asistente Gemini, fixes
 
 ### Descargas

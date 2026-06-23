@@ -79,15 +79,16 @@ export async function POST(request: NextRequest) {
 
       lastStatus = r.status;
       lastDetail = (await r.text().catch(() => '')).slice(0, 200);
-      // 429 (cuota) y 404 (modelo no disponible) → intentar el siguiente modelo.
-      if (r.status === 429 || r.status === 404) continue;
-      break; // otro error (401 key inválida, 400, etc.) → no insistir
+      // 429 (cuota), 404 (no disponible) y 5xx (errores transitorios de Google) →
+      // intentar el siguiente modelo. Solo paramos en errores de cliente (400/401/403).
+      if (r.status === 429 || r.status === 404 || r.status >= 500) continue;
+      break;
     }
 
-    if (lastStatus === 429) {
+    if (lastStatus === 429 || lastStatus >= 500) {
       return Response.json({
-        error: 'La asistente está con mucha demanda ahorita 😅 Intenta en un ratito.',
-      }, { status: 429 });
+        error: 'La asistente está con mucha demanda ahorita 😅 Intenta de nuevo en un ratito.',
+      }, { status: 503 });
     }
     return Response.json({ error: `Gemini respondió ${lastStatus || 'error'}`, detail: lastDetail }, { status: 502 });
   } catch (err) {

@@ -19,6 +19,18 @@ export default function GlobalPlayer() {
   const { playingItem, isPlaying, isMuted, togglePlay, toggleMute, playNext, playPrevious, queue, setQueue } = usePlayer();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  // El iframe de YouTube solo acepta postMessage cuando ya cargó (origin youtube.com).
+  // Postear antes ensucia la consola con "target origin does not match". Este flag evita eso.
+  const iframeReadyRef = useRef(false);
+
+  // Postea un comando al iframe de YouTube solo si ya está listo.
+  const postToYt = (func: string) => {
+    if (iframeReadyRef.current && iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage(
+        JSON.stringify({ event: 'command', func }), 'https://www.youtube.com',
+      );
+    }
+  };
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [bgFrozen, setBgFrozen] = useState(false);   // congelar fondo (música sigue)
@@ -29,11 +41,7 @@ export default function GlobalPlayer() {
 
   // ── Sync play/pause con iframe (YouTube) y video ──
   useEffect(() => {
-    if (playingItem?.type === 'yt' && iframeRef.current?.contentWindow) {
-      iframeRef.current.contentWindow.postMessage(JSON.stringify({
-        event: 'command', func: isPlaying ? 'playVideo' : 'pauseVideo',
-      }), 'https://www.youtube.com');
-    }
+    if (playingItem?.type === 'yt') postToYt(isPlaying ? 'playVideo' : 'pauseVideo');
     if (playingItem?.type === 'stream' || playingItem?.type === 'default') {
       if (videoRef.current) {
         if (isPlaying) videoRef.current.play().catch(() => {});
@@ -44,11 +52,7 @@ export default function GlobalPlayer() {
 
   // ── Sync mute ──
   useEffect(() => {
-    if (playingItem?.type === 'yt' && iframeRef.current?.contentWindow) {
-      iframeRef.current.contentWindow.postMessage(JSON.stringify({
-        event: 'command', func: isMuted ? 'mute' : 'unMute',
-      }), 'https://www.youtube.com');
-    }
+    if (playingItem?.type === 'yt') postToYt(isMuted ? 'mute' : 'unMute');
     if (videoRef.current) {
       videoRef.current.muted = playingItem?.type === 'default' ? true : isMuted;
     }
@@ -59,8 +63,8 @@ export default function GlobalPlayer() {
   // llega MUCHAS veces por segundo (lleva el currentTime), así que sin un guard se dispara
   // playNext en bucle → re-render infinito. El ref asegura "avanzar solo una vez por fin".
   const endedGuard = useRef(false);
-  // Al cambiar de pista, rearmar el guard.
-  useEffect(() => { endedGuard.current = false; }, [playingItem]);
+  // Al cambiar de pista, rearmar el guard y marcar el nuevo iframe como "no listo".
+  useEffect(() => { endedGuard.current = false; iframeReadyRef.current = false; }, [playingItem]);
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
       if (e.origin !== 'https://www.youtube.com') return;
@@ -122,8 +126,13 @@ export default function GlobalPlayer() {
             title="YouTube"
             allow="autoplay; encrypted-media"
             onLoad={() => {
+              // Ya cargó (origin youtube.com) → ahora sí se puede postear sin warning.
+              iframeReadyRef.current = true;
               // Handshake para recibir eventos de estado (autoplay-next).
               iframeRef.current?.contentWindow?.postMessage('{"event":"listening"}', 'https://www.youtube.com');
+              // Aplica el estado actual de play/mute (por si cambió antes de cargar).
+              postToYt(isPlaying ? 'playVideo' : 'pauseVideo');
+              postToYt(isMuted ? 'mute' : 'unMute');
             }}
             className={`absolute inset-0 w-[110vw] h-[110vh] -top-[5vh] -left-[5vw] object-cover pointer-events-none transition-opacity duration-500 ${bgFrozen ? 'opacity-0' : 'opacity-50'}`}
           />

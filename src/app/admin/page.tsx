@@ -37,6 +37,18 @@ const FONT_OPTIONS = [
   { key: 'mono', label: 'Monoespaciada' },
 ];
 
+// Clave de seguridad para acciones DESTRUCTIVAS (vaciar playlist, borrar usuarios/eventos).
+// Es una barrera anti-accidentes; la seguridad real la da la RLS de Supabase. Cámbiala aquí.
+const ADMIN_DANGER_KEY = 'NQ-DESTRUIR-2026';
+function askDangerKey(action: string): boolean {
+  if (typeof window === 'undefined') return false;
+  const v = window.prompt(`⚠️ ACCIÓN PELIGROSA: ${action}\n\nEscribe la CLAVE DE SEGURIDAD para confirmar:`);
+  if (v === null) return false;               // canceló
+  if (v === ADMIN_DANGER_KEY) return true;
+  alert('Clave de seguridad incorrecta. Acción cancelada.');
+  return false;
+}
+
 export default function AdminPage() {
   const { isStaff } = useAuth();
   const [tab, setTab] = useState<Tab>('kpi');
@@ -171,6 +183,7 @@ export default function AdminPage() {
   };
   const removeEvent = async (id: string) => {
     if (!confirm('¿Eliminar este evento?')) return;
+    if (!askDangerKey('Eliminar evento')) return;
     setEvents((p) => p.filter((e) => e.id !== id));
     await deleteEvent(id);
   };
@@ -184,6 +197,7 @@ export default function AdminPage() {
   };
   const handleClearSongs = async () => {
     if (!confirm('¿ESTÁS SEGURO? Esto eliminará TODAS las canciones de la base de datos de Supabase. Esta acción no se puede deshacer.')) return;
+    if (!askDangerKey('Vaciar TODA la playlist')) return;
     await clearSongs();
     setSongs([]);
     alert('Playlist vaciada con éxito.');
@@ -675,6 +689,7 @@ export default function AdminPage() {
                       <button
                         onClick={async () => {
                           if (!confirm(`¿Eliminar al usuario ${p.username}?`)) return;
+                          if (!askDangerKey(`Eliminar al usuario ${p.username}`)) return;
                           await deleteProfile(p.id);
                           setProfiles(prev => prev.filter(x => x.id !== p.id));
                         }}
