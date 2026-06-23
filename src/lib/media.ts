@@ -18,6 +18,7 @@ export function downloadsAvailable(): boolean {
   return true;
 }
 
+export interface VideoQuality { height: number; sizeMb: number | null }
 export interface VideoInfo {
   available: boolean;
   embeddable: boolean;
@@ -25,6 +26,9 @@ export interface VideoInfo {
   author?: string;
   thumbnail?: string;
   availability?: string;
+  duration?: number;
+  video?: VideoQuality[];      // calidades de mp4 disponibles (altura + tamaño aprox)
+  audioSizeMb?: number | null; // tamaño aprox del mp3
   error?: string;
 }
 
@@ -53,13 +57,13 @@ export async function checkVideo(url: string): Promise<VideoInfo | null> {
 // se guarda en el dispositivo de quien pegó el link — NO se queda en el servidor.
 // - Si hay media-service propio (Render/Arch) configurado → lo usa (YouTube con cookies).
 // - Si no → cae al proxy de Vercel → Cobalt.
-export async function downloadMedia(url: string, format: 'mp3' | 'mp4', filename: string): Promise<void> {
+export async function downloadMedia(url: string, format: 'mp3' | 'mp4', filename: string, quality?: string): Promise<void> {
   let r: Response;
   if (isMediaConfigured()) {
     r = await fetch(`${MEDIA_URL}/api/download`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, format }),
+      body: JSON.stringify({ url, format, quality: quality || 'best' }),
     });
   } else {
     const qs = `url=${encodeURIComponent(url)}&format=${format}&filename=${encodeURIComponent(filename)}`;

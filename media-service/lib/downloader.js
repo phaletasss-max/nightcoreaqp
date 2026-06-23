@@ -68,6 +68,23 @@ function validateUrl(url) {
   }
 }
 
+// Resume las calidades de video disponibles (altura + tamaño aprox en MB) y el
+// tamaño aprox del audio. Sirve para mostrar opciones de descarga ANTES de bajar.
+function summarizeFormats(info) {
+  const fmts = Array.isArray(info.formats) ? info.formats : [];
+  const mb = (bytes) => (bytes ? +(bytes / 1e6).toFixed(1) : null);
+  const video = [];
+  for (const h of [360, 480, 720, 1080]) {
+    const f = fmts
+      .filter((x) => x.ext === 'mp4' && x.height === h && x.vcodec && x.vcodec !== 'none')
+      .sort((a, b) => (b.tbr || 0) - (a.tbr || 0))[0];
+    if (f) video.push({ height: h, sizeMb: mb(f.filesize || f.filesize_approx) });
+  }
+  // Audio: mp3 a 192 kbps ≈ duración_seg * 0.024 MB (estimado tras transcode).
+  const audioSizeMb = info.duration ? +(info.duration * 0.024).toFixed(1) : null;
+  return { video, audioSizeMb };
+}
+
 // Verifica disponibilidad y devuelve metadatos (el "comprobante").
 function getInfo(url) {
   return new Promise((resolve, reject) => {
@@ -92,6 +109,7 @@ function getInfo(url) {
           isLive: info.is_live || false,
           // availability puede ser 'public' | 'unlisted' | 'private' | etc.
           availability: info.availability || 'public',
+          ...summarizeFormats(info),   // { video: [{height, sizeMb}], audioSizeMb }
         });
       } catch {
         reject(new Error('No se pudo parsear la info'));

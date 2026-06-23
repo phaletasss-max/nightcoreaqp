@@ -3,13 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import {
   Music, Plus, ChevronUp, ChevronDown, Play, ExternalLink, Search, Music3,
-  Download, Link2, Check, AlertCircle, Loader2, Video, CheckCircle2, UploadCloud
+  Link2, Check, AlertCircle, Loader2, Video, CheckCircle2, UploadCloud
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { getSongs, addSong, setSongVote, uploadMediaFile } from '@/lib/data';
-import { checkVideo, downloadMedia, isMediaConfigured, searchYouTube, type VideoInfo } from '@/lib/media';
+import { checkVideo, isMediaConfigured, searchYouTube, type VideoInfo } from '@/lib/media';
 import type { Song, VoteType } from '@/lib/types';
 import { usePlayer, type PlayableItem } from '@/context/PlayerContext';
+import DownloadMenu from '@/components/DownloadMenu';
 
 function getYouTubeId(url: string) {
   const m = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
@@ -163,7 +164,6 @@ export default function PlaylistPage() {
     }, 1000);
     return () => clearTimeout(t);
   }, [url, showForm]);
-  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const mediaOn = isMediaConfigured();
 
   useEffect(() => { getSongs().then(setSongs); }, []);
@@ -249,17 +249,6 @@ export default function PlaylistPage() {
       setCopiedId(song.id);
       setTimeout(() => setCopiedId((c) => (c === song.id ? null : c)), 1500);
     } catch { /* clipboard bloqueado */ }
-  };
-
-  const handleDownload = async (song: Song, format: 'mp3' | 'mp4') => {
-    setDownloadingId(song.id);
-    try {
-      await downloadMedia(song.youtube_url, format, `${song.artist} - ${song.title}`.replace(/[^a-z0-9]/gi, '_'));
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error en la descarga');
-    } finally {
-      setDownloadingId(null);
-    }
   };
 
   return (
@@ -496,18 +485,11 @@ export default function PlaylistPage() {
                       className="h-9 w-9 rounded-lg border border-border text-muted hover:text-white flex items-center justify-center transition-colors">
                       {copiedId === song.id ? <CheckCircle2 className="h-4 w-4 text-green-400" /> : <Link2 className="h-4 w-4" />}
                     </button>
-                    {/* Botones de Descarga (en-página, vía /api/download). Solo en hosts
-                        que yt-dlp puede bajar; Spotify se marca como pedido al DJ. */}
+                    {/* Descarga con calidades + tamaños (en-página). Solo en hosts que
+                        yt-dlp puede bajar; Spotify se marca como pedido al DJ. */}
                     {DOWNLOADABLE.test(song.youtube_url) ? (
-                      <div className="hidden sm:flex items-center gap-1 border-l border-border pl-2 ml-1">
-                        <button onClick={() => handleDownload(song, 'mp3')} disabled={downloadingId === song.id}
-                          className="h-9 px-2 rounded-lg border border-border text-xs text-muted hover:text-white hover:border-white transition-colors flex items-center gap-1">
-                          {downloadingId === song.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />} MP3
-                        </button>
-                        <button onClick={() => handleDownload(song, 'mp4')} disabled={downloadingId === song.id}
-                          className="h-9 px-2 rounded-lg border border-border text-xs text-muted hover:text-neon-cyan hover:border-neon-cyan transition-colors flex items-center gap-1">
-                          {downloadingId === song.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Video className="h-3 w-3" />} MP4
-                        </button>
+                      <div className="hidden sm:flex items-center border-l border-border pl-2 ml-1">
+                        <DownloadMenu url={song.youtube_url} filename={`${song.artist} - ${song.title}`.replace(/[^a-z0-9]/gi, '_')} />
                       </div>
                     ) : isSpotify(song.youtube_url) ? (
                       <span className="hidden sm:inline-flex items-center gap-1 border-l border-border pl-2 ml-1 text-[10px] font-bold text-neon-lime" title="Pedido desde Spotify (no descargable; el DJ lo busca para tocarlo)">
