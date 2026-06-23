@@ -39,7 +39,7 @@ const FONT_OPTIONS = [
 
 // Clave de seguridad para acciones DESTRUCTIVAS (vaciar playlist, borrar usuarios/eventos).
 // Es una barrera anti-accidentes; la seguridad real la da la RLS de Supabase. Cámbiala aquí.
-const ADMIN_DANGER_KEY = 'NQ-DESTRUIR-2026';
+const ADMIN_DANGER_KEY = 'VcsgDSnLgQcH@';
 function askDangerKey(action: string): boolean {
   if (typeof window === 'undefined') return false;
   const v = window.prompt(`⚠️ ACCIÓN PELIGROSA: ${action}\n\nEscribe la CLAVE DE SEGURIDAD para confirmar:`);

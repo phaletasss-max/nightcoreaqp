@@ -4,6 +4,15 @@ Historial real de lo construido. Lo más reciente arriba.
 
 ---
 
+## 2026-06-23 — Clave destructiva definitiva + doc maestra
+
+- ✅ `ADMIN_DANGER_KEY` = `VcsgDSnLgQcH@` (acciones destructivas en /admin).
+- ✅ **Documentación maestra** del proyecto reescrita en `RESUMEN-TECNICO.md`: arquitectura,
+  mapa de archivos, endpoints del media-service, env vars, SQL, seguridad, limitaciones y
+  visión **multi-evento / multi-género** a futuro.
+
+---
+
 ## 2026-06-23 — Clave de seguridad admin, fixes de player y asistente
 
 - ✅ **Clave de seguridad para acciones destructivas** en `/admin`: vaciar playlist,

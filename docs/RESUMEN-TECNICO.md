@@ -1,69 +1,70 @@
-# Resumen técnico y estado real — Nightcore AQP
+# Mapa técnico del proyecto — Nightcore AQP
 
-> Documento de **traspaso (handoff)**: mapea el proyecto tal como está **en el código**
-> (no lo planeado), para retomar el trabajo sin releer todo. Verificado contra el repo y
-> con `npm run build` en verde (TypeScript + 12 rutas) el **2026-06-23**.
+> Documento **maestro / de traspaso**: mapea el proyecto tal como está **en el código**.
+> Verificado contra el repo y `npm run build` en verde. Última actualización: **2026-06-23**.
 >
-> Complementa, no reemplaza: [ESTADO.md](./ESTADO.md) (pendientes operativos),
-> [ROADMAP.md](./ROADMAP.md) (visión/fases), [DECISIONS.md](./DECISIONS.md),
-> [CHANGELOG.md](./CHANGELOG.md), [ARCHITECTURE.md](./ARCHITECTURE.md).
+> Complementa: [CHANGELOG.md](./CHANGELOG.md) (historial), [ROADMAP.md](./ROADMAP.md) (visión/fases),
+> [DECISIONS.md](./DECISIONS.md), [ARCHITECTURE.md](./ARCHITECTURE.md), [ESTADO.md](./ESTADO.md).
 
 ---
 
-## 1. Qué es
+## 1. Qué es y visión
 
 Web de un club de **nightcore en Arequipa** (organiza **Yorch**, hecho por *Los Simpatizantes
-de JP*; público, sin fines de lucro). Eje: eventos cada 1–2 meses + comunidad activa a diario
-(playlist colaborativa, votos, disfraces, encuestas, rachas, temáticas). Estética **scenecore**
-(neón magenta/cian/lima). Edición actual: **Nightcore Arequipa 3 / Fest 2.0**.
+de JP*; público, sin fines de lucro). Eventos cada 1–2 meses + comunidad diaria: playlist
+colaborativa con votos, disfraces, encuestas, rachas, temáticas, descargas y un asistente IA.
+Estética **scenecore** (neón). Edición actual: **Nightcore Arequipa 3 / Fest 2.0**.
+
+**Visión a futuro (anotada por el dueño):** la plataforma puede volverse **multi-evento /
+multi-género** — nightcore sería *uno* de varios eventos (de otros géneros) sobre la misma
+base. El modelo de datos ya lo permite en buena medida (la tabla `events` es genérica; songs/
+costumes/comments cuelgan de un `event_id`). Para multi-género real faltaría: agrupar eventos
+por "serie/género", branding por evento, y un selector de comunidad. Ver §12.
 
 Stack: **Next.js 16.2.9 (App Router, React 19, Turbopack) + TypeScript + Tailwind v4** en
-**Vercel**; **Supabase** (Postgres + Auth + Storage) como backend; **media-service**
-(Node/Express + yt-dlp) opcional para descargas. Deploy: `nightcoreaqp-five.vercel.app`.
-Repo: `github.com/phaletasss-max/nightcoreaqp`.
+**Vercel** · **Supabase** (Postgres + Auth + Storage) · **media-service** (Node/Express +
+yt-dlp + ffmpeg + deno) en **Render** · APIs externas: **Spotify**, **Gemini**, **Cobalt**.
+Deploy: `nightcoreaqp-five.vercel.app`. Repo: `github.com/phaletasss-max/nightcoreaqp`
+(public). Media-service: `nightcore-media.onrender.com`.
 
 ---
 
-## 2. Arquitectura (3 piezas + 2 servicios externos)
+## 2. Arquitectura
 
 ```
 ┌────────────────────────┐     ┌─────────────────────────┐
-│  Frontend (Vercel)     │────▶│  Supabase                │
-│  Next.js 16 · React 19 │◀────│  Postgres · Auth ·       │
-│  Tailwind v4           │     │  Storage(bucket "media") │
+│  Frontend (Vercel)     │────▶│  Supabase               │
+│  Next.js 16 · React 19 │◀────│  Postgres · Auth ·      │
+│  Tailwind v4           │     │  Storage (bucket media) │
 └───────┬────────────────┘     └─────────────────────────┘
-        │ rutas API (server, en Vercel)
-        ├─▶ /api/spotify/tracks ──▶ Spotify Web API (Client Credentials)
-        ├─▶ /api/download ────────▶ Cobalt (instancia pública)  [fallback descargas]
+        │  rutas API (server, en Vercel):
+        ├─▶ /api/spotify/tracks ─▶ Spotify embed público (lee nombres, esquiva el 403)
+        │                          └ fallback: Spotify Web API (client-credentials)
+        ├─▶ /api/assistant ───────▶ Gemini (chat "Nightie", tier gratuito)
+        ├─▶ /api/download ────────▶ Cobalt (fallback de descargas si no hay media-service)
         │
-        └─▶ NEXT_PUBLIC_MEDIA_SERVICE_URL (si está) ──▶ media-service (yt-dlp+ffmpeg)
-                                                          Render/Arch/casa, IP residencial
+        └─▶ NEXT_PUBLIC_MEDIA_SERVICE_URL ─▶ media-service (Render): yt-dlp + ffmpeg + deno
+              /api/info · /api/download · /api/search · /api/store · /api/ytcheck · /health
 ```
 
-**Idea clave**: `yt-dlp` no corre en Vercel (serverless + YouTube bloquea IPs de datacenter),
-por eso las descargas tienen **dos caminos**: media-service propio (preferido) o **Cobalt**
-como proxy desde `/api/download` (siempre disponible, sin servidor propio).
+**Por qué el media-service aparte:** `yt-dlp` no corre en Vercel (serverless + YouTube
+bloquea IPs de datacenter). Vive en Render con **cookies de YouTube** + **deno** (runtime JS
+para el reto nsig). Es la única pieza que toca YouTube directamente.
 
 ---
 
-## 3. Modo dual de datos (clave para entender el código)
+## 3. Modo dual de datos
 
-Toda la app funciona **con o sin Supabase**, decidido en runtime por `isSupabaseConfigured()`
+Toda la app corre **con o sin Supabase**, decidido en runtime por `isSupabaseConfigured()`
 ([src/utils/supabase.ts](../src/utils/supabase.ts)):
+- **Configurado** → `src/lib/data.ts` habla con Postgres (anon key + RLS).
+- **Sin configurar** → fallback a `localStorage` + datos demo ([src/lib/demo-data.ts](../src/lib/demo-data.ts)).
 
-- **Configurado** (env reales) → `src/lib/data.ts` habla con Postgres vía anon key + RLS.
-- **Sin configurar** (placeholders) → fallback a `localStorage` + datos demo
-  ([src/lib/demo-data.ts](../src/lib/demo-data.ts)).
-
-Las páginas **nunca** saben en qué modo están: solo llaman a la capa
-[src/lib/data.ts](../src/lib/data.ts). Particularidades en código:
-
-- **Canciones** (`getSongs`/`addSong`): **localStorage-first** — escribe local SIEMPRE y usa
-  Supabase como backup en la nube (combina ambas fuentes, dedupe por id/url). Diseñado así para
-  que una canción nunca "desaparezca" si la RLS rechaza la escritura.
-- `saveEvent`: los eventos nuevos traen id de cliente (`e-...`) no-uuid → se insertan **sin id**
-  (la BD genera el uuid). Reintenta con columnas base si faltan las extra de `phase-de.sql`.
-- `addComment`: reintenta sin `flagged` si la columna no existe (degradación).
+Las páginas solo llaman a la capa [src/lib/data.ts](../src/lib/data.ts). Notas:
+- **Canciones**: localStorage-first + Supabase como backup; `getSongs` combina ambas
+  (dedupe por id/url). Para que una sugerencia sea **compartida** (la vean todos), el usuario
+  debe estar logueado con **cuenta real** (RLS `songs_insert: auth.uid() = suggested_by`).
+  El "admin de emergencia" no tiene sesión real → sus sugerencias quedan solo locales.
 
 ---
 
@@ -72,133 +73,164 @@ Las páginas **nunca** saben en qué modo están: solo llaman a la capa
 ### Páginas (`src/app/`)
 | Ruta | Archivo | Qué hace |
 |---|---|---|
-| `/` | [page.tsx](../src/app/page.tsx) (461) | **Eventos = feed**: selector de evento, detalle, RSVP+ticket, muro de comentarios (con moderación), retos diarios, temáticas, feed comunidad, fondos. Es la home. |
-| `/playlist` | [playlist/page.tsx](../src/app/playlist/page.tsx) (429) | Sugerir canciones (con validación de link), votar, importar playlist de Spotify, copiar/descargar MP3/MP4. |
-| `/disfraces` | [disfraces/page.tsx](../src/app/disfraces/page.tsx) (209) | Subir disfraz (foto + evento + fecha, regla ≤1 semana post-evento), votar, comentar. |
-| `/perfil` | [perfil/page.tsx](../src/app/perfil/page.tsx) (746) | Perfil propio: stats, insignias de asistencia, mis disfraces/comentarios, privacidad, vincular Spotify. Gateado: sin sesión pide login. |
-| `/perfil/[id]` | [perfil/[id]/page.tsx](../src/app/perfil/[id]/page.tsx) | Perfil **público** de otro usuario (respeta `is_private`). |
-| `/perfil/descargas` | [perfil/descargas/page.tsx](../src/app/perfil/descargas/page.tsx) (363) | Descargador directo: pega link (YT/IG/TikTok), elige MP3/MP4, descarga al dispositivo. |
-| `/admin` | [admin/page.tsx](../src/app/admin/page.tsx) (852) | **Consola DJ/admin** (solo rol `dj`/`admin`, fuera del nav): CRUD eventos, gestor de diseño, cola de canciones, moderación (palabras + comentarios), usuarios, encuestas. |
-| `/encuestas` | [encuestas/page.tsx](../src/app/encuestas/page.tsx) (7) | **Redirige a `/`** (su contenido se movió al feed de Eventos). |
-| `/api/download` | [route.ts](../src/app/api/download/route.ts) | Proxy a Cobalt → stream del archivo (descarga in-page sin servidor propio). |
-| `/api/spotify/tracks` | [route.ts](../src/app/api/spotify/tracks/route.ts) | Lee tracks de una playlist **pública** de Spotify (Client Credentials, server-side, paginado). |
+| `/` | [page.tsx](../src/app/page.tsx) | **Eventos = feed/home**: evento + countdown + RSVP/ticket, muro de comentarios (moderado), retos diarios, temáticas, novedades, fondos por sección. |
+| `/playlist` | [playlist/page.tsx](../src/app/playlist/page.tsx) | Sugerir/votar. 3 vías: **Buscar canción** (YouTube), **Importar de Spotify**, **Sugerir** (link YT). Descargar con calidades (`DownloadMenu`). Reproducir todo. |
+| `/disfraces` | [disfraces/page.tsx](../src/app/disfraces/page.tsx) | Subir cosplay (foto+evento+fecha), votar, comentar. |
+| `/perfil` | [perfil/page.tsx](../src/app/perfil/page.tsx) | Perfil propio: avatar subible, stats, insignias, privacidad, guardar canciones favoritas, vincular Spotify, botón **Consola** (si staff). |
+| `/perfil/[id]` | [perfil/[id]/page.tsx](../src/app/perfil/[id]/page.tsx) | Perfil público (respeta `is_private`). |
+| `/perfil/descargas` | [perfil/descargas/page.tsx](../src/app/perfil/descargas/page.tsx) | Descargador directo (pega link → MP3/MP4). |
+| `/admin` | [admin/page.tsx](../src/app/admin/page.tsx) | **Consola DJ/admin** (solo rol real o clave maestra). CRUD eventos, cola DJ, moderación, usuarios, encuestas, diseño. **Clave de seguridad** en acciones destructivas. |
+| `/encuestas` | [encuestas/page.tsx](../src/app/encuestas/page.tsx) | Redirige a `/`. |
+
+### Rutas API (`src/app/api/`, corren en Vercel)
+| Ruta | Qué hace |
+|---|---|
+| [spotify/tracks](../src/app/api/spotify/tracks/route.ts) | Lee canciones de una playlist: **1º embed público** (`__NEXT_DATA__`, esquiva el 403), 2º Spotify Web API (client-credentials). |
+| [assistant](../src/app/api/assistant/route.ts) | Chat con **Gemini**. Prueba varios modelos gratuitos (flash-lite) hasta que uno responda. Key server-side. |
+| [download](../src/app/api/download/route.ts) | Proxy a **Cobalt** (descargas sin media-service propio). |
 
 ### Componentes (`src/components/`)
-`Navbar` · `Hero` · `AuthModal` (login/registro/reset) · `DailyChallenges` (racha, encuesta del
-día, fans del mes) · `ThemesSection` (temáticas + ranking por clicks) · `CommunityFeed` (posts
-recientes de disfraces) · `VideoBackground` (fondo de video toggleable: MP4 propios o YouTube
-curado) · `ScenecoreBackground` (canvas: estrellas/checker/arcoíris) · `GlobalPlayer` +
-`PlayerContext` (reproductor flotante global) · `DesignLoader` + `BgEditor` (aplica/edita el
-diseño configurable del admin).
+`Navbar` · `Hero` · `AuthModal` · `DailyChallenges` · `ThemesSection` · `CommunityFeed` ·
+`VideoBackground` · `ScenecoreBackground` · `GlobalPlayer` (+ `PlayerContext`) · `DesignLoader`
+· `BgEditor` + **`SectionBg`** (fondos por sección con opacidad, soporta video) ·
+**`DownloadMenu`** (descarga con calidades/tamaños) · **`Assistant`** (chat flotante "Nightie").
 
 ### Lógica (`src/lib/`)
-- [data.ts](../src/lib/data.ts) — **capa de datos única** (dual Supabase/localStorage).
-- [auth.tsx](../src/lib/auth.tsx) — `AuthProvider`/`useAuth`. Sesión real Supabase o invitado demo.
-- [media.ts](../src/lib/media.ts) — cliente del media-service / fallback Cobalt.
-- [moderation.ts](../src/lib/moderation.ts) — `hasBannedWord`/`censorText`.
-- [types.ts](../src/lib/types.ts) · [demo-data.ts](../src/lib/demo-data.ts) · [logger.ts](../src/lib/logger.ts).
+[data.ts](../src/lib/data.ts) (capa de datos) · [auth.tsx](../src/lib/auth.tsx) (AuthProvider) ·
+[media.ts](../src/lib/media.ts) (`checkVideo`/`downloadMedia`/`searchYouTube`/`searchYouTubeList`/
+`storeBackup`) · [moderation.ts](../src/lib/moderation.ts) · [types.ts](../src/lib/types.ts) ·
+[demo-data.ts](../src/lib/demo-data.ts) · [logger.ts](../src/lib/logger.ts).
 
 ---
 
-## 5. Base de datos (Supabase)
+## 5. Media-service (Render) — endpoints
 
-**3 scripts SQL** (en `supabase/`), correr en orden en el SQL Editor:
+Carpeta [media-service/](../media-service) (Node/Express). Dockerfile instala yt-dlp + ffmpeg +
+**deno**. Cookies de YouTube vía Secret File + `YTDLP_COOKIES` (se copian a `/tmp` porque
+`/etc/secrets` es read-only).
 
-| Script | Qué crea | Estado |
+| Método | Ruta | Cuerpo | Devuelve |
+|---|---|---|---|
+| GET | `/` · `/health` | — | estado |
+| GET | `/api/ytcheck` | — | versión de yt-dlp |
+| POST | `/api/info` | `{url}` | metadatos + **calidades de mp4 (altura+MB)** + `audioSizeMb` + `embeddable` |
+| POST | `/api/search` | `{query, limit}` | `{url, results:[{url,title,author,thumbnail,duration}]}` (búsqueda YouTube) |
+| POST | `/api/download` | `{url, format, quality}` | stream del archivo (mp3 real vía ffmpeg; mp4 progresivo) |
+| POST | `/api/store` | `{url, format}` | `{url}` (descarga + sube a Supabase Storage) |
+
+---
+
+## 6. Base de datos (Supabase)
+
+Correr en orden en el **SQL Editor**:
+
+| Script | Crea | Estado |
 |---|---|---|
-| [schema.sql](../supabase/schema.sql) | ~15 tablas, ENUMs, triggers (recálculo de votos, racha `daily_check_in`, auto-perfil), **RLS completas**, tabla `themes` + RPC `click_theme`, `songs.file_url`. | base |
-| [fixes.sql](../supabase/fixes.sql) | Políticas del bucket `media`, cierre de `site_settings`, admin real. | ✅ corrido (según sesión) |
-| [phase-de.sql](../supabase/phase-de.sql) | Columnas extra de `events` (flyer, temáticas, djs jsonb, maps, tiktoks), `profiles.is_private`, tabla `banned_words`, `event_comments.flagged` + políticas staff. | ⏳ **PENDIENTE de correr** |
+| [schema.sql](../supabase/schema.sql) | ~15 tablas, ENUMs, triggers (votos, racha, auto-perfil), **RLS**, `themes`+`click_theme`, `songs.file_url` | base |
+| [fixes.sql](../supabase/fixes.sql) | políticas bucket `media`, cierre `site_settings`, admin real | ✅ |
+| [phase-de.sql](../supabase/phase-de.sql) | columnas extra de `events`, `profiles.is_private`, `banned_words`, `event_comments.flagged` | ✅ |
+| [phase-f.sql](../supabase/phase-f.sql) | `profiles.email` (+backfill+trigger), `profiles.bg_url` | ✅ |
+| [phase-g.sql](../supabase/phase-g.sql) | políticas `storage.objects` del bucket `media` (subir avatar/flyer/fondos) | ✅ |
 
-Seeds: `seed.sql` (demo) / `seed-clean.sql` (limpia y carga el evento real Fest 2.0 sin tocar
-usuarios). Tablas principales: `profiles`, `events`, `event_attendees`, `songs`, `song_votes`,
-`event_comments`, `costumes`, `costume_votes`, `costume_comments`, `surveys`, `survey_options`,
+Tablas: `profiles`, `events`, `event_attendees`, `songs`, `song_votes`, `event_comments`,
+`costumes`, `costume_votes`, `costume_comments`, `surveys`, `survey_options`,
 `survey_responses`, `themes`, `site_settings`, `banned_words`.
 
-> **Sin `phase-de.sql`**: la app **degrada, no rompe** (reintentos en `data.ts`), pero
-> moderación, perfiles privados y campos extra de eventos no funcionan, y verás `404` de
-> `banned_words` en consola.
+**RLS clave:** `songs`/`costumes`/comentarios = lectura pública (`using true`); escritura
+requiere `auth.uid()` propio; staff (`is_staff()`) puede moderar/borrar.
 
 ---
 
-## 6. Variables de entorno
+## 7. Variables de entorno
 
-**Vercel (frontend):** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (BD/auth) ·
-`SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` (ya puestos) · `NEXT_PUBLIC_MEDIA_SERVICE_URL`
-(media-service propio; vacío → usa Cobalt) · `COBALT_API_URL` / `COBALT_API_KEY` (opcional, por
-defecto una instancia pública). Plantilla: [.env.local.example](../.env.local.example).
+### Vercel (frontend) — plantilla en [.env.local.example](../.env.local.example)
+| Variable | Para qué |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | BD / auth |
+| `NEXT_PUBLIC_MEDIA_SERVICE_URL` | URL del media-service (Render). Vacío → descargas por Cobalt |
+| `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` | API de Spotify (fallback; el embed no las necesita) |
+| `GEMINI_API_KEY` (+ `GEMINI_MODEL` opc.) | Asistente. Tier gratuito basta (modelos flash-lite) |
+| `COBALT_API_URL` / `COBALT_API_KEY` (opc.) | Instancia de Cobalt para `/api/download` |
 
-**media-service (servidor):** `ALLOWED_ORIGINS` (CORS) · `YTDLP_COOKIES` (ruta a cookies.txt
-para YouTube) · `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_BUCKET` (solo `/api/store`).
-**No** fijar `PORT` (Render lo inyecta). Blueprint listo: [render.yaml](../render.yaml).
-
----
-
-## 7. Estado por feature (verificado en código)
-
-| Feature | Estado | Nota |
-|---|---|---|
-| Eventos (CRUD + RSVP + ticket) | ✅ | Admin crea/edita; campos extra requieren `phase-de.sql`. |
-| Comentarios + moderación por palabras | ✅ código | Requiere `phase-de.sql` para `flagged`/`banned_words`. |
-| Playlist: sugerir + votar | ✅ | Votos arreglados (columna `vote`, `onConflict`). |
-| Importar playlist Spotify | ✅ prod | Solo playlists **públicas de usuario**; las **editoriales** dan 404/502 (límite de la API). |
-| Descargas MP3/MP4 (in-page) | 🟡 funciona vía **Cobalt** | YouTube falla seguido (Cobalt/IP datacenter); IG/TikTok OK. Camino fiable = media-service propio. |
-| media-service propio | ⏳ no desplegado/conectado | Código + Dockerfile + render.yaml listos. Falta `NEXT_PUBLIC_MEDIA_SERVICE_URL`. |
-| Fondo de video toggleable | ✅ | MP4 propios (Storage) o YouTube curado. |
-| Disfraces (evento+fecha, votos) | ✅ | |
-| Encuestas / racha / fans del mes | ✅ | En el feed de Eventos (`DailyChallenges`). |
-| Temáticas comunidad (ranking) | ✅ | `themes` + RPC `click_theme`. |
-| Perfiles públicos + privacidad | ✅ código | Requiere `phase-de.sql`. |
-| Gestor de diseño en vivo (`/admin`) | ✅ | Persiste en `site_settings`. |
-| Auth email + confirmación | ✅ | Anti-multicuenta fase 1. WhatsApp/SMS OTP diferido. |
-| PWA / push / notificaciones | ❌ | Ícono de campana en nav, sin backend de push aún. |
-| Feed personalizado por interés | ❌ | Hoy es cronológico (disfraces recientes). |
-| Verificación de asistencia (QR/código) | ❌ | Sin decidir. |
-| Convertidor de archivos | ⏸️ aparcado | `convertidor/` (proyecto aparte, gitignored, MIT). |
+### Render (media-service)
+| Variable | Para qué |
+|---|---|
+| `ALLOWED_ORIGINS` | CORS (dominio del frontend) |
+| `YTDLP_COOKIES` | Ruta al cookies.txt (Secret File) → YouTube. Ver §10 |
+| `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_BUCKET` | Solo para `/api/store` |
+| **No** fijar `PORT` | Render lo inyecta |
 
 ---
 
-## 8. ⚠️ Riesgos y deudas técnicas (revisar)
+## 8. Estado por feature (verificado)
 
-1. **Login "admin de emergencia" hardcodeado** en [auth.tsx:170](../src/lib/auth.tsx#L170):
-   email `admin@nightcore.aqp` / password en texto plano y una lista `ADMIN_EMAILS` que da rol
-   admin por correo. **No** tiene sesión real → la RLS rechaza sus escrituras (sirve para ver la
-   UI, no para operar en BD). Es un bypass para no quedar bloqueado; **debe quitarse o protegerse
-   antes de producción seria** (cualquiera que lea el bundle ve la contraseña).
-2. **`signUp` con "éxito silencioso"** ante error 500 del trigger: crea un perfil **local**
-   (`local-...`) que no existe en la BD. Útil para no bloquear al usuario, pero genera perfiles
-   fantasma que la RLS rechazará después. Revisar el trigger de creación de perfil.
-3. **Posible loop de render en `/perfil`** al vincular Spotify (spam de `scheduleCallback`/
-   postMessage). Causa probable: el listener de `GlobalPlayer` usa `playNext` sin `useCallback`
-   → el `useEffect` se re-suscribe en cada render. **Fix recomendado**: memorizar las funciones
-   de `PlayerContext` con `useCallback`/`useMemo`. *(Pendiente de confirmar/arreglar.)*
-4. **Descargas de YouTube poco fiables** sin media-service propio (Cobalt + IP de datacenter).
-   IG/TikTok sí funcionan. Camino fiable: media-service en IP residencial + cookies.
-5. **Render free duerme** (cold-start ~30s al primer request) — afecta al media-service si se
-   despliega ahí.
-6. **Check "Lint" de Vercel** puede salir en rojo aunque el deploy quede "Ready" (no bloqueante;
-   el build local pasa lint).
+| Feature | Estado |
+|---|---|
+| Descargas YouTube (MP3 real / MP4 por calidad) | ✅ Render + cookies + deno. Verificado |
+| Buscar canción por nombre (YouTube) | ✅ |
+| Importar de Spotify (vía embed) | ✅ esquiva el 403; resuelve a YouTube al sugerir |
+| Sugerir/votar en playlist compartida | ✅ (con cuenta real) |
+| Asistente Gemini "Nightie" | ✅ tier gratuito (flash-lite) |
+| Descargas TikTok / Instagram | ✅ (sin cookies) |
+| Fondo de video toggleable + opacidad por sección | ✅ |
+| Disfraces, encuestas, racha, temáticas | ✅ |
+| Perfiles + privacidad + avatar + guardar canciones | ✅ |
+| Gestor de diseño en vivo | ✅ |
+| Subida de imágenes (avatar/flyer/fondos) | ✅ (requiere `phase-g.sql`) |
+| Moderación (palabras + comentarios) | ✅ |
+| Notificaciones / PWA | ❌ pendiente (ver §12) |
+| Multi-evento / multi-género | ⏳ parcial (modelo lo soporta; falta agrupar/branding) |
 
 ---
 
-## 9. Cómo correr
+## 9. Seguridad y admin
+
+- **Acceso a `/admin`:** botón "Consola" visible solo en el perfil de staff; `/admin` entra
+  directo si el rol real es `admin`/`dj`. Como respaldo hay una **clave maestra** hardcodeada.
+- **Clave de acciones destructivas** (`ADMIN_DANGER_KEY` en [admin/page.tsx](../src/app/admin/page.tsx)):
+  vaciar playlist, borrar usuario/evento piden esta clave además del confirm.
+  **Valor actual: `VcsgDSnLgQcH@`**. Es una **barrera anti-accidentes**; la seguridad real es
+  la RLS de Supabase. ⚠️ El repo es público → esta clave es visible en el código; sirve para
+  evitar borrados accidentales, no para frenar a un atacante decidido.
+- **Login "admin de emergencia"** (en [auth.tsx](../src/lib/auth.tsx)): email/contraseña
+  hardcodeados, sin sesión real → la RLS rechaza sus escrituras (sirve para ver la UI, no para
+  operar en BD). Deuda técnica: quitarlo/protegerlo para producción seria.
+
+---
+
+## 10. Limitaciones conocidas y decisiones
+
+1. **Spotify API → 403 Forbidden** con client-credentials para muchas playlists (restricción
+   de Spotify). **Solución adoptada:** leer los nombres desde la **página de embed pública**
+   (sin auth) y resolver cada canción en **YouTube**. Funciona.
+2. **YouTube en Render** necesita **cookies** (IP de datacenter). Exportarlas en **incógnito**
+   y subirlas como Secret File (`cookies.txt`) + `YTDLP_COOKIES=/etc/secrets/cookies.txt`.
+   Caducan → re-exportar. yt-dlp también requiere **deno** (ya en el Docker).
+3. **Gemini:** la suscripción "Gemini Pro" (consumer) NO da cuota de API; la **API key del
+   tier gratuito basta** usando modelos `*-flash-lite` (los 1.5 ya no existen en 2026).
+4. **Spotify Premium NO se puede "compartir"** para que otros escuchen como premium (viola los
+   ToS y técnicamente cada usuario necesita su propio Premium). Por eso la reproducción va por
+   YouTube.
+5. **Render free** duerme (cold-start ~30-60s en el primer request).
+
+---
+
+## 11. Cómo correr / desplegar
 
 ```bash
 # Frontend
-npm install
-npm run dev      # http://localhost:3092
-npm run build    # build de prod (TS + eslint) — ✅ en verde 2026-06-23
+npm install && npm run dev      # http://localhost:3092
+npm run build                   # build de prod (TS + eslint)
 
-# media-service (en casa/servidor con IP residencial)
-cd media-service && npm install
-cp .env.example .env   # editar ALLOWED_ORIGINS
-node --env-file=.env server.js
-curl http://localhost:8787/health
-# Exponer por HTTPS: cloudflared tunnel --url http://localhost:8787
-# Luego en Vercel: NEXT_PUBLIC_MEDIA_SERVICE_URL = esa URL → Redeploy
+# media-service (Render: deploy automático desde main vía Dockerfile)
+#  - Subir cookies.txt como Secret File + YTDLP_COOKIES=/etc/secrets/cookies.txt
+#  - ALLOWED_ORIGINS = https://nightcoreaqp-five.vercel.app
 ```
 
-Crear admin **real** (no el de emergencia):
+Flujo de trabajo: **cada cambio terminado → `git commit` + `git push origin main`** (Vercel y
+Render auto-despliegan). El commit + CHANGELOG son el historial de versiones.
+
+Crear admin real:
 ```sql
 update public.profiles set role='admin'
   where id = (select id from auth.users where email='TU_CORREO');
@@ -206,25 +238,11 @@ update public.profiles set role='admin'
 
 ---
 
-## 10. ❓ Dudas / decisiones para terminar la implementación
+## 12. Pendiente / futuro
 
-Lo que necesito confirmar contigo para cerrar lo pendiente:
-
-1. **media-service — ¿dónde corre?** ¿En tu PC/casa con Cloudflare Tunnel (YouTube fiable,
-   pero la PC tiene que estar encendida) o en Render free (siempre arriba pero duerme y YouTube
-   falla sin cookies)? De esto depende si conectamos `NEXT_PUBLIC_MEDIA_SERVICE_URL` o nos
-   quedamos solo con Cobalt para IG/TikTok.
-2. **¿Corro/correrás `phase-de.sql`?** Es lo único que bloquea moderación, perfiles privados y
-   campos extra de eventos. ¿Lo aplicas tú en el SQL Editor o preparo instrucciones exactas?
-3. **Login de emergencia hardcodeado**: ¿lo quito ya (recomendado) o lo dejamos hasta tener un
-   admin real configurado? Hoy expone una contraseña en el código del cliente.
-4. **Alcance legal de descargas**: ¿descarga pública abierta de cualquier link, o la limitamos a
-   "respaldo/comprobante para el set del DJ" como dice el ROADMAP? Cambia qué botones mostramos.
-5. **Notificaciones/PWA**: ¿entra en el alcance ahora (push real + instalable) o lo dejamos para
-   después? Hoy solo está el ícono de campana, sin backend.
-6. **Verificación de asistencia** a eventos (insignias): ¿QR en puerta, código del staff, o lo
-   dejamos manual por ahora?
-7. **Tagline definitivo** y enlaces sociales reales (hoy el footer apunta a youtube.com/
-   spotify.com/instagram.com genéricos).
-8. **Feed personalizado por interés**: ¿lo implementamos (tabla `feed_items`/`feed_seen`) o el
-   feed cronológico actual es suficiente para esta edición?
+- **PWA + Web Push**: instalable como app + notificaciones (lo más cercano a una app móvil sin
+  costo). *No iniciado por decisión del dueño (por ahora).*
+- **Multi-evento / multi-género**: agrupar eventos por serie/género, branding por evento,
+  selector de comunidad. El modelo de datos ya lo soporta parcialmente.
+- **Quitar/endurecer** el login de emergencia y mover la clave destructiva a algo server-side.
+- **Feed personalizado** por interés; verificación de asistencia (QR/código).
