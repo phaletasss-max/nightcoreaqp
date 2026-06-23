@@ -23,7 +23,7 @@ import {
 } from '@/lib/data';
 import type { EventItem, EventComment, Attendee } from '@/lib/types';
 import { hasBannedWord, censorText } from '@/lib/moderation';
-import BgEditor from '@/components/BgEditor';
+import SectionBg from '@/components/SectionBg';
 
 export default function Home() {
   const { profile, addPoints, isStaff } = useAuth();
@@ -104,8 +104,7 @@ export default function Home() {
   return (
     <div className="space-y-10 relative">
       <section className="relative group overflow-hidden rounded-3xl">
-        {bgs['hero'] && <img src={bgs['hero']} className="absolute inset-0 w-full h-full object-cover opacity-30 z-0 pointer-events-none mix-blend-screen" />}
-        {isStaff && <BgEditor sectionKey="hero" currentBg={bgs['hero']} onBgUpdate={(u) => updateBg('hero', u)} />}
+        <SectionBg sectionKey="hero" bgs={bgs} onChange={updateBg} isStaff={isStaff} defaultOpacity={0.3} />
         <div className="relative z-10">
           <Hero nextEvent={nextEvent} onCta={goToDetail} />
         </div>
@@ -185,8 +184,7 @@ export default function Home() {
       {/* Detalle del evento */}
       {selected && (
         <section ref={detailRef} className="card p-6 sm:p-8 space-y-6 relative group overflow-hidden">
-          {bgs['event_detail'] && <img src={bgs['event_detail']} className="absolute inset-0 w-full h-full object-cover opacity-20 z-0 pointer-events-none mix-blend-screen" />}
-          {isStaff && <BgEditor sectionKey="event_detail" currentBg={bgs['event_detail']} onBgUpdate={(u) => updateBg('event_detail', u)} />}
+          <SectionBg sectionKey="event_detail" bgs={bgs} onChange={updateBg} isStaff={isStaff} defaultOpacity={0.2} />
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-start justify-between gap-6">
             <div className="space-y-3 max-w-xl">
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">{selected.title}</h2>
@@ -247,8 +245,7 @@ export default function Home() {
       {/* RSVP + asistentes */}
       {selected && sectionOn('rsvp') && (
         <section className="grid md:grid-cols-2 gap-6 items-start relative group rounded-3xl overflow-hidden p-4">
-          {bgs['rsvp'] && <img src={bgs['rsvp']} className="absolute inset-0 w-full h-full object-cover opacity-20 z-0 pointer-events-none mix-blend-screen" />}
-          {isStaff && <BgEditor sectionKey="rsvp" currentBg={bgs['rsvp']} onBgUpdate={(u) => updateBg('rsvp', u)} />}
+          <SectionBg sectionKey="rsvp" bgs={bgs} onChange={updateBg} isStaff={isStaff} defaultOpacity={0.2} />
           
           {/* Form RSVP */}
           <div className="card p-6 space-y-5 accent-magenta relative z-10">
@@ -335,8 +332,7 @@ export default function Home() {
       {/* Muro de comentarios */}
       {selected && sectionOn('wall') && (
         <section className="card p-6 sm:p-8 space-y-5 relative group overflow-hidden">
-          {bgs['wall'] && <img src={bgs['wall']} className="absolute inset-0 w-full h-full object-cover opacity-20 z-0 pointer-events-none mix-blend-screen" />}
-          {isStaff && <BgEditor sectionKey="wall" currentBg={bgs['wall']} onBgUpdate={(u) => updateBg('wall', u)} />}
+          <SectionBg sectionKey="wall" bgs={bgs} onChange={updateBg} isStaff={isStaff} defaultOpacity={0.2} />
           <div className="relative z-10 space-y-5">
             <h3 className="section-title flex items-center gap-2 text-xl">
               <MessageSquare className="h-5 w-5 text-neon-magenta glow-magenta" /> Muro de comentarios
@@ -400,8 +396,7 @@ export default function Home() {
       {/* Retos de la comunidad */}
       {sectionOn('challenges') && (
       <section className="space-y-5 relative group p-6 rounded-3xl overflow-hidden">
-        {bgs['challenges'] && <img src={bgs['challenges']} className="absolute inset-0 w-full h-full object-cover opacity-20 z-0 pointer-events-none mix-blend-screen" />}
-        {isStaff && <BgEditor sectionKey="challenges" currentBg={bgs['challenges']} onBgUpdate={(u) => updateBg('challenges', u)} />}
+        <SectionBg sectionKey="challenges" bgs={bgs} onChange={updateBg} isStaff={isStaff} defaultOpacity={0.2} />
         <div className="relative z-10">
           <div>
             <h3 className="section-title text-xl flex items-center gap-2">
@@ -419,8 +414,7 @@ export default function Home() {
       {/* Novedades de la comunidad (feed) */}
       {sectionOn('feed') && (
       <section className="relative group p-6 rounded-3xl overflow-hidden">
-        {bgs['feed'] && <img src={bgs['feed']} className="absolute inset-0 w-full h-full object-cover opacity-20 z-0 pointer-events-none mix-blend-screen" />}
-        {isStaff && <BgEditor sectionKey="feed" currentBg={bgs['feed']} onBgUpdate={(u) => updateBg('feed', u)} />}
+        <SectionBg sectionKey="feed" bgs={bgs} onChange={updateBg} isStaff={isStaff} defaultOpacity={0.2} />
         <div className="relative z-10">
           <CommunityFeed />
         </div>
@@ -431,8 +425,7 @@ export default function Home() {
       {/* Temáticas sugeridas por la comunidad */}
       {sectionOn('themes') && (
       <section className="relative group p-6 rounded-3xl overflow-hidden">
-        {bgs['themes'] && <img src={bgs['themes']} className="absolute inset-0 w-full h-full object-cover opacity-20 z-0 pointer-events-none mix-blend-screen" />}
-        {isStaff && <BgEditor sectionKey="themes" currentBg={bgs['themes']} onBgUpdate={(u) => updateBg('themes', u)} />}
+        <SectionBg sectionKey="themes" bgs={bgs} onChange={updateBg} isStaff={isStaff} defaultOpacity={0.2} />
         <div className="relative z-10">
           <ThemesSection />
         </div>

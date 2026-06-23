@@ -80,6 +80,11 @@ export default function AdminPage() {
   const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
 
+  // Si el usuario YA es staff por rol real de Supabase (admin/dj), no le pedimos la
+  // contraseña maestra: entra directo desde el botón "Consola" de su perfil. La
+  // contraseña queda como respaldo (acceso de emergencia sin sesión real).
+  useEffect(() => { if (isStaff) setStrictAuth(true); }, [isStaff]);
+
   const PRESET_DJS = [
     { name: 'DJ Lobito', tel: '946 388 627', color: 'neon-magenta', bg_url: '/fondoscenecoe.mp4' },
     { name: 'DJ Matt', tel: '944 506 957', color: 'neon-lime', bg_url: '/fondoscenecoe.mp4' },

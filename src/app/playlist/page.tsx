@@ -38,6 +38,51 @@ export default function PlaylistPage() {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
+  // ── Importar desde Spotify ──
+  const [showSpotify, setShowSpotify] = useState(false);
+  const [spUrl, setSpUrl] = useState('');
+  const [spTracks, setSpTracks] = useState<{ id: string; title: string; artist: string; url: string; image: string | null }[]>([]);
+  const [spLoading, setSpLoading] = useState(false);
+  const [spError, setSpError] = useState<string | null>(null);
+  const [spSuggested, setSpSuggested] = useState<string[]>([]);
+  const [spSuggesting, setSpSuggesting] = useState<string | null>(null);
+
+  const loadSpotify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const id = (spUrl.match(/playlist[/:]([A-Za-z0-9]{22})/) || [])[1] || (/^[A-Za-z0-9]{22}$/.test(spUrl.trim()) ? spUrl.trim() : null);
+    if (!id) { setSpError('Pega el enlace de una playlist pública de Spotify.'); return; }
+    setSpLoading(true); setSpError(null); setSpTracks([]);
+    try {
+      const r = await fetch(`/api/spotify/tracks?playlist=${id}`);
+      const data = await r.json();
+      if (!r.ok || data.error) setSpError(data.error || 'No se pudieron cargar las canciones.');
+      else if (!data.tracks?.length) setSpError('La playlist no tiene canciones legibles (¿es pública y no editorial de Spotify?).');
+      else setSpTracks(data.tracks);
+    } catch {
+      setSpError('No se pudo conectar con Spotify.');
+    } finally {
+      setSpLoading(false);
+    }
+  };
+
+  const suggestFromSpotify = async (t: { id: string; title: string; artist: string; url: string }) => {
+    if (spSuggested.includes(t.id)) return;
+    setSpSuggesting(t.id);
+    try {
+      const row = await addSong(
+        { title: t.title, artist: t.artist, youtube_url: t.url, genre: 'Spotify', geek_tag: 'Spotify' },
+        profile?.id ?? null, profile?.username ?? 'Tú',
+      );
+      setSongs((prev) => prev.some((s) => s.id === row.id) ? prev : [...prev, row]);
+      setSpSuggested((prev) => [...prev, t.id]);
+      addPoints(5);
+    } catch {
+      setSpError('No se pudo sugerir la canción. Intenta de nuevo.');
+    } finally {
+      setSpSuggesting(null);
+    }
+  };
+
   // Clean url logic to strip '&list=' parameters before fetching
   const cleanUrl = (u: string) => u.split('&list=')[0].split('?list=')[0];
 
@@ -232,11 +277,57 @@ export default function PlaylistPage() {
             >
               <Play className="h-4 w-4" /> Reproducir todo
             </button>
-            <button onClick={() => setShowForm(!showForm)} className="btn btn-primary">
+            <button onClick={() => { setShowSpotify((v) => !v); setShowForm(false); }} className="btn btn-lime text-black hover:bg-neon-lime/80">
+              <Music3 className="h-4 w-4" /> Importar de Spotify
+            </button>
+            <button onClick={() => { setShowForm(!showForm); setShowSpotify(false); }} className="btn btn-primary">
               <Plus className="h-4 w-4" /> Sugerir canción
             </button>
           </div>
         </div>
+
+        {/* Importar desde Spotify → sugerir al DJ */}
+        {showSpotify && (
+          <div className="card accent-lime p-5 space-y-4 animate-fade-in">
+            <div>
+              <h3 className="font-bold text-white flex items-center gap-2"><Music3 className="h-5 w-5 text-neon-lime" /> Importar desde Spotify</h3>
+              <p className="text-xs text-muted mt-1">Pega el enlace de una playlist <strong>pública</strong> de Spotify y sugiere sus canciones al DJ. (Las playlists editoriales de Spotify no se pueden leer; usa una tuya o pública de usuario.)</p>
+            </div>
+            <form onSubmit={loadSpotify} className="flex gap-2">
+              <input className="input flex-1" value={spUrl} onChange={(e) => setSpUrl(e.target.value)} placeholder="https://open.spotify.com/playlist/..." />
+              <button type="submit" disabled={spLoading} className="btn btn-lime text-black shrink-0">
+                {spLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />} Cargar
+              </button>
+            </form>
+            {spError && (
+              <div className="badge badge-red w-full justify-start py-2 px-3 normal-case tracking-normal text-xs">
+                <AlertCircle className="h-4 w-4 shrink-0" /> <span>{spError}</span>
+              </div>
+            )}
+            {spTracks.length > 0 && (
+              <div className="max-h-96 overflow-y-auto space-y-1.5 pr-1">
+                {spTracks.map((t) => {
+                  const done = spSuggested.includes(t.id);
+                  return (
+                    <div key={t.id} className="flex items-center gap-3 p-2 rounded-lg border border-border bg-white/[0.02]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {t.image && <img src={t.image} alt="" className="h-10 w-10 rounded object-cover shrink-0" />}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-white truncate">{t.title}</p>
+                        <p className="text-xs text-muted truncate">{t.artist}</p>
+                      </div>
+                      <button onClick={() => suggestFromSpotify(t)} disabled={done || spSuggesting === t.id}
+                        className={`btn shrink-0 text-xs px-3 py-1.5 ${done ? 'btn-ghost text-neon-lime' : 'btn-primary'}`}>
+                        {spSuggesting === t.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : done ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+                        {done ? 'Sugerida' : 'Sugerir'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {showForm && (
           <form onSubmit={uploadMode ? handleUploadFile : handleAdd} className="card accent-pink p-5 space-y-4 animate-fade-in">

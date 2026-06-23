@@ -15,6 +15,25 @@ function cookieArgs() {
   return process.env.YTDLP_COOKIES ? ['--cookies', process.env.YTDLP_COOKIES] : [];
 }
 
+// Traduce el stderr crudo de yt-dlp a un mensaje útil para el usuario final.
+function humanizeYtError(stderr) {
+  if (!stderr) return null;
+  const s = stderr.toLowerCase();
+  if (s.includes("confirm you're not a bot") || s.includes('sign in to confirm'))
+    return 'YouTube está bloqueando al servidor (IP de datacenter). Hace falta configurar cookies (YTDLP_COOKIES). TikTok/Instagram sí funcionan.';
+  if (s.includes('private video') || s.includes('video is private'))
+    return 'El video es privado.';
+  if (s.includes('video unavailable') || s.includes('not available'))
+    return 'El video no está disponible o fue eliminado.';
+  if (s.includes('age') && s.includes('restrict'))
+    return 'Video con restricción de edad: requiere cookies de una cuenta.';
+  if (s.includes('unsupported url'))
+    return 'Enlace no soportado.';
+  // Última línea no vacía del stderr como pista.
+  const lines = stderr.trim().split('\n').filter(Boolean);
+  return lines.length ? lines[lines.length - 1].slice(0, 200) : null;
+}
+
 function validateUrl(url) {
   try {
     const host = new URL(url).hostname.replace(/^www\./, '');
@@ -93,10 +112,18 @@ async function streamDownload(url, format, quality, res) {
     const proc = spawn('yt-dlp', buildArgs(url, format, quality));
     proc.stdout.pipe(res);
     let bytes = 0;
+    let err = '';
     proc.stdout.on('data', (d) => (bytes += d.length));
-    proc.on('error', (e) => { if (!res.headersSent) res.status(500).json({ error: 'yt-dlp no disponible' }); reject(e); });
+    proc.stderr.on('data', (d) => (err += d.toString()));   // capturar el motivo real
+    proc.on('error', (e) => { if (!res.headersSent) res.status(500).json({ error: 'yt-dlp no disponible en el servidor' }); reject(e); });
     proc.on('close', (code) => {
-      if (code !== 0) { if (!res.headersSent) res.status(500).json({ error: 'Error en descarga' }); return reject(new Error(`Código ${code}`)); }
+      if (code !== 0) {
+        // Surface del error real de yt-dlp (p. ej. "Sign in to confirm you're not a bot"
+        // → faltan cookies de YouTube; o video privado/no disponible).
+        const reason = humanizeYtError(err) || `yt-dlp salió con código ${code}`;
+        if (!res.headersSent) res.status(500).json({ error: reason });
+        return reject(new Error(reason));
+      }
       resolve({ filename: `${safe}.${ext}`, size: bytes, format });
     });
     res.on('close', () => { if (!proc.killed) proc.kill(); });

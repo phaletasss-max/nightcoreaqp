@@ -16,6 +16,15 @@ app.use(cors({ origin: allowed.includes('*') ? true : allowed }));
 
 const log = (lvl, msg) => console.log(`[${new Date().toISOString()}] [${lvl}] ${msg}`);
 
+// Raíz informativa (evita el 404 al abrir la URL en el navegador).
+app.get('/', (req, res) => {
+  res.json({
+    service: 'nightcore-media',
+    status: 'OK',
+    endpoints: ['/health', '/api/ytcheck', '/api/info', '/api/download', '/api/store'],
+  });
+});
+
 // Health check INSTANTÁNEO (sin spawnear nada) para que Render no haga timeout.
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', storage: storage.isConfigured() });

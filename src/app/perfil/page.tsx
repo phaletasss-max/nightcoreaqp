@@ -294,6 +294,13 @@ export default function PerfilPage() {
               <button onClick={() => setEditing(!editing)} className="text-xs text-neon-cyan hover:underline mt-1">
                 {editing ? 'Cancelar edición' : 'Personalizar perfil'}
               </button>
+
+              {/* Acceso a la Consola: visible SOLO para staff (rol real admin/dj). */}
+              {isStaff && (
+                <Link href="/admin" className="btn btn-primary py-2 text-xs w-full mt-2 justify-center">
+                  <ShieldAlert className="h-3.5 w-3.5" /> Abrir Consola admin / DJ
+                </Link>
+              )}
             </div>
 
             {editing && (

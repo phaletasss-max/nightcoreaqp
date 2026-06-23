@@ -8,12 +8,20 @@ interface BgEditorProps {
   sectionKey: string;
   currentBg?: string;
   onBgUpdate: (bgUrl: string) => void;
+  currentOpacity?: number;
+  onOpacityUpdate?: (opacity: number) => void;
 }
 
-export default function BgEditor({ sectionKey, currentBg, onBgUpdate }: BgEditorProps) {
+export default function BgEditor({ sectionKey, currentBg, onBgUpdate, currentOpacity = 0.2, onOpacityUpdate }: BgEditorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [url, setUrl] = useState(currentBg || '');
   const [uploading, setUploading] = useState(false);
+
+  // Guarda la opacidad de este fondo (clave bg_opacity_<sección> en site_settings).
+  const handleOpacity = async (value: number) => {
+    onOpacityUpdate?.(value);
+    await updateSiteSetting(`bg_opacity_${sectionKey}`, String(value));
+  };
 
   const handleSave = async (bgUrl: string) => {
     setUploading(true);
@@ -87,6 +95,21 @@ export default function BgEditor({ sectionKey, currentBg, onBgUpdate }: BgEditor
             <input type="file" accept="image/*,video/mp4" className="hidden" onChange={handleFileChange} disabled={uploading} />
           </label>
         </div>
+
+        {/* Opacidad del fondo de esta sección */}
+        {onOpacityUpdate && (
+          <div className="pt-2 border-t border-white/10">
+            <label className="text-[10px] text-muted-2 uppercase font-bold mb-1 flex justify-between">
+              <span>Opacidad del fondo</span>
+              <span className="text-neon-cyan font-mono">{Math.round(currentOpacity * 100)}%</span>
+            </label>
+            <input
+              type="range" min="0" max="1" step="0.05" defaultValue={currentOpacity}
+              onChange={(e) => handleOpacity(parseFloat(e.target.value))}
+              className="w-full accent-neon-magenta cursor-pointer"
+            />
+          </div>
+        )}
         {currentBg && (
           <button onClick={() => handleSave('')} className="w-full text-xs text-red-400 hover:text-red-300 pt-2 border-t border-white/10 mt-2">
             Restaurar Original

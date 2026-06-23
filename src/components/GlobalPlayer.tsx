@@ -55,15 +55,26 @@ export default function GlobalPlayer() {
   }, [isMuted, playingItem]);
 
   // ── Autoplay siguiente cuando un video de YouTube termina ──
-  // YouTube emite eventos vía postMessage si registramos "listening".
+  // YouTube emite eventos vía postMessage si registramos "listening". OJO: `infoDelivery`
+  // llega MUCHAS veces por segundo (lleva el currentTime), así que sin un guard se dispara
+  // playNext en bucle → re-render infinito. El ref asegura "avanzar solo una vez por fin".
+  const endedGuard = useRef(false);
+  // Al cambiar de pista, rearmar el guard.
+  useEffect(() => { endedGuard.current = false; }, [playingItem]);
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
+      if (e.origin !== 'https://www.youtube.com') return;
       if (typeof e.data !== 'string') return;
       try {
         const d = JSON.parse(e.data);
         const state = typeof d?.info === 'object' ? d.info.playerState : d?.info;
         if ((d.event === 'onStateChange' || d.event === 'infoDelivery') && state === 0) {
-          if (queue.length > 1) playNext();
+          if (!endedGuard.current && queue.length > 1) {
+            endedGuard.current = true;   // evita re-disparos del mismo "ended"
+            playNext();
+          }
+        } else if (state === 1) {
+          endedGuard.current = false;    // volvió a reproducir → rearmar
         }
       } catch { /* no es un mensaje de YT */ }
     };

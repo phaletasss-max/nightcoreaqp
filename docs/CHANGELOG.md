@@ -4,6 +4,41 @@ Historial real de lo construido. Lo más reciente arriba.
 
 ---
 
+## 2026-06-23 — Fixes de estabilidad + opacidad por sección
+
+### Bugfix crítico
+- ✅ **Bucle infinito de render** (spam de `postMessage` + React #418): `PlayerContext`
+  recreaba sus funciones en cada render → el listener de YouTube en `GlobalPlayer` se
+  re-suscribía sin parar y los `infoDelivery` (muchos/seg) lo retroalimentaban. Memoizado
+  con `useCallback`/`useMemo`; handler con guard de "fin único" + filtro de `origin`.
+
+### Admin
+- ✅ **Correos N/A en Gestión de Usuarios**: `profiles` no guardaba email. Nueva migración
+  [`supabase/phase-f.sql`](../supabase/phase-f.sql) (añade `profiles.email` + backfill +
+  trigger actualizado; también `profiles.bg_url`).
+- ✅ **Acceso a `/admin` por rol real**: botón "Consola admin/DJ" visible solo en el perfil
+  de staff; `/admin` pasa directo si el rol real es admin/dj (la contraseña maestra queda
+  como respaldo de emergencia).
+
+### Diseño
+- ✅ **Opacidad por sección**: nuevo componente `SectionBg` (reemplaza el patrón repetido
+  img+BgEditor en la home). Cada fondo guarda su opacidad (`bg_opacity_<sección>` en
+  `site_settings`) ajustable con un slider en `BgEditor`. Soporta **video** (MP4/WebM) de fondo.
+
+### Descargas
+- ✅ **Errores reales de yt-dlp**: `media-service` ahora captura el stderr y devuelve el
+  motivo legible (p. ej. "YouTube bloquea la IP → faltan cookies", "video privado") en vez
+  de un genérico "Error en descarga".
+- ✅ Ruta `/` informativa en el media-service (antes daba 404 al abrir la URL).
+
+### Spotify
+- ✅ **Importar de Spotify en la página de Playlist**: nuevo panel "Importar de Spotify"
+  (botón junto a "Sugerir canción") que lee una playlist pública vía `/api/spotify/tracks`
+  y permite sugerir cada track al DJ con un click. Antes esto solo existía, escondido, en
+  `/perfil`, y la página de Playlist solo aceptaba enlaces de YouTube.
+
+---
+
 ## 2026-06-20 — Fase 1 (en progreso)
 
 ### Documentación

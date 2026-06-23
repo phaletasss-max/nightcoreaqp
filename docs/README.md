@@ -7,6 +7,8 @@ implementarlo, se registra aquí. Así seguimos la estructura ideal sin perder e
 
 | Documento | Para qué |
 |-----------|----------|
+| [RESUMEN-TECNICO.md](./RESUMEN-TECNICO.md) | **Traspaso**: estado real en código (mapa de archivos, features, riesgos, dudas). Empieza aquí. |
+| [ESTADO.md](./ESTADO.md) | Pendientes operativos (descargas, SQL, env, problemas conocidos). |
 | [ROADMAP.md](./ROADMAP.md) | Plan maestro: visión, arquitectura, las 3 fases y cada feature. |
 | [DECISIONS.md](./DECISIONS.md) | Decisiones confirmadas (con fecha y por qué). Lo que ya NO se discute. |
 | [CHANGELOG.md](./CHANGELOG.md) | Qué se construyó y cuándo. Historial real del código. |

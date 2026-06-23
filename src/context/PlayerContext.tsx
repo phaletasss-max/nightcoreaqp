@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 
 export interface PlayableItem {
   type: 'yt' | 'stream' | 'default';
@@ -36,19 +36,18 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
   const playingItem = currentIndex >= 0 && currentIndex < queue.length ? queue[currentIndex] : defaultItem;
 
-  const playItem = (item: PlayableItem) => {
-    // If it's already in queue, jump to it
-    const idx = queue.findIndex(q => (q.id === item.id && q.id) || (q.url === item.url && q.url));
-    if (idx >= 0) {
-      setCurrentIndex(idx);
-    } else {
-      setQueueState([item]);
+  const playItem = useCallback((item: PlayableItem) => {
+    // Si ya está en la cola, salta a él; si no, arranca una cola de uno.
+    setQueueState((q) => {
+      const idx = q.findIndex((x) => (x.id === item.id && x.id) || (x.url === item.url && x.url));
+      if (idx >= 0) { setCurrentIndex(idx); return q; }
       setCurrentIndex(0);
-    }
+      return [item];
+    });
     setIsPlaying(true);
-  };
+  }, []);
 
-  const setQueue = (items: PlayableItem[], startIndex = 0) => {
+  const setQueue = useCallback((items: PlayableItem[], startIndex = 0) => {
     setQueueState(items);
     if (items.length > 0) {
       setCurrentIndex(startIndex);
@@ -56,32 +55,32 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     } else {
       setCurrentIndex(-1);
     }
-  };
+  }, []);
 
-  const playNext = () => {
-    if (currentIndex + 1 < queue.length) {
-      setCurrentIndex(currentIndex + 1);
-      setIsPlaying(true);
-    } else {
-      setCurrentIndex(-1);
-    }
-  };
+  // Usar el updater funcional evita depender de currentIndex/queue → identidad estable.
+  const playNext = useCallback(() => {
+    setCurrentIndex((i) => {
+      if (i + 1 < queue.length) { setIsPlaying(true); return i + 1; }
+      return -1;
+    });
+  }, [queue.length]);
 
-  const playPrevious = () => {
-    if (currentIndex - 1 >= 0) {
-      setCurrentIndex(currentIndex - 1);
-      setIsPlaying(true);
-    }
-  };
+  const playPrevious = useCallback(() => {
+    setCurrentIndex((i) => {
+      if (i - 1 >= 0) { setIsPlaying(true); return i - 1; }
+      return i;
+    });
+  }, []);
 
-  const togglePlay = () => setIsPlaying(!isPlaying);
-  const toggleMute = () => setIsMuted(!isMuted);
+  const togglePlay = useCallback(() => setIsPlaying((p) => !p), []);
+  const toggleMute = useCallback(() => setIsMuted((m) => !m), []);
 
-  return (
-    <PlayerContext.Provider value={{ queue, currentIndex, playingItem, isPlaying, isMuted, playItem, setQueue, playNext, playPrevious, togglePlay, toggleMute }}>
-      {children}
-    </PlayerContext.Provider>
+  const value = useMemo(
+    () => ({ queue, currentIndex, playingItem, isPlaying, isMuted, playItem, setQueue, playNext, playPrevious, togglePlay, toggleMute }),
+    [queue, currentIndex, playingItem, isPlaying, isMuted, playItem, setQueue, playNext, playPrevious, togglePlay, toggleMute],
   );
+
+  return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>;
 }
 
 export function usePlayer() {
