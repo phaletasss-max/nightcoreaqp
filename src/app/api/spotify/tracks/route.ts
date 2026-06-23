@@ -55,11 +55,59 @@ interface SpotifyTrack {
 interface SpotifyPlaylistItem { track: SpotifyTrack | null }
 interface SpotifyTracksPage { items?: SpotifyPlaylistItem[]; next: string | null }
 
+type Track = { id: string; title: string; artist: string; url: string; image: string | null };
+
+// ── Vía EMBED (sin auth, evita el 403 de client-credentials) ──────────────────
+// La página pública de embed trae la lista de canciones dentro de un <script
+// __NEXT_DATA__>. Leemos nombres + artistas de ahí; cada uno se busca luego en
+// YouTube al sugerir. No usa API key ni login → no la bloquea el 403.
+async function tracksFromEmbed(id: string): Promise<Track[] | null> {
+  const r = await fetch(`https://open.spotify.com/embed/playlist/${id}`, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+      'Accept-Language': 'es,en;q=0.8',
+    },
+    cache: 'no-store',
+  });
+  if (!r.ok) return null;
+  const html = await r.text();
+  const m = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
+  if (!m) return null;
+  let data: unknown;
+  try { data = JSON.parse(m[1]); } catch { return null; }
+
+  // Navegación defensiva hasta entity.trackList.
+  const entity = (data as { props?: { pageProps?: { state?: { data?: { entity?: {
+    trackList?: { uri?: string; title?: string; subtitle?: string }[];
+    coverArt?: { sources?: { url?: string }[] };
+  } } } } } })?.props?.pageProps?.state?.data?.entity;
+  const list = entity?.trackList;
+  if (!Array.isArray(list) || !list.length) return null;
+  const cover = entity?.coverArt?.sources?.[0]?.url ?? null;
+
+  return list
+    .map((t, i): Track => ({
+      id: t.uri || `emb-${i}`,
+      title: (t.title || '').trim(),
+      artist: (t.subtitle || '').trim(),
+      url: '',                 // se resolverá a YouTube al sugerir
+      image: cover,
+    }))
+    .filter((t) => t.title);
+}
+
 export async function GET(request: NextRequest) {
   const param = request.nextUrl.searchParams.get('playlist') ?? '';
   const id = extractPlaylistId(param);
   if (!id) return Response.json({ error: 'Enlace de playlist inválido' }, { status: 400 });
 
+  // 1) Intentar la vía EMBED (pública, sin auth). Resuelve el 403.
+  try {
+    const embed = await tracksFromEmbed(id);
+    if (embed && embed.length) return Response.json({ tracks: embed, source: 'embed' });
+  } catch { /* sigue a la API oficial */ }
+
+  // 2) API oficial (si hay credenciales y la playlist es accesible).
   try {
     const token = await getToken();
     const tracks: { id: string; title: string; artist: string; url: string; image: string | null }[] = [];
