@@ -3,10 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import {
   Music, Plus, ChevronUp, ChevronDown, Play, ExternalLink, Search, Music3,
-  Link2, Check, AlertCircle, Loader2, Video, CheckCircle2, UploadCloud
+  Link2, Check, AlertCircle, Loader2, Video, CheckCircle2, UploadCloud, Bookmark, BookmarkCheck
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
-import { getSongs, addSong, setSongVote, uploadMediaFile } from '@/lib/data';
+import { getSongs, addSong, setSongVote, uploadMediaFile, getSavedSongIds, setSongSaved } from '@/lib/data';
 import { isMediaConfigured, searchYouTube, searchYouTubeList, type VideoInfo, type YtSearchResult } from '@/lib/media';
 import type { Song, VoteType } from '@/lib/types';
 import { usePlayer, type PlayableItem } from '@/context/PlayerContext';
@@ -47,6 +47,9 @@ export default function PlaylistPage() {
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [youtubeEquivalent, setYoutubeEquivalent] = useState<string | null>(null);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
+  // ── Playlist personal (canciones guardadas) ──
+  const [savedIds, setSavedIds] = useState<string[]>([]);
+  const [showSavedOnly, setShowSavedOnly] = useState(false);
 
 
   // ── Buscar canción por nombre (YouTube, vía Data API v3 → respaldo yt-dlp) ──
@@ -177,12 +180,23 @@ export default function PlaylistPage() {
   const mediaOn = isMediaConfigured();
 
   useEffect(() => { getSongs().then(setSongs); }, []);
+  // Cargar las guardadas del usuario (recarga al iniciar/cerrar sesión).
+  useEffect(() => { getSavedSongIds(profile?.id ?? null).then(setSavedIds); }, [profile?.id]);
+
+  // Guardar/quitar una canción de la lista personal (optimista).
+  const toggleSaved = async (songId: string) => {
+    const willSave = !savedIds.includes(songId);
+    setSavedIds((prev) => (willSave ? [...prev, songId] : prev.filter((id) => id !== songId)));
+    await setSongSaved(songId, willSave, profile?.id ?? null);
+    if (willSave) addPoints(1);
+  };
 
   const allTags = Array.from(new Set(songs.flatMap((s) => s.tags || []))).filter(Boolean);
 
   const filtered = songs
     .filter((s) => s.title.toLowerCase().includes(query.toLowerCase()) || s.artist.toLowerCase().includes(query.toLowerCase()))
     .filter((s) => !activeTag || (s.tags && s.tags.includes(activeTag)))
+    .filter((s) => !showSavedOnly || savedIds.includes(s.id))
     .sort((a, b) => b.votes_count - a.votes_count);
 
   const handleVote = async (id: string, type: VoteType) => {
@@ -446,9 +460,16 @@ export default function PlaylistPage() {
           </form>
         )}
 
-        <div className="relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-2" />
-          <input className="input pl-10" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar por título o artista…" />
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-2" />
+            <input className="input pl-10 w-full" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar por título o artista…" />
+          </div>
+          <button type="button" onClick={() => setShowSavedOnly((v) => !v)} title="Ver solo mis canciones guardadas"
+            className={`btn shrink-0 ${showSavedOnly ? 'btn-lime text-black' : 'btn-ghost border border-border'}`}>
+            {showSavedOnly ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+            <span className="hidden sm:inline">Mis guardadas{savedIds.length ? ` (${savedIds.length})` : ''}</span>
+          </button>
         </div>
 
         {allTags.length > 0 && (
@@ -475,7 +496,7 @@ export default function PlaylistPage() {
           {filtered.length === 0 ? (
             <div className="card p-10 text-center text-muted-2">
               <Music3 className="h-8 w-8 mx-auto mb-2" />
-              <p className="text-sm">No hay sugerencias todavía.</p>
+              <p className="text-sm">{showSavedOnly ? 'No has guardado canciones todavía. Usa el botón 🔖 en una canción.' : 'No hay sugerencias todavía.'}</p>
             </div>
           ) : (
             filtered.map((song, i) => {
@@ -526,6 +547,10 @@ export default function PlaylistPage() {
                     }} title="Vista previa en fondo"
                       className={`h-9 w-9 rounded-lg flex items-center justify-center border transition-colors ${isPlaying ? 'bg-neon-pink text-black border-neon-pink' : 'border-border text-muted hover:text-white'}`}>
                       <Play className={`h-4 w-4 ${isPlaying ? 'fill-black' : ''}`} />
+                    </button>
+                    <button onClick={() => toggleSaved(song.id)} title={savedIds.includes(song.id) ? 'Quitar de mis guardadas' : 'Guardar en mi playlist'}
+                      className={`h-9 w-9 rounded-lg border flex items-center justify-center transition-colors ${savedIds.includes(song.id) ? 'border-neon-lime/50 text-neon-lime bg-neon-lime/10' : 'border-border text-muted hover:text-white'}`}>
+                      {savedIds.includes(song.id) ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
                     </button>
                     <a href={song.youtube_url} target="_blank" rel="noreferrer" title="Abrir en YouTube"
                       className="h-9 w-9 rounded-lg border border-border text-muted hover:text-white flex items-center justify-center transition-colors">

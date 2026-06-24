@@ -231,6 +231,34 @@ export async function setSongVote(songId: string, vote: VoteType | null, userId:
   }
 }
 
+// ── Playlist personal (canciones guardadas por usuario) ──────────────────────
+// Devuelve los IDs de canciones que el usuario guardó. Local fallback: nq_saved.
+export async function getSavedSongIds(userId: string | null): Promise<string[]> {
+  if (cfg() && userId) {
+    const { data, error } = await supabase.from('saved_songs').select('song_id').eq('user_id', userId);
+    if (error) { logError('getSavedSongIds', error, { userId }); return []; }
+    return (data ?? []).map((r: { song_id: string }) => r.song_id);
+  }
+  return lsGet<string[]>('nq_saved', []);
+}
+
+// Guarda/quita una canción de la lista personal del usuario.
+export async function setSongSaved(songId: string, saved: boolean, userId: string | null): Promise<void> {
+  if (cfg() && userId) {
+    if (saved) {
+      const { error } = await supabase.from('saved_songs').upsert({ user_id: userId, song_id: songId }, { onConflict: 'user_id,song_id' });
+      if (error) logError('setSongSaved.upsert', error, { songId });
+    } else {
+      const { error } = await supabase.from('saved_songs').delete().match({ user_id: userId, song_id: songId });
+      if (error) logError('setSongSaved.delete', error, { songId });
+    }
+    return;
+  }
+  const cur = lsGet<string[]>('nq_saved', []);
+  const next = saved ? Array.from(new Set([...cur, songId])) : cur.filter((id) => id !== songId);
+  lsSet('nq_saved', next);
+}
+
 export async function setSongPlayed(songId: string, played: boolean): Promise<void> {
   if (cfg()) { await supabase.from('songs').update({ played }).eq('id', songId); return; }
   const all = lsGet('nq_songs', DEMO_SONGS).map((s) => (s.id === songId ? { ...s, played } : s));
