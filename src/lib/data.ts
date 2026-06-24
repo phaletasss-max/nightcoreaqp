@@ -350,14 +350,7 @@ export async function removeBannedWord(word: string): Promise<void> {
 // ════════════════════════════════════════════════════════════════════════════
 //  PERFIL PÚBLICO + PRIVACIDAD (Fase D)
 // ════════════════════════════════════════════════════════════════════════════
-export async function getProfiles(): Promise<Profile[]> {
-  if (cfg()) {
-    const { data, error } = await supabase.from('profiles').select('*');
-    if (error) { logError('getProfiles', error); return []; }
-    return (data as Profile[]) ?? [];
-  }
-  return lsGet<Profile[]>('nq_profiles', []);
-}
+
 
 export async function getProfileById(id: string): Promise<Profile | null> {
   if (cfg()) {
