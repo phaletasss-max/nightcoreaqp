@@ -43,7 +43,6 @@ export default function PlaylistPage() {
   const [uploadMode, setUploadMode] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [newTags, setNewTags] = useState('');
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [youtubeEquivalent, setYoutubeEquivalent] = useState<string | null>(null);
