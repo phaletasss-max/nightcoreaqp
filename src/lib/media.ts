@@ -116,34 +116,25 @@ export async function downloadMedia(url: string, format: 'mp3' | 'mp4', filename
   URL.revokeObjectURL(objUrl);
 }
 
-// Busca en YouTube la mejor coincidencia de un texto y devuelve su URL. Sirve para
-// convertir un pedido de Spotify en algo reproducible/descargable. Null si no hay
-// media-service o no hay resultado.
-export async function searchYouTube(query: string): Promise<string | null> {
-  if (!isMediaConfigured()) return null;
+export interface YtSearchResult { url: string; title?: string; author?: string; thumbnail?: string; duration?: number }
+
+// Búsqueda oficial vía YouTube Data API (ruta /api/youtube/search en Vercel). No la
+// bloquea YouTube (a diferencia del ytsearch de yt-dlp). Devuelve [] si la API no
+// está configurada (501) o no hay resultados, para que el caller decida el fallback.
+async function searchViaDataApi(query: string, limit: number): Promise<YtSearchResult[]> {
   try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 20000);
-    const r = await fetch(`${MEDIA_URL}/api/search`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }),
-      signal: ctrl.signal,
-    });
-    clearTimeout(t);
-    if (!r.ok) return null;
+    const r = await fetch(`/api/youtube/search?q=${encodeURIComponent(query)}&limit=${limit}`, { cache: 'no-store' });
+    if (!r.ok) return [];
     const data = await r.json();
-    return (data.url as string) || null;
+    return (data.results as YtSearchResult[]) || [];
   } catch {
-    return null;
+    return [];
   }
 }
 
-export interface YtSearchResult { url: string; title?: string; author?: string; thumbnail?: string; duration?: number }
-
-// Busca en YouTube y devuelve varios resultados (para que el usuario elija). Vacío
-// si no hay media-service o no hay resultados.
-export async function searchYouTubeList(query: string, limit = 6): Promise<YtSearchResult[]> {
+// Búsqueda vía media-service (yt-dlp ytsearch). Respaldo: puede estar bloqueada por
+// YouTube en IPs de datacenter. Vacío si no hay media-service o falla.
+async function searchViaMediaService(query: string, limit: number): Promise<YtSearchResult[]> {
   if (!isMediaConfigured()) return [];
   try {
     const ctrl = new AbortController();
@@ -161,6 +152,21 @@ export async function searchYouTubeList(query: string, limit = 6): Promise<YtSea
   } catch {
     return [];
   }
+}
+
+// Busca en YouTube la mejor coincidencia de un texto y devuelve su URL. Sirve para
+// convertir un pedido de Spotify en algo reproducible/descargable. Null si nada da resultado.
+export async function searchYouTube(query: string): Promise<string | null> {
+  const list = await searchYouTubeList(query, 1);
+  return list[0]?.url || null;
+}
+
+// Busca en YouTube y devuelve varios resultados (para que el usuario elija).
+// Cascada: Data API oficial (no bloqueada) → media-service yt-dlp (respaldo).
+export async function searchYouTubeList(query: string, limit = 6): Promise<YtSearchResult[]> {
+  const viaApi = await searchViaDataApi(query, limit);
+  if (viaApi.length) return viaApi;
+  return searchViaMediaService(query, limit);
 }
 
 // Respalda un link en Supabase Storage (vía media-service). Devuelve la URL pública.
