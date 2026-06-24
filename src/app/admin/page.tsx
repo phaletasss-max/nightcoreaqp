@@ -22,6 +22,9 @@ import type { EventItem, Song, Attendee, EventStatus, Profile, Costume, EventCom
 
 type Tab = 'kpi' | 'dj' | 'survey' | 'events' | 'users' | 'posts' | 'comments' | 'design' | 'proofs';
 
+// Hosts que yt-dlp puede descargar (Spotify no: DRM). Spotify solo sirve de pedido.
+const DOWNLOADABLE_HOSTS = /(youtube\.com|youtu\.be|tiktok\.com|instagram\.com|facebook\.com|fb\.watch|twitter\.com|x\.com)/i;
+
 // Secciones de la home que el admin puede activar/desactivar.
 const HOME_SECTIONS = [
   { key: 'rsvp', label: 'Reservas / RSVP' },
@@ -182,6 +185,9 @@ export default function AdminPage() {
   const conversion = totalRsvp ? Math.round((totalConfirmed / totalRsvp) * 100) : 0;
   const topSong = [...songs].sort((a, b) => b.votes_count - a.votes_count)[0];
   const totalVotes = songs.reduce((s, x) => s + Math.max(x.votes_count, 0), 0);
+  // Canciones que el .bat puede bajar (YouTube/TikTok/IG; Spotify no). El DJ elige
+  // cuántas de estas tocar → se descarga ese Top-N más votado.
+  const downloadableCount = songs.filter((s) => DOWNLOADABLE_HOSTS.test(s.youtube_url)).length;
   const flaggedComments = comments.filter((c) => c.flagged).length;
   // Asistencia por evento (para la barra de "asistencia por evento").
   const eventStats = events
@@ -229,9 +235,8 @@ export default function AdminPage() {
   // bloqueo de YouTube) y las guarda en el Escritorio. No usa el servidor.
   const handleGenerateCrate = () => {
     setShowCrateModal(false);
-    const DOWNLOADABLE = /(youtube\.com|youtu\.be|tiktok\.com|instagram\.com|facebook\.com|fb\.watch|twitter\.com|x\.com)/i;
     const top = [...songs]
-      .filter((s) => DOWNLOADABLE.test(s.youtube_url))
+      .filter((s) => DOWNLOADABLE_HOSTS.test(s.youtube_url))
       .sort((a, b) => b.votes_count - a.votes_count)
       .slice(0, crateLimit);
     if (!top.length) { alert('No hay canciones descargables (YouTube/TikTok/IG) en la playlist.'); return; }
@@ -481,7 +486,7 @@ export default function AdminPage() {
                   </h3>
                   <button onClick={() => setShowCrateModal(false)} className="text-muted hover:text-white"><X className="h-5 w-5" /></button>
                 </div>
-                <p className="text-xs text-muted mb-4">Genera un <strong>.bat</strong> con los links del top elegido. Ejecútalo en <strong>tu PC</strong>: descarga yt-dlp solo y baja todo a tu Escritorio (sin bloqueos de YouTube).</p>
+                <p className="text-xs text-muted mb-4">Genera un <strong>.bat</strong> con los links del Top que vas a tocar. Ejecútalo en <strong>tu PC</strong>: descarga yt-dlp solo y baja todo a tu Escritorio (sin bloqueos de YouTube).</p>
 
                 <div className="space-y-4">
                   <div>
@@ -492,17 +497,35 @@ export default function AdminPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="label">Cantidad a descargar</label>
-                    <select className="input text-sm" value={crateLimit} onChange={(e) => setCrateLimit(Number(e.target.value))}>
-                      <option value={10}>Top 10 más votadas</option>
-                      <option value={12}>Top 12 más votadas</option>
-                      <option value={20}>Top 20 más votadas</option>
-                      <option value={30}>Top 30 más votadas</option>
-                      <option value={100}>Todas las pendientes</option>
-                    </select>
+                    <label className="label">¿Cuántas canciones vas a tocar?</label>
+                    <p className="text-[11px] text-muted-2 mb-2">Se descarga el Top-N más votado. Hay <strong>{downloadableCount}</strong> canciones descargables en la cola.</p>
+                    <input
+                      type="number"
+                      min={1}
+                      max={Math.max(downloadableCount, 1)}
+                      className="input text-sm"
+                      value={crateLimit}
+                      onChange={(e) => {
+                        const n = parseInt(e.target.value, 10);
+                        if (Number.isNaN(n)) { setCrateLimit(1); return; }
+                        setCrateLimit(Math.max(1, Math.min(n, Math.max(downloadableCount, 1))));
+                      }}
+                    />
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {[10, 12, 20].map((n) => (
+                        <button key={n} type="button" onClick={() => setCrateLimit(Math.min(n, Math.max(downloadableCount, 1)))}
+                          className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${crateLimit === n ? 'border-neon-magenta/50 bg-neon-magenta/10 text-neon-magenta' : 'border-border text-muted hover:text-white'}`}>
+                          Top {n}
+                        </button>
+                      ))}
+                      <button type="button" onClick={() => setCrateLimit(Math.max(downloadableCount, 1))}
+                        className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${crateLimit >= downloadableCount ? 'border-neon-magenta/50 bg-neon-magenta/10 text-neon-magenta' : 'border-border text-muted hover:text-white'}`}>
+                        Todas ({downloadableCount})
+                      </button>
+                    </div>
                   </div>
-                  <button onClick={handleGenerateCrate} className="btn btn-primary w-full mt-2">
-                    Generar .bat de descarga
+                  <button onClick={handleGenerateCrate} disabled={downloadableCount === 0} className="btn btn-primary w-full mt-2">
+                    Generar .bat ({Math.min(crateLimit, downloadableCount)} canciones)
                   </button>
                 </div>
               </div>
