@@ -35,8 +35,13 @@ let COOKIES_PATH = null;
 // Nota: yt-dlp usa `deno` como runtime JS por defecto para el reto nsig de YouTube;
 // la imagen Docker lo instala, así que no hace falta pasar --js-runtimes.
 
-function cookieArgs() {
-  return COOKIES_PATH ? ['--cookies', COOKIES_PATH] : [];
+function defaultArgs() {
+  const args = [
+    '--extractor-args', 'youtube:player_client=android,web_creator,default',
+    '--compat-options', 'no-youtube-unavailable-videos'
+  ];
+  if (COOKIES_PATH) args.push('--cookies', COOKIES_PATH);
+  return args;
 }
 
 // Traduce el stderr crudo de yt-dlp a un mensaje útil para el usuario final.
@@ -89,7 +94,7 @@ function summarizeFormats(info) {
 function getInfo(url) {
   return new Promise((resolve, reject) => {
     if (!validateUrl(url)) return reject(new Error('URL no soportada'));
-    const proc = spawn('yt-dlp', [...cookieArgs(), '--no-playlist', '--dump-json', '--no-download', url]);
+    const proc = spawn('yt-dlp', [...defaultArgs(), '--no-playlist', '--dump-json', '--no-download', url]);
     let out = '';
     let err = '';
     proc.stdout.on('data', (d) => (out += d.toString()));
@@ -126,7 +131,7 @@ function searchYouTube(query, limit = 5) {
     const q = String(query || '').trim();
     if (!q) return reject(new Error('Falta query'));
     const n = Math.min(Math.max(parseInt(limit, 10) || 5, 1), 10);
-    const proc = spawn('yt-dlp', [...cookieArgs(), '--no-playlist', '--dump-json', '--no-download', `ytsearch${n}:${q}`]);
+    const proc = spawn('yt-dlp', [...defaultArgs(), '--no-playlist', '--dump-json', '--no-download', `ytsearch${n}:${q}`]);
     let out = '';
     let err = '';
     proc.stdout.on('data', (d) => (out += d.toString()));
@@ -155,7 +160,7 @@ function searchYouTube(query, limit = 5) {
 
 // Construye los args de yt-dlp según formato/calidad. Salida a stdout ('-o -').
 function buildArgs(url, format, quality) {
-  let args = [...cookieArgs(), '--no-playlist'];
+  let args = [...defaultArgs(), '--no-playlist'];
   if (format === 'mp3') {
     args = args.concat(['-x', '--audio-format', 'mp3', '--audio-quality', '0']);
   } else if (url.includes('tiktok.com')) {
@@ -179,7 +184,7 @@ function buildArgs(url, format, quality) {
 // Args para descarga directa de VIDEO (mp4). Con salida a stdout yt-dlp no puede
 // mergear, así que pedimos un formato progresivo (un solo archivo) transmitible tal cual.
 function buildVideoArgs(url, quality) {
-  let args = [...cookieArgs(), '--no-playlist'];
+  let args = [...defaultArgs(), '--no-playlist'];
   if (url.includes('tiktok.com')) {
     args = args.concat(['-f', 'best[ext=mp4][vcodec~="^((?!hevc).)*$"]/best[ext=mp4]/best']);
   } else if (quality && quality !== 'best') {
@@ -194,26 +199,36 @@ function buildVideoArgs(url, quality) {
 // con salida a stdout yt-dlp NO postprocesa (devolvía webm/opus con extensión .mp3).
 function streamAudioMp3(url, safe, res) {
   return new Promise((resolve, reject) => {
-    const ytdlp = spawn('yt-dlp', [...cookieArgs(), '--no-playlist', '-f', 'bestaudio/best', '-o', '-', url]);
+    const ytdlp = spawn('yt-dlp', [...defaultArgs(), '--no-playlist', '-f', 'bestaudio/best', '-o', '-', url]);
     const ff = spawn('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-i', 'pipe:0', '-vn', '-f', 'mp3', '-b:a', '192k', 'pipe:1']);
     let bytes = 0;
     let err = '';
+    let headersSent = false;
     ytdlp.stderr.on('data', (d) => (err += d.toString()));
     ytdlp.stdout.on('error', () => {});
     ytdlp.stdout.pipe(ff.stdin);
     ff.stdin.on('error', () => {});   // ffmpeg puede cerrar la entrada antes de tiempo
-    ff.stdout.pipe(res);
-    ff.stdout.on('data', (d) => (bytes += d.length));
+    ff.stdout.on('data', (d) => {
+      if (!headersSent) {
+        res.setHeader('Content-Disposition', `attachment; filename="${safe}.mp3"`);
+        res.setHeader('Content-Type', 'audio/mpeg');
+        headersSent = true;
+      }
+      bytes += d.length;
+      res.write(d);
+    });
     ff.stderr.on('data', () => {});
-    ytdlp.on('error', (e) => { if (!res.headersSent) res.status(500).json({ error: 'yt-dlp no disponible' }); reject(e); });
-    ff.on('error', (e) => { if (!res.headersSent) res.status(500).json({ error: 'ffmpeg no disponible' }); reject(e); });
+    ytdlp.on('error', (e) => { if (!headersSent) res.status(500).json({ error: 'yt-dlp no disponible' }); reject(e); });
+    ff.on('error', (e) => { if (!headersSent) res.status(500).json({ error: 'ffmpeg no disponible' }); reject(e); });
     ytdlp.on('close', (code) => { if (code !== 0) { try { ff.stdin.end(); } catch { /* */ } } });
     ff.on('close', () => {
       if (bytes === 0) {
         const reason = humanizeYtError(err) || 'No se pudo convertir a mp3';
-        if (!res.headersSent) res.status(500).json({ error: reason });
+        if (!headersSent) res.status(500).json({ error: reason });
+        else res.end();
         return reject(new Error(reason));
       }
+      if (headersSent) res.end();
       resolve({ filename: `${safe}.mp3`, size: bytes, format: 'mp3' });
     });
     res.on('close', () => { try { ytdlp.kill(); } catch { /* */ } try { ff.kill(); } catch { /* */ } });
@@ -226,26 +241,36 @@ async function streamDownload(url, format, quality, res) {
   const info = await getInfo(url).catch(() => ({ title: 'media' }));
   const safe = (info.title || 'media').replace(/[^a-z0-9]/gi, '_').substring(0, 50);
   const ext = format === 'mp3' ? 'mp3' : 'mp4';
-  res.setHeader('Content-Disposition', `attachment; filename="${safe}.${ext}"`);
-  res.setHeader('Content-Type', format === 'mp3' ? 'audio/mpeg' : 'video/mp4');
 
   // MP3 va por el pipe de transcode (ffmpeg); mp4 se transmite directo.
   if (format === 'mp3') return streamAudioMp3(url, safe, res);
 
   return new Promise((resolve, reject) => {
     const proc = spawn('yt-dlp', buildVideoArgs(url, quality));
-    proc.stdout.pipe(res);
     let bytes = 0;
     let err = '';
-    proc.stdout.on('data', (d) => (bytes += d.length));
+    let headersSent = false;
+    
+    proc.stdout.on('data', (d) => {
+      if (!headersSent) {
+        res.setHeader('Content-Disposition', `attachment; filename="${safe}.${ext}"`);
+        res.setHeader('Content-Type', 'video/mp4');
+        headersSent = true;
+      }
+      bytes += d.length;
+      res.write(d);
+    });
+    
     proc.stderr.on('data', (d) => (err += d.toString()));
-    proc.on('error', (e) => { if (!res.headersSent) res.status(500).json({ error: 'yt-dlp no disponible en el servidor' }); reject(e); });
+    proc.on('error', (e) => { if (!headersSent) res.status(500).json({ error: 'yt-dlp no disponible en el servidor' }); reject(e); });
     proc.on('close', (code) => {
-      if (code !== 0) {
-        const reason = humanizeYtError(err) || `yt-dlp salió con código ${code}`;
-        if (!res.headersSent) res.status(500).json({ error: reason });
+      if (code !== 0 || bytes === 0) {
+        const reason = humanizeYtError(err) || `yt-dlp falló o descargó 0 bytes.`;
+        if (!headersSent) res.status(500).json({ error: reason });
+        else res.end();
         return reject(new Error(reason));
       }
+      if (headersSent) res.end();
       resolve({ filename: `${safe}.${ext}`, size: bytes, format });
     });
     res.on('close', () => { if (!proc.killed) proc.kill(); });
