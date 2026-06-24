@@ -100,7 +100,7 @@ echo.
 echo  Tamano aprox del video:
 for /f "delims=" %%S in ('""%YTDLP%" --no-warnings --no-playlist -f "bestvideo[height<=%H%]+bestaudio/best[height<=%H%]" --print "%%(filesize_approx,filesize)#B" "%LINK%" 2^>nul"') do echo    ~ %%S
 set "OUTEXT=mp4"
-set "DLARGS=-f bestvideo[height<=%H%]+bestaudio/best[height<=%H%] --merge-output-format mp4"
+set "DLARGS=-f "bestvideo[height<=%H%]+bestaudio/best[height<=%H%]" --merge-output-format mp4"
 goto FOLDER
 
 :FOLDER

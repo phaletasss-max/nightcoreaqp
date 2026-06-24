@@ -28,11 +28,13 @@ const BOOTSTRAP: string[] = [
 ];
 
 // Args de yt-dlp según formato/calidad. quality numérico (ej. "720") limita altura.
+// IMPORTANTE: el selector -f va ENTRE COMILLAS porque el `<=` lleva un `<` que
+// cmd interpretaría como redirección de entrada y rompería la descarga.
 function dlArgsFor(format: 'mp3' | 'mp4', quality?: string): string {
   if (format === 'mp3') return '-x --audio-format mp3 --audio-quality 0';
   if (quality && quality !== 'best' && /^\d+$/.test(quality))
-    return `-f bestvideo[height<=${quality}]+bestaudio/best[height<=${quality}] --merge-output-format mp4`;
-  return '-f bestvideo+bestaudio/best --merge-output-format mp4';
+    return `-f "bestvideo[height<=${quality}]+bestaudio/best[height<=${quality}]" --merge-output-format mp4`;
+  return '-f "bestvideo+bestaudio/best" --merge-output-format mp4';
 }
 
 export interface CrateOptions {
@@ -45,12 +47,20 @@ export interface CrateOptions {
 export function buildCrateBat(urls: string[], format: 'mp3' | 'mp4', opts: CrateOptions = {}): string {
   const { title = 'Crate', dest = '%USERPROFILE%\\Desktop\\NightcoreAQP', quality } = opts;
   const clean = urls.map((u) => String(u).replace(/["\r\n]/g, '')).filter(Boolean);
-  const urlLines = clean.map((u) => `  "${u}"`).join('\r\n');
   const dlArgs = dlArgsFor(format, quality);
+
+  // Una llamada directa de yt-dlp por URL. OJO: NO usar `for %%U in (...)` — el `?`
+  // de las URLs de YouTube se interpreta como comodín de archivo y el loop se salta
+  // (la URL va entre comillas, así el `&` de las playlists tampoco rompe el comando).
+  const dlLines = clean.flatMap((u, i) => [
+    'echo.',
+    `echo  ---- Descargando ${i + 1}/${clean.length} ...`,
+    `"%YTDLP%" --no-playlist --ffmpeg-location "%TOOLS%" ${dlArgs} -o "%DEST%\\%%(title)s.%%(ext)s" "${u}"`,
+  ]);
 
   return [
     '@echo off',
-    'setlocal enabledelayedexpansion',
+    'setlocal',
     `title Nightcore AQP - ${title}`,
     'color 0D',
     'cd /d "%~dp0"',
@@ -63,16 +73,10 @@ export function buildCrateBat(urls: string[], format: 'mp3' | 'mp4', opts: Crate
     'if not exist "%DEST%" mkdir "%DEST%"',
     'echo.',
     'echo  Guardando en: %DEST%',
-    'for %%U in (',
-    urlLines,
-    ') do (',
-    '  echo.',
-    '  echo  ---- Descargando %%~U',
-    `  "%YTDLP%" --no-playlist --ffmpeg-location "%TOOLS%" ${dlArgs} -o "%DEST%\\%%(title)s.%%(ext)s" "%%~U"`,
-    ')',
+    ...dlLines,
     'echo.',
     'echo  =========================================================',
-    'echo   LISTO! Tus archivos estan en: %DEST%',
+    'echo   LISTO. Tus archivos estan en: %DEST%',
     'echo   Sube tu cancion a la playlist para que otros la escuchen!',
     'echo  =========================================================',
     'pause',
