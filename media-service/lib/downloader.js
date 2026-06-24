@@ -42,6 +42,8 @@ const POT_ENABLED = (process.env.ENABLE_POT || 'true') !== 'false';
 const POT_BASE_URL = process.env.POT_BASE_URL || `http://127.0.0.1:${process.env.POT_PORT || 4416}`;
 const PLUGIN_DIR = process.env.YTDLP_PLUGIN_DIR || '/opt/ytdlp-plugins';
 
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+
 function defaultArgs() {
   const args = [
     '--extractor-args', 'youtube:player_client=android,web_creator,default',
@@ -139,10 +141,35 @@ function getInfo(url) {
 // resultados (cada uno con su URL real). Sirve tanto para resolver un pedido de
 // Spotify (tomar el [0]) como para una búsqueda manual donde el usuario elige.
 function searchYouTube(query, limit = 5) {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     const q = String(query || '').trim();
     if (!q) return reject(new Error('Falta query'));
     const n = Math.min(Math.max(parseInt(limit, 10) || 5, 1), 10);
+
+    // 1. Intentar usar la API oficial de YouTube v3 (A prueba de bots)
+    if (YOUTUBE_API_KEY) {
+      try {
+        const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=${n}&q=${encodeURIComponent(q)}&key=${YOUTUBE_API_KEY}`;
+        const res = await globalThis.fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.items && data.items.length > 0) {
+            const results = data.items.map(item => ({
+              url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
+              title: item.snippet.title,
+              author: item.snippet.channelTitle,
+              thumbnail: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url,
+              duration: null // La API de búsqueda no da duración sin una petición extra a /videos, pero no es vital.
+            }));
+            return resolve(results);
+          }
+        }
+      } catch (e) {
+        console.warn('[SEARCH] API de Google falló, intentando yt-dlp fallback...', e.message);
+      }
+    }
+
+    // 2. Fallback a yt-dlp si no hay API Key o la API falló
     const proc = spawn('yt-dlp', [...defaultArgs(), '--no-playlist', '--dump-json', '--no-download', `ytsearch${n}:${q}`]);
     let out = '';
     let err = '';
