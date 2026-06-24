@@ -16,7 +16,8 @@ import {
   getAttendanceProofs, setAttendanceProofStatus,
 } from '@/lib/data';
 import Link from 'next/link';
-import { downloadMedia, storeBackup, isMediaConfigured } from '@/lib/media';
+import { storeBackup, isMediaConfigured } from '@/lib/media';
+import { buildCrateBat, downloadTextFile } from '@/lib/crate';
 import type { EventItem, Song, Attendee, EventStatus, Profile, Costume, EventComment, AttendanceProof } from '@/lib/types';
 
 type Tab = 'kpi' | 'dj' | 'survey' | 'events' | 'users' | 'posts' | 'comments' | 'design' | 'proofs';
@@ -235,69 +236,12 @@ export default function AdminPage() {
       .slice(0, crateLimit);
     if (!top.length) { alert('No hay canciones descargables (YouTube/TikTok/IG) en la playlist.'); return; }
 
-    const isMp3 = crateFormat === 'mp3';
-    const dlArgs = isMp3
-      ? '-x --audio-format mp3 --audio-quality 0'
-      : '-f bestvideo+bestaudio/best --merge-output-format mp4';
-    const urlLines = top.map((s) => `  "${s.youtube_url.replace(/["\r\n]/g, '')}"`).join('\r\n');
-
-    const bat = [
-      '@echo off',
-      'setlocal enabledelayedexpansion',
-      `title Nightcore AQP - Crate Top ${top.length} (${crateFormat.toUpperCase()})`,
-      'color 0D',
-      'cd /d "%~dp0"',
-      'echo.',
-      `echo  === NIGHTCORE AQP - DESCARGA DE CRATE (${crateFormat.toUpperCase()}) ===`,
-      `echo  Se descargaran ${top.length} canciones en TU PC.`,
-      'echo.',
-      'set "TOOLS=%~dp0_tools"',
-      'if not exist "%TOOLS%" mkdir "%TOOLS%"',
-      'set "YTDLP=%TOOLS%\\yt-dlp.exe"',
-      'set "FFMPEG=%TOOLS%\\ffmpeg.exe"',
-      'if not exist "%YTDLP%" (',
-      '  echo Descargando yt-dlp ^(una sola vez^)...',
-      '  curl -L --progress-bar -o "%YTDLP%" "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"',
-      ')',
-      'if not exist "%FFMPEG%" (',
-      '  echo Descargando ffmpeg ^(una sola vez, puede tardar^)...',
-      '  curl -L --progress-bar -o "%TOOLS%\\ffmpeg.zip" "https://github.com/yt-dlp/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-win64-gpl.zip"',
-      '  powershell -NoProfile -Command "Expand-Archive -Force \'%TOOLS%\\ffmpeg.zip\' \'%TOOLS%\\ffmpeg_tmp\'" >nul 2>&1',
-      '  for /r "%TOOLS%\\ffmpeg_tmp" %%F in (ffmpeg.exe) do copy /y "%%F" "%FFMPEG%" >nul',
-      '  for /r "%TOOLS%\\ffmpeg_tmp" %%F in (ffprobe.exe) do copy /y "%%F" "%TOOLS%\\ffprobe.exe" >nul',
-      '  del /q "%TOOLS%\\ffmpeg.zip" >nul 2>&1',
-      '  rmdir /s /q "%TOOLS%\\ffmpeg_tmp" >nul 2>&1',
-      ')',
-      '"%YTDLP%" -U >nul 2>&1',
-      'set "DEST=%USERPROFILE%\\Desktop\\NightcoreAQP_Crate"',
-      'if not exist "%DEST%" mkdir "%DEST%"',
-      'echo.',
-      'echo  Guardando en: %DEST%',
-      'for %%U in (',
-      urlLines,
-      ') do (',
-      '  echo.',
-      '  echo  ---- Descargando %%~U',
-      `  "%YTDLP%" --no-playlist --ffmpeg-location "%TOOLS%" ${dlArgs} -o "%DEST%\\%%(title)s.%%(ext)s" "%%~U"`,
-      ')',
-      'echo.',
-      'echo  =========================================================',
-      'echo   LISTO! Tu crate esta en: %DEST%',
-      'echo  =========================================================',
-      'pause',
-      'endlocal',
-      '',
-    ].join('\r\n');
-
-    const blob = new Blob([bat], { type: 'application/octet-stream' });
-    const objUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = objUrl;
-    a.download = `NightcoreAQP_Crate_Top${top.length}_${crateFormat}.bat`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(objUrl);
+    const fmt = crateFormat === 'mp3' ? 'mp3' : 'mp4';
+    const bat = buildCrateBat(top.map((s) => s.youtube_url), fmt, {
+      title: `Crate Top ${top.length}`,
+      dest: '%USERPROFILE%\\Desktop\\NightcoreAQP_Crate',
+    });
+    downloadTextFile(`NightcoreAQP_Crate_Top${top.length}_${crateFormat}.bat`, bat);
   };
 
   // Descarga el MP4 de la canción (vía media-service → Supabase Storage) y lo marca

@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { getSongs, addSong, setSongVote, uploadMediaFile } from '@/lib/data';
-import { checkVideo, isMediaConfigured, searchYouTube, searchYouTubeList, type VideoInfo, type YtSearchResult } from '@/lib/media';
+import { isMediaConfigured, searchYouTube, searchYouTubeList, type VideoInfo, type YtSearchResult } from '@/lib/media';
 import type { Song, VoteType } from '@/lib/types';
 import { usePlayer, type PlayableItem } from '@/context/PlayerContext';
 import DownloadInstructionsModal from '@/components/DownloadInstructionsModal';

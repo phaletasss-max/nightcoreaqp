@@ -1,26 +1,29 @@
 'use client';
 
-// ── Página de Descargas — Descargador de videos ──────────────────────────────
-// Permite a los usuarios descargar videos de YouTube, Instagram, TikTok
-// usando el media-service (yt-dlp). También pueden sugerir canciones
-// para la playlist del DJ directamente desde aquí.
+// ── Página de Descargas — Descarga LOCAL (puente en la PC/celular) ───────────
+// Ya NO descarga por servidor (YouTube bloquea la nube). En su lugar:
+//  • PC: genera un .bat con el link/formato/calidad ya puestos; el usuario lo
+//    ejecuta y yt-dlp descarga en SU PC (IP residencial → sin bloqueos).
+//  • Celular: recomienda una app open-source (YTDLnis) vía modal.
+// También permite buscar en YouTube (Data API) y sugerir canciones al DJ.
 
 import React, { useState, useEffect } from 'react';
 import {
   Download, Link2, Music, Video, AlertCircle, CheckCircle2,
-  Loader2, PlayCircle, Camera, Sparkles, Zap, ArrowRight, Search,
+  Loader2, PlayCircle, Camera, Sparkles, Zap, ArrowRight, Search, Smartphone, Monitor,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
-import { downloadMedia, isMediaConfigured, storeBackup, checkVideo, searchYouTubeList, type VideoInfo, type YtSearchResult } from '@/lib/media';
+import { searchYouTubeList, type YtSearchResult } from '@/lib/media';
+import { buildCrateBat, downloadTextFile } from '@/lib/crate';
 import { addSong, getSongs } from '@/lib/data';
 import type { Song } from '@/lib/types';
 import { usePlayer } from '@/context/PlayerContext';
+import DownloadInstructionsModal from '@/components/DownloadInstructionsModal';
 
 function getYouTubeId(url: string) {
   const m = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
   return m && m[2].length === 11 ? m[2] : null;
 }
-const fmtMb = (mb?: number | null) => (mb != null ? `~${mb} MB` : '');
 
 type Platform = 'youtube' | 'instagram' | 'tiktok' | 'unknown';
 
@@ -38,22 +41,21 @@ const platformInfo: Record<Platform, { label: string; color: string; icon: React
   unknown: { label: 'Enlace', color: 'text-muted', icon: <Link2 className="h-5 w-5" /> },
 };
 
+const QUALITIES = ['best', '1080', '720', '480', '360'];
+const qualityLabel = (q: string) => (q === 'best' ? 'Mejor' : `${q}p`);
+
 export default function DescargasPage() {
   const { profile, addPoints } = useAuth();
-  const mediaOn = isMediaConfigured();
+  const { playItem } = usePlayer();
 
   const [url, setUrl] = useState('');
   const [format, setFormat] = useState<'mp3' | 'mp4'>('mp4');
   const [quality, setQuality] = useState<string>('best');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [showMobile, setShowMobile] = useState(false);
 
-  // Info del enlace (calidades + tamaños) — se consulta al media-service.
-  const [info, setInfo] = useState<VideoInfo | null>(null);
-  const [infoLoading, setInfoLoading] = useState(false);
-
-  // Buscador de YouTube
+  // Buscador de YouTube (Data API)
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<YtSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -67,44 +69,20 @@ export default function DescargasPage() {
 
   const [songs, setSongs] = useState<Song[]>([]);
 
-  React.useEffect(() => {
-    getSongs().then(setSongs);
-  }, []);
+  useEffect(() => { getSongs().then(setSongs); }, []);
 
   const platform = url ? detectPlatform(url) : 'unknown';
   const pInfo = platformInfo[platform];
-  const { playItem } = usePlayer();
-
   const cleanLink = (u: string) => u.split('&list=')[0].split('?list=')[0].trim();
-
-  // Consulta calidades + tamaños del enlace (debounce) vía media-service.
-  useEffect(() => {
-    const cUrl = cleanLink(url);
-    if (!cUrl || !mediaOn || !/(youtu\.?be|youtube\.com|tiktok\.com|instagram\.com)/i.test(cUrl)) {
-      setInfo(null);
-      return;
-    }
-    let active = true;
-    setInfoLoading(true);
-    const t = setTimeout(async () => {
-      const i = await checkVideo(cUrl);
-      if (!active) return;
-      setInfo(i);
-      setInfoLoading(false);
-      setQuality('best');
-    }, 700);
-    return () => { active = false; clearTimeout(t); };
-  }, [url, mediaOn]);
 
   const doSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     const q = searchQuery.trim();
     if (!q) return;
-    if (!mediaOn) { setError('La búsqueda necesita el media-service conectado.'); return; }
     setSearching(true); setError(null); setSearchResults([]);
     try {
       const results = await searchYouTubeList(q, 6);
-      if (!results.length) setError('Sin resultados. Prueba con otro nombre.');
+      if (!results.length) setError('Sin resultados. Revisa YOUTUBE_API_KEY o prueba otro nombre.');
       else setSearchResults(results);
     } finally { setSearching(false); }
   };
@@ -117,79 +95,47 @@ export default function DescargasPage() {
     if (play) playItem({ type: 'yt', id: getYouTubeId(t.url) || '', title: t.title || 'Previa', artist: t.author || 'YouTube' });
   };
 
-  const handleDownload = async () => {
-    if (!url.trim()) return;
+  // Genera el .bat de descarga local con este link y lo baja al navegador.
+  const handleDownload = () => {
+    const cUrl = cleanLink(url);
     setError(null);
     setSuccess(false);
-    setLoading(true);
-
-    try {
-      const cleanUrl = (u: string) => u.split('&list=')[0].split('?list=')[0];
-      const cUrl = cleanUrl(url.trim());
-
-      // Validar que sea un enlace real de una plataforma soportada (evita pegar basura).
-      if (!/^https?:\/\//i.test(cUrl) || !/(youtu\.?be|youtube\.com|tiktok\.com|instagram\.com)/i.test(cUrl)) {
-        setError('Pega un enlace válido de YouTube, TikTok o Instagram (debe empezar con http).');
-        setLoading(false);
-        return;
-      }
-
-      // Descarga en-página. Pasa la calidad elegida para MP4.
-      const filename = `${platform}_${Date.now()}`;
-      await downloadMedia(cUrl, format, filename, format === 'mp4' ? quality : undefined);
-      setSuccess(true);
-      addPoints(3);
-      setTimeout(() => setSuccess(false), 3000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error en la descarga');
-    } finally {
-      setLoading(false);
+    if (!/^https?:\/\//i.test(cUrl) || !/(youtu\.?be|youtube\.com|tiktok\.com|instagram\.com)/i.test(cUrl)) {
+      setError('Pega un enlace válido de YouTube, TikTok o Instagram (debe empezar con http).');
+      return;
     }
+    const bat = buildCrateBat([cUrl], format, { title: 'Descarga', quality: format === 'mp4' ? quality : undefined });
+    downloadTextFile(`NightcoreAQP_${platform}_${format}.bat`, bat);
+    setSuccess(true);
+    addPoints(3);
+    setTimeout(() => setSuccess(false), 5000);
   };
 
   const handleSuggest = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanUrl = (u: string) => u.split('&list=')[0].split('?list=')[0];
-    const cUrl = cleanUrl(url);
+    const cUrl = cleanLink(url);
     if (!cUrl.trim() || !suggestTitle.trim() || !suggestArtist.trim()) return;
-
-    if (!profile) {
-      setError('⚠️ Necesitas iniciar sesión para poder sugerir canciones.');
-      return;
-    }
+    if (!profile) { setError('⚠️ Necesitas iniciar sesión para poder sugerir canciones.'); return; }
 
     const isYt = cUrl.includes('youtube.com') || cUrl.includes('youtu.be');
-    if (!isYt) {
-      setError('Solo puedes sugerir enlaces de YouTube a la playlist.');
-      return;
-    }
+    if (!isYt) { setError('Solo puedes sugerir enlaces de YouTube a la playlist.'); return; }
 
-    const exists = songs.find(s => s.youtube_url === cUrl || s.youtube_url === url);
-    if (exists) {
+    if (songs.find((s) => s.youtube_url === cUrl || s.youtube_url === url)) {
       setError('Esta canción ya fue sugerida y está en la playlist.');
       return;
     }
 
     setSuggesting(true);
     setError(null);
-
     try {
-      // Añadir a la playlist
       await addSong(
         { title: suggestTitle, artist: suggestArtist, youtube_url: cUrl },
         profile?.id ?? null,
         profile?.username ?? 'Anónimo',
       );
-
-      if (mediaOn) {
-        const storedUrl = await storeBackup(cUrl, 'mp4');
-      }
-
       addPoints(5);
       setSuggestDone(true);
-      setSuggestTitle('');
-      setSuggestArtist('');
-      setUrl('');
+      setSuggestTitle(''); setSuggestArtist(''); setUrl('');
       setTimeout(() => setSuggestDone(false), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al sugerir');
@@ -210,39 +156,36 @@ export default function DescargasPage() {
           <span className="text-glow-rainbow">Descarga</span> tus videos favoritos
         </h1>
         <p className="text-sm text-muted max-w-md mx-auto">
-          Descarga videos de YouTube, Instagram y TikTok. También puedes sugerir canciones directamente para la playlist del DJ.
+          La descarga ocurre en <strong>tu propio dispositivo</strong> (PC o celular), sin bloqueos. También puedes sugerir canciones para la playlist del DJ.
         </p>
       </div>
 
       {/* Buscador de YouTube por nombre */}
-      {mediaOn && (
-        <div className="card p-5 space-y-3 accent-cyan">
-          <label className="label flex items-center gap-2"><Search className="h-3.5 w-3.5" /> Buscar en YouTube por nombre</label>
-          <form onSubmit={doSearch} className="flex gap-2">
-            <input className="input flex-1" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Ej. Alan Walker Faded nightcore" />
-            <button type="submit" disabled={searching} className="btn btn-cyan shrink-0">
-              {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />} Buscar
-            </button>
-          </form>
-          {searchResults.length > 0 && (
-            <div className="max-h-80 overflow-y-auto space-y-1.5 pr-1">
-              {searchResults.map((t) => (
-                <div key={t.url} className="flex items-center gap-3 p-2 rounded-lg border border-border bg-white/[0.02]">
-                  { }
-                  {t.thumbnail && <img src={t.thumbnail} alt="" className="h-10 w-16 rounded object-cover shrink-0" />}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-white truncate">{t.title}</p>
-                    <p className="text-xs text-muted truncate">{t.author}{t.duration ? ` · ${Math.floor(t.duration / 60)}:${String(Math.floor(t.duration % 60)).padStart(2, '0')}` : ''}</p>
-                  </div>
-                  <button onClick={() => pickResult(t, true)} title="Elegir y ver en fondo" className="btn btn-lime text-black text-xs px-2.5 py-1.5 shrink-0">
-                    <PlayCircle className="h-3.5 w-3.5" /> Elegir
-                  </button>
+      <div className="card p-5 space-y-3 accent-cyan">
+        <label className="label flex items-center gap-2"><Search className="h-3.5 w-3.5" /> Buscar en YouTube por nombre</label>
+        <form onSubmit={doSearch} className="flex gap-2">
+          <input className="input flex-1" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Ej. Alan Walker Faded nightcore" />
+          <button type="submit" disabled={searching} className="btn btn-cyan shrink-0">
+            {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />} Buscar
+          </button>
+        </form>
+        {searchResults.length > 0 && (
+          <div className="max-h-80 overflow-y-auto space-y-1.5 pr-1">
+            {searchResults.map((t) => (
+              <div key={t.url} className="flex items-center gap-3 p-2 rounded-lg border border-border bg-white/[0.02]">
+                {t.thumbnail && <img src={t.thumbnail} alt="" className="h-10 w-16 rounded object-cover shrink-0" />}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-white truncate">{t.title}</p>
+                  <p className="text-xs text-muted truncate">{t.author}{t.duration ? ` · ${Math.floor(t.duration / 60)}:${String(Math.floor(t.duration % 60)).padStart(2, '0')}` : ''}</p>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+                <button onClick={() => pickResult(t, true)} title="Elegir y ver en fondo" className="btn btn-lime text-black text-xs px-2.5 py-1.5 shrink-0">
+                  <PlayCircle className="h-3.5 w-3.5" /> Elegir
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Input principal */}
       <div className="card p-6 sm:p-8 space-y-5 accent-magenta">
@@ -271,52 +214,29 @@ export default function DescargasPage() {
         <div className="space-y-2">
           <label className="label">Formato</label>
           <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setFormat('mp4')}
-              className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border text-sm font-bold transition-colors ${
-                format === 'mp4'
-                  ? 'border-neon-magenta/50 bg-neon-magenta/10 text-neon-magenta'
-                  : 'border-border text-muted hover:text-white'
-              }`}
-            >
+            <button type="button" onClick={() => setFormat('mp4')}
+              className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border text-sm font-bold transition-colors ${format === 'mp4' ? 'border-neon-magenta/50 bg-neon-magenta/10 text-neon-magenta' : 'border-border text-muted hover:text-white'}`}>
               <Video className="h-4 w-4" /> MP4 (Video)
             </button>
-            <button
-              type="button"
-              onClick={() => setFormat('mp3')}
-              className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border text-sm font-bold transition-colors ${
-                format === 'mp3'
-                  ? 'border-neon-cyan/50 bg-neon-cyan/10 text-neon-cyan'
-                  : 'border-border text-muted hover:text-white'
-              }`}
-            >
+            <button type="button" onClick={() => setFormat('mp3')}
+              className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border text-sm font-bold transition-colors ${format === 'mp3' ? 'border-neon-cyan/50 bg-neon-cyan/10 text-neon-cyan' : 'border-border text-muted hover:text-white'}`}>
               <Music className="h-4 w-4" /> MP3 (Audio)
-              {info?.audioSizeMb != null && <span className="text-[10px] font-mono text-muted-2">{fmtMb(info.audioSizeMb)}</span>}
             </button>
           </div>
         </div>
 
-        {/* Calidad + tamaño (MP4) */}
+        {/* Calidad (MP4) */}
         {format === 'mp4' && (
           <div className="space-y-2">
-            <label className="label flex items-center justify-between">
-              <span>Calidad del video</span>
-              {infoLoading && <span className="text-[10px] text-neon-cyan flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> consultando tamaños…</span>}
-            </label>
+            <label className="label">Calidad del video</label>
             <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={() => setQuality('best')}
-                className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${quality === 'best' ? 'border-neon-magenta/50 bg-neon-magenta/10 text-neon-magenta' : 'border-border text-muted hover:text-white'}`}>
-                Mejor
-              </button>
-              {(info?.video ?? []).map((v) => (
-                <button key={v.height} type="button" onClick={() => setQuality(String(v.height))}
-                  className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors flex items-center gap-1.5 ${quality === String(v.height) ? 'border-neon-cyan/50 bg-neon-cyan/10 text-neon-cyan' : 'border-border text-muted hover:text-white'}`}>
-                  {v.height}p {v.sizeMb != null && <span className="text-[10px] font-mono text-muted-2">{fmtMb(v.sizeMb)}</span>}
+              {QUALITIES.map((q) => (
+                <button key={q} type="button" onClick={() => setQuality(q)}
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${quality === q ? 'border-neon-magenta/50 bg-neon-magenta/10 text-neon-magenta' : 'border-border text-muted hover:text-white'}`}>
+                  {qualityLabel(q)}
                 </button>
               ))}
             </div>
-            {!mediaOn && <p className="text-[10px] text-muted-2">Las calidades/tamaños aparecen al conectar el media-service.</p>}
           </div>
         )}
 
@@ -328,49 +248,24 @@ export default function DescargasPage() {
         )}
         {success && (
           <div className="badge badge-lime w-full justify-start py-2.5 px-3 normal-case tracking-normal text-xs">
-            <CheckCircle2 className="h-4 w-4 shrink-0" /> <span>¡Descarga iniciada! (+3 pts) ✦</span>
+            <CheckCircle2 className="h-4 w-4 shrink-0" /> <span>¡Descargador listo! Abre el .bat que se bajó y sigue las instrucciones. (+3 pts) ✦</span>
           </div>
         )}
 
-        {/* Botones de acción */}
+        {/* Botones: descargar en PC / celular / sugerir */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <button
-            onClick={handleDownload}
-            disabled={!url.trim() || loading}
-            className="btn btn-primary w-full"
-          >
-            {loading
-              ? <><Loader2 className="h-4 w-4 animate-spin" /> Descargando…</>
-              : <><Download className="h-4 w-4" /> Descargar</>}
+          <button onClick={handleDownload} disabled={!url.trim()} className="btn btn-primary w-full">
+            <Monitor className="h-4 w-4" /> Descargar en PC
           </button>
-          {mediaOn && (
-            <button
-              type="button"
-              onClick={() => {
-                if (!url.trim()) return;
-                const MEDIA_URL = (process.env.NEXT_PUBLIC_MEDIA_SERVICE_URL || '').replace(/\/$/, '');
-                const cleanUrl = (u: string) => u.split('&list=')[0].split('?list=')[0];
-                playItem({
-                   type: 'stream',
-                   url: `${MEDIA_URL}/api/download?url=${encodeURIComponent(cleanUrl(url))}&format=mp4`,
-                   title: 'Vista previa',
-                   artist: 'Descargas'
-                });
-              }}
-              disabled={!url.trim() || loading}
-              className="btn btn-lime w-full text-black hover:bg-neon-lime/80"
-            >
-              <PlayCircle className="h-4 w-4" /> Ver en fondo
-            </button>
-          )}
+          <button type="button" onClick={() => setShowMobile(true)} className="btn btn-lime w-full text-black hover:bg-neon-lime/80">
+            <Smartphone className="h-4 w-4" /> En celular
+          </button>
           <button
             onClick={async () => {
               setSuggestMode(!suggestMode);
               if (!suggestMode && url.trim()) {
-                const cleanUrl = (u: string) => u.split('&list=')[0].split('?list=')[0];
-                const cUrl = cleanUrl(url);
-                const exists = songs.find(s => s.youtube_url === cUrl || s.youtube_url === url);
-                if (exists) {
+                const cUrl = cleanLink(url);
+                if (songs.find((s) => s.youtube_url === cUrl || s.youtube_url === url)) {
                   setError('⚠️ Esta canción ya está en la playlist.');
                   setSuggestMode(false);
                   return;
@@ -388,7 +283,7 @@ export default function DescargasPage() {
                         setSuggestTitle(data.title);
                       }
                     }
-                  } catch(e) {}
+                  } catch { /* ignorar */ }
                 }
               }
             }}
@@ -399,7 +294,7 @@ export default function DescargasPage() {
         </div>
 
         <p className="text-[11px] text-muted-2 text-center border-t border-border pt-3">
-          La descarga ocurre dentro de la página (sin redirección). MP3/MP4 de YouTube, TikTok e Instagram.
+          En PC se baja un <strong>.bat</strong> que descarga el video en tu equipo (la primera vez instala yt-dlp solo). En celular usa la app recomendada.
         </p>
       </div>
 
@@ -410,7 +305,7 @@ export default function DescargasPage() {
             <Zap className="h-5 w-5 text-neon-cyan glow-cyan" /> Sugerir canción para la playlist
           </h3>
           <p className="text-xs text-muted">
-            El enlace se descargará y se añadirá a la playlist pública. El DJ la tendrá lista para el próximo evento.
+            El enlace se añade a la playlist pública. El DJ la tendrá lista para el próximo evento.
           </p>
 
           <div className="grid sm:grid-cols-2 gap-4">
@@ -463,13 +358,15 @@ export default function DescargasPage() {
       <div className="card p-5 space-y-3">
         <h4 className="font-bold text-white text-sm">Información importante</h4>
         <ul className="text-xs text-muted space-y-1.5 list-disc list-inside">
-          <li>Las descargas son para uso personal.</li>
+          <li>La descarga ocurre en tu dispositivo; el sitio no guarda los archivos.</li>
           <li>Las canciones sugeridas se añaden a la playlist pública del DJ.</li>
           <li>Respeta los derechos de autor — solo contenido para disfrute personal.</li>
-          <li>El servicio usa yt-dlp y es gratuito para la comunidad.</li>
+          <li>El descargador usa yt-dlp (software libre) y es gratis para la comunidad.</li>
         </ul>
       </div>
     </div>
+
+    {showMobile && <DownloadInstructionsModal onClose={() => setShowMobile(false)} />}
     </>
   );
 }
