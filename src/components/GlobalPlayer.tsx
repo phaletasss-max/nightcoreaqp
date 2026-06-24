@@ -109,9 +109,12 @@ export default function GlobalPlayer() {
   };
 
   const isYt = playingItem?.type === 'yt';
+  // El `src` NO debe depender de isMuted: si cambia, el iframe se recarga y la canción
+  // reinicia. Arrancamos siempre con mute=1 (permite autoplay) y el estado real de mute
+  // se aplica por postMessage (useEffect de mute + onLoad). Toggle de volumen = sin reload.
   // loop solo cuando NO hay cola (para que en cola el video pueda terminar y avanzar)
   const ytSrc = isYt && playingItem?.id
-    ? `https://www.youtube.com/embed/${playingItem.id}?enablejsapi=1&autoplay=1&mute=${isMuted ? 1 : 0}&controls=0&rel=0&playsinline=1&loop=${multi ? 0 : 1}&playlist=${playingItem.id}`
+    ? `https://www.youtube.com/embed/${playingItem.id}?enablejsapi=1&autoplay=1&mute=1&controls=0&rel=0&playsinline=1&loop=${multi ? 0 : 1}&playlist=${playingItem.id}`
     : '';
 
   return (
