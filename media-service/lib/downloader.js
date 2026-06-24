@@ -104,10 +104,47 @@ function summarizeFormats(info) {
   return { video, audioSizeMb };
 }
 
+// Extrae el ID de video de una URL de YouTube
+function extractVideoId(url) {
+  const match = url.match(/(?:v=|\/|youtu\.be\/)([^&?]+)/);
+  return match && match[1] && match[1].length === 11 ? match[1] : null;
+}
+
 // Verifica disponibilidad y devuelve metadatos (el "comprobante").
 function getInfo(url) {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     if (!validateUrl(url)) return reject(new Error('URL no soportada'));
+
+    // 1. Intentar usar la API oficial si es de YouTube (A prueba de bots)
+    const ytId = YOUTUBE_API_KEY ? extractVideoId(url) : null;
+    if (ytId) {
+      try {
+        const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,status&id=${ytId}&key=${YOUTUBE_API_KEY}`;
+        const res = await globalThis.fetch(apiUrl);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.items && data.items.length > 0) {
+            const item = data.items[0];
+            return resolve({
+              available: item.status.embeddable && item.status.privacyStatus === 'public',
+              title: item.snippet.title,
+              author: item.snippet.channelTitle,
+              duration: 0, // Fallback
+              thumbnail: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url,
+              platform: 'youtube',
+              isLive: item.snippet.liveBroadcastContent === 'live',
+              availability: item.status.privacyStatus,
+              video: [],
+              audioSizeMb: null
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('[INFO] API de Google falló, intentando yt-dlp fallback...', e.message);
+      }
+    }
+
+    // 2. Fallback a yt-dlp
     const proc = spawn('yt-dlp', [...defaultArgs(), '--no-playlist', '--dump-json', '--no-download', url]);
     let out = '';
     let err = '';
