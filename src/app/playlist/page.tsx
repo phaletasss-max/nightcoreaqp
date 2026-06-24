@@ -10,7 +10,7 @@ import { getSongs, addSong, setSongVote, uploadMediaFile } from '@/lib/data';
 import { checkVideo, isMediaConfigured, searchYouTube, searchYouTubeList, type VideoInfo, type YtSearchResult } from '@/lib/media';
 import type { Song, VoteType } from '@/lib/types';
 import { usePlayer, type PlayableItem } from '@/context/PlayerContext';
-import DownloadMenu from '@/components/DownloadMenu';
+import DownloadInstructionsModal from '@/components/DownloadInstructionsModal';
 
 function getYouTubeId(url: string) {
   const m = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
@@ -43,8 +43,11 @@ export default function PlaylistPage() {
   const [uploadMode, setUploadMode] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [newTags, setNewTags] = useState('');
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [youtubeEquivalent, setYoutubeEquivalent] = useState<string | null>(null);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
 
   // ── Importar desde Spotify ──
   const [showSpotify, setShowSpotify] = useState(false);
@@ -152,33 +155,55 @@ export default function PlaylistPage() {
     }
     const cUrl = cleanUrl(url);
     const isYt = cUrl.includes('youtube.com') || cUrl.includes('youtu.be');
+    const isSp = isSpotify(cUrl);
     
-    if (!isYt) {
+    if (!isYt && !isSp) {
       setTimeout(() => {
-        setFormError('Solo se aceptan enlaces de YouTube para la playlist.');
+        setFormError('Solo se aceptan enlaces de YouTube o Spotify para la playlist.');
         setVideoInfo(null);
       }, 0);
       return;
     }
 
     setFormError(null);
+    setYoutubeEquivalent(null);
     const t = setTimeout(async () => {
       setChecking(true);
-      let info = await checkVideo(cUrl);
-      
-      // Fallback a noembed (bypass CORS) si el media-service falla
-      if (!info || (!info.available && info.error === 'No se pudo contactar el media-service')) {
+      let info: VideoInfo | null = null;
+      let finalYtUrl = cUrl;
+
+      if (isSp) {
+        // Auto-fetch Spotify metadata usando oEmbed
+        try {
+          const spRes = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(cUrl)}`);
+          if (spRes.ok) {
+            const spData = await spRes.json();
+            const fetchedTitle = spData.title.split(' - ')[0]; // Limpiar "- Single"
+            const fetchedArtist = spData.author_name || '';
+            // Buscar equivalente en YouTube con la API v3 silenciosamente
+            const ytUrl = await searchYouTube(`${fetchedArtist} ${fetchedTitle}`);
+            if (ytUrl) {
+              finalYtUrl = ytUrl;
+              setYoutubeEquivalent(ytUrl);
+              const ytRes = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(ytUrl)}`);
+              if (ytRes.ok) {
+                const ytData = await ytRes.json();
+                info = { available: true, embeddable: true, title: fetchedTitle, author: fetchedArtist, thumbnail: ytData.thumbnail_url || spData.thumbnail_url };
+              } else {
+                info = { available: true, embeddable: true, title: fetchedTitle, author: fetchedArtist, thumbnail: spData.thumbnail_url };
+              }
+            } else {
+              info = { available: true, embeddable: false, title: fetchedTitle, author: fetchedArtist, thumbnail: spData.thumbnail_url };
+            }
+          }
+        } catch { /* ignorar error y forzar ingreso manual */ }
+      } else {
+        // Normal YT flow (noembed directo para evitar datacenter block)
         try {
           const res = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(cUrl)}`);
           if (res.ok) {
             const data = await res.json();
-            info = {
-              available: true,
-              embeddable: true,
-              title: data.title,
-              author: data.author_name,
-              thumbnail: data.thumbnail_url,
-            };
+            info = { available: true, embeddable: true, title: data.title, author: data.author_name, thumbnail: data.thumbnail_url };
           }
         } catch { /* ignorar fallback */ }
       }
@@ -189,19 +214,10 @@ export default function PlaylistPage() {
         setTitle(info.title || '');
         setArtist(info.author || '');
         
-
-        // Auto preview
+        // Auto preview con el reproductor incrustado
         if (info.embeddable) {
-          const yt = getYouTubeId(cUrl);
+          const yt = getYouTubeId(finalYtUrl);
           if (yt) playItem({ type: 'yt', id: yt, title: info.title || 'Previa', artist: info.author || 'Sugerencia' });
-        } else {
-          // Play stream if media is on, otherwise alert
-          if (isMediaConfigured()) {
-            const MEDIA_URL = (process.env.NEXT_PUBLIC_MEDIA_SERVICE_URL || 'http://localhost:8787').replace(/\/$/, '');
-            playItem({ type: 'stream', url: `${MEDIA_URL}/api/download?url=${encodeURIComponent(cUrl)}&format=mp4`, title: info.title || 'Previa', artist: info.author || 'Sugerencia' });
-          } else {
-            console.log('Media service no disponible para vista previa.');
-          }
         }
       } else {
         const yt = getYouTubeId(cUrl);
@@ -210,6 +226,7 @@ export default function PlaylistPage() {
     }, 1000);
     return () => clearTimeout(t);
   }, [url, showForm]);
+
   const mediaOn = isMediaConfigured();
 
   useEffect(() => { getSongs().then(setSongs); }, []);
@@ -239,8 +256,9 @@ export default function PlaylistPage() {
     e.preventDefault();
     const cUrl = cleanUrl(url);
     const isYt = cUrl.includes('youtube.com') || cUrl.includes('youtu.be');
-    if (!isYt) {
-      setFormError('Solo se pueden sugerir enlaces de YouTube.');
+    const isSp = isSpotify(cUrl);
+    if (!isYt && !isSp) {
+      setFormError('Solo se pueden sugerir enlaces de YouTube o Spotify.');
       return;
     }
     if (!title || !cUrl) return;
@@ -265,10 +283,18 @@ export default function PlaylistPage() {
     }
 
     const parsedTags = newTags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
-    const row = await addSong({ title, artist: finalArtist, youtube_url: cUrl, tags: parsedTags }, profile?.id ?? null, profile?.username ?? 'Tú');
+    const finalUrl = youtubeEquivalent || cUrl;
+    const row = await addSong({ 
+      title, 
+      artist: finalArtist, 
+      youtube_url: finalUrl, 
+      genre: isSpotify(cUrl) ? 'YouTube (desde Spotify)' : 'YouTube',
+      tags: parsedTags 
+    }, profile?.id ?? null, profile?.username ?? 'Tú');
+    
     setSongs((prev) => [...prev, row]);
     
-    setTitle(''); setArtist(''); setUrl(''); setNewTags(''); setShowForm(false); setVideoInfo(null);
+    setTitle(''); setArtist(''); setUrl(''); setNewTags(''); setShowForm(false); setVideoInfo(null); setYoutubeEquivalent(null);
     addPoints(5);
   };
 
@@ -610,14 +636,15 @@ export default function PlaylistPage() {
                       className="h-9 w-9 rounded-lg border border-border text-muted hover:text-white flex items-center justify-center transition-colors">
                       {copiedId === song.id ? <CheckCircle2 className="h-4 w-4 text-green-400" /> : <Link2 className="h-4 w-4" />}
                     </button>
-                    {/* Descarga con calidades + tamaños (en-página). Solo en hosts que
-                        yt-dlp puede bajar; Spotify se marca como pedido al DJ. */}
+                    {/* Botón de instrucciones de descarga local */}
                     {DOWNLOADABLE.test(song.youtube_url) ? (
                       <div className="hidden sm:flex items-center border-l border-border pl-2 ml-1">
-                        <DownloadMenu url={song.youtube_url} filename={`${song.artist} - ${song.title}`.replace(/[^a-z0-9]/gi, '_')} />
+                        <button onClick={() => setShowDownloadModal(true)} className="btn btn-ghost px-2 py-1 text-xs text-neon-lime">
+                          Descargar ⏬
+                        </button>
                       </div>
                     ) : isSpotify(song.youtube_url) ? (
-                      <span className="hidden sm:inline-flex items-center gap-1 border-l border-border pl-2 ml-1 text-[10px] font-bold text-neon-lime" title="Pedido desde Spotify (no descargable; el DJ lo busca para tocarlo)">
+                      <span className="hidden sm:inline-flex items-center gap-1 border-l border-border pl-2 ml-1 text-[10px] font-bold text-neon-cyan" title="Sugerencia desde Spotify">
                         <Music3 className="h-3 w-3" /> Spotify
                       </span>
                     ) : null}
@@ -643,6 +670,10 @@ export default function PlaylistPage() {
           <li>• Las sugerencias cierran 24h antes del evento.</li>
         </ul>
       </div>
+
+      {showDownloadModal && (
+        <DownloadInstructionsModal onClose={() => setShowDownloadModal(false)} />
+      )}
     </div>
   );
 }
