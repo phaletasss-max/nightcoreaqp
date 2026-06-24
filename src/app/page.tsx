@@ -16,6 +16,7 @@ import ThemesSection from '@/components/ThemesSection';
 import CommunityFeed from '@/components/CommunityFeed';
 import VideoBackground from '@/components/VideoBackground';
 import ScenecoreBackground from '@/components/ScenecoreBackground';
+import AttendanceProofModal from '@/components/AttendanceProofModal';
 import { useAuth } from '@/lib/auth';
 import Link from 'next/link';
 import {
@@ -43,6 +44,7 @@ export default function Home() {
   const [bgs, setBgs] = useState<Record<string, string>>({});
   const [bannedWords, setBannedWords] = useState<string[]>([]);
   const [commentNotice, setCommentNotice] = useState<string | null>(null);
+  const [showProofModal, setShowProofModal] = useState(false);
 
   // Carga inicial
   useEffect(() => {
@@ -84,6 +86,10 @@ export default function Home() {
     setTicketCode(row.code ?? '');
     setStatus('booked');
     getAttendees(selected.id).then(setAttendees);
+    
+    if (rsvpType === 'confirmed') {
+      setShowProofModal(true);
+    }
   };
 
   const handleComment = async (e: React.FormEvent) => {
@@ -270,6 +276,11 @@ export default function Home() {
                   <p><span className="text-muted-2">TITULAR:</span> {name}</p>
                 </div>
                 <button onClick={() => setStatus('idle')} className="text-xs text-neon-cyan font-bold hover:underline">Registrar a otra persona</button>
+                {rsvpType === 'confirmed' && (
+                  <button onClick={() => setShowProofModal(true)} className="btn btn-primary w-full mt-3 text-xs shadow-[0_0_10px_rgba(255,0,255,0.3)]">
+                    📸 Manda foto para insignia
+                  </button>
+                )}
               </div>
             ) : (
               <form onSubmit={handleRsvp} className="space-y-4">
@@ -448,6 +459,14 @@ export default function Home() {
           Aún no hay grabaciones publicadas. Aparecerán aquí después del próximo evento. ✦
         </div>
       </section>
+      )}
+
+      {showProofModal && selected && (
+        <AttendanceProofModal 
+          eventId={selected.id} 
+          userId={profile?.id ?? null} 
+          onClose={() => setShowProofModal(false)} 
+        />
       )}
     </div>
   );

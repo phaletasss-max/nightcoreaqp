@@ -118,3 +118,18 @@ export interface Theme {
   suggested_by_name: string | null;
   clicks: number;
 }
+
+export type ProofStatus = 'pending' | 'approved' | 'rejected';
+
+export interface AttendanceProof {
+  id: string;
+  event_id: string;
+  user_id: string;
+  photo_url: string;
+  status: ProofStatus;
+  created_at: string;
+  reviewed_at?: string;
+  reviewed_by?: string;
+  // Joins
+  profiles?: { username: string; avatar_url: string | null };
+}

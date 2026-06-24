@@ -13,12 +13,13 @@ import {
   getProfiles, updateProfileRole, deleteProfile, getAllComments, deleteCostume,
   adminResetPassword, deleteComment, getCostumes, getSiteSettings, updateSiteSetting,
   getBannedWords, addBannedWord, removeBannedWord, approveComment, uploadMediaFile,
+  getAttendanceProofs, setAttendanceProofStatus,
 } from '@/lib/data';
 import Link from 'next/link';
 import { downloadMedia, storeBackup, isMediaConfigured } from '@/lib/media';
-import type { EventItem, Song, Attendee, EventStatus, Profile, Costume, EventComment } from '@/lib/types';
+import type { EventItem, Song, Attendee, EventStatus, Profile, Costume, EventComment, AttendanceProof } from '@/lib/types';
 
-type Tab = 'kpi' | 'dj' | 'survey' | 'events' | 'users' | 'posts' | 'comments' | 'design';
+type Tab = 'kpi' | 'dj' | 'survey' | 'events' | 'users' | 'posts' | 'comments' | 'design' | 'proofs';
 
 // Secciones de la home que el admin puede activar/desactivar.
 const HOME_SECTIONS = [
@@ -64,6 +65,7 @@ export default function AdminPage() {
   const [design, setDesign] = useState<Record<string, string>>({});
   const [bannedWords, setBannedWords] = useState<string[]>([]);
   const [newWord, setNewWord] = useState('');
+  const [proofs, setProofs] = useState<AttendanceProof[]>([]);
 
   // form encuesta
   const [sQuestion, setSQuestion] = useState('');
@@ -113,6 +115,7 @@ export default function AdminPage() {
     getCostumes().then(setCostumes);
     getSiteSettings().then(setDesign);
     getBannedWords().then(setBannedWords);
+    getAttendanceProofs().then(setProofs);
   }, []);
 
   const handleAddWord = async (e: React.FormEvent) => {
@@ -302,6 +305,7 @@ export default function AdminPage() {
     { id: 'users', label: 'Usuarios' },
     { id: 'posts', label: 'Disfraces' },
     { id: 'comments', label: 'Comentarios' },
+    { id: 'proofs', label: 'Insignias' },
     { id: 'design', label: 'Diseño' },
   ];
 
@@ -798,64 +802,126 @@ export default function AdminPage() {
           {/* Filtros de palabras */}
           <div className="card bg-black/30 p-4 space-y-3">
             <h3 className="font-bold text-white text-sm flex items-center gap-2"><ShieldAlert className="h-4 w-4 text-neon-yellow" /> Filtros de palabras</h3>
-            <p className="text-[11px] text-muted-2">Cuando un comentario contiene una de estas palabras, se publica pero se muestra censurado (***) hasta que lo apruebes aquí.</p>
-            <form onSubmit={handleAddWord} className="flex gap-2">
-              <input className="input text-xs" value={newWord} onChange={(e) => setNewWord(e.target.value)} placeholder="Ej. droga, marihuana…" />
-              <button type="submit" className="btn btn-primary text-xs shrink-0 py-2"><Plus className="h-3.5 w-3.5" /> Añadir</button>
+            <form onSubmit={handleAddWord} className="flex gap-2 max-w-sm">
+              <input className="input flex-1 py-1 px-2 text-xs" required value={newWord} onChange={(e) => setNewWord(e.target.value)} placeholder="Ej. palabraMala" />
+              <button type="submit" className="btn btn-cyan px-3 py-1 text-xs">Agregar</button>
             </form>
-            <div className="flex flex-wrap gap-2">
-              {bannedWords.length === 0 ? (
-                <span className="text-[11px] text-muted-2">Sin palabras filtradas todavía.</span>
-              ) : bannedWords.map((w) => (
-                <span key={w} className="inline-flex items-center gap-1.5 badge badge-red lowercase">
+            <div className="flex flex-wrap gap-2 pt-2">
+              {bannedWords.map(w => (
+                <span key={w} className="badge badge-yellow text-xs gap-1">
                   {w}
-                  <button onClick={() => handleRemoveWord(w)} className="hover:text-white"><X className="h-3 w-3" /></button>
+                  <button onClick={() => handleRemoveWord(w)} className="hover:text-red-500 ml-1"><X className="h-3 w-3" /></button>
                 </span>
               ))}
+              {bannedWords.length === 0 && <span className="text-xs text-muted">No hay palabras bloqueadas.</span>}
             </div>
           </div>
-
+          
           <div className="space-y-3">
-            {[...comments].sort((a, b) => (b.flagged ? 1 : 0) - (a.flagged ? 1 : 0)).map((c) => (
-              <div key={c.id} className={`border rounded-lg p-4 flex items-start justify-between gap-4 ${c.flagged ? 'border-neon-yellow/40 bg-neon-yellow/5' : 'border-border bg-white/5'}`}>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {c.user_id ? (
-                      <Link href={`/perfil/${c.user_id}`} className="font-bold text-white text-sm hover:text-neon-cyan hover:underline">{c.username}</Link>
-                    ) : (
-                      <span className="font-bold text-white text-sm">{c.username}</span>
-                    )}
-                    <span className="text-[10px] text-muted">{new Date(c.created_at).toLocaleString()}</span>
-                    {c.flagged && <span className="badge badge-yellow">⚠️ en revisión</span>}
+            {comments.map((c) => (
+              <div key={c.id} className={`p-4 rounded-xl border ${c.flagged ? 'border-yellow-500/50 bg-yellow-500/10' : 'border-border bg-white/5'} space-y-2`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm text-neon-cyan">{c.username}</span>
+                    {c.flagged && <span className="badge badge-yellow">⚠️ Marcado por filtro</span>}
                   </div>
-                  <p className="text-xs text-muted">{c.content}</p>
+                  <span className="text-xs text-muted">{new Date(c.created_at).toLocaleString()}</span>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <p className="text-sm text-white bg-black/30 p-3 rounded">{c.content}</p>
+                <div className="flex items-center justify-end gap-2 pt-2">
                   {c.flagged && (
-                    <button onClick={() => handleApproveComment(c.id)} title="Aprobar (mostrar sin censura)"
-                      className="p-1.5 rounded-lg border border-neon-lime/30 text-neon-lime hover:bg-neon-lime/10 transition-colors">
-                      <Check className="h-3.5 w-3.5" />
+                    <button onClick={() => handleApproveComment(c.id)} className="btn border border-green-500/30 text-green-400 hover:bg-green-500/10 px-3 py-1 text-xs">
+                      <Check className="h-3 w-3" /> Aprobar y mostrar
                     </button>
                   )}
-                  <button
-                    onClick={async () => {
-                      if (!confirm('¿Eliminar este comentario?')) return;
+                  <button onClick={async () => {
+                    if (confirm('¿Eliminar comentario permanentemente?')) {
                       await deleteComment(c.id);
                       setComments(prev => prev.filter(x => x.id !== c.id));
-                    }}
-                    className="p-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    }
+                  }} className="btn border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-1 text-xs">
+                    <Trash2 className="h-3 w-3" /> Eliminar
                   </button>
                 </div>
               </div>
             ))}
-            {comments.length === 0 && (
-              <p className="text-xs text-muted text-center py-6">No hay comentarios en la plataforma.</p>
+            {comments.length === 0 && <p className="text-sm text-muted text-center py-6">No hay comentarios en la plataforma.</p>}
+          </div>
+        </div>
+      )}
+
+      {/* PESTAÑA: PRUEBAS DE ASISTENCIA (INSIGNIAS) */}
+      {tab === 'proofs' && (
+        <div className="card p-6 space-y-6 animate-fade-in accent-lime">
+          <div>
+            <h2 className="font-extrabold text-white text-lg flex items-center gap-2">
+              <Check className="h-5 w-5 text-neon-lime" /> Verificación de Asistencia
+            </h2>
+            <p className="text-xs text-muted mt-1">Aprueba las fotos reales del evento para otorgar la insignia de asistencia y puntos al usuario.</p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {proofs.map((p) => (
+              <div key={p.id} className="border border-border rounded-xl overflow-hidden bg-white/5 flex flex-col justify-between relative group">
+                <div className="absolute top-2 right-2 z-10">
+                  {p.status === 'pending' ? <span className="badge badge-yellow">Pendiente</span> : 
+                   p.status === 'approved' ? <span className="badge badge-green">Aprobado</span> : 
+                   <span className="badge badge-red">Rechazado</span>}
+                </div>
+                
+                <div className="aspect-square w-full bg-black flex items-center justify-center overflow-hidden">
+                  <img src={p.photo_url} alt="Prueba" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                </div>
+                
+                <div className="p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-neon-lime/20 flex items-center justify-center text-[10px] text-neon-lime uppercase font-bold">
+                      {p.profiles?.username ? p.profiles.username[0] : '?'}
+                    </div>
+                    <span className="font-bold text-sm text-white">{p.profiles?.username || 'Usuario Desconocido'}</span>
+                  </div>
+                  <div className="text-[10px] text-muted flex items-center gap-1">
+                    <Calendar className="h-3 w-3" /> {new Date(p.created_at).toLocaleDateString()}
+                  </div>
+                  
+                  {p.status === 'pending' && (
+                    <div className="flex gap-2 pt-2 border-t border-border mt-3">
+                      <button 
+                        onClick={async () => {
+                          await setAttendanceProofStatus(p.id, 'approved');
+                          setProofs(prev => prev.map(x => x.id === p.id ? { ...x, status: 'approved' } : x));
+                        }}
+                        className="flex-1 btn bg-green-500/20 text-green-400 hover:bg-green-500/40 border border-green-500/50 py-1.5 text-xs font-bold"
+                      >
+                        <Check className="h-3.5 w-3.5" /> Es real
+                      </button>
+                      <button 
+                        onClick={async () => {
+                          if (confirm('¿Rechazar esta foto?')) {
+                            await setAttendanceProofStatus(p.id, 'rejected');
+                            setProofs(prev => prev.map(x => x.id === p.id ? { ...x, status: 'rejected' } : x));
+                          }
+                        }}
+                        className="flex-1 btn bg-red-500/10 text-red-400 hover:bg-red-500/30 border border-red-500/30 py-1.5 text-xs font-bold"
+                      >
+                        <X className="h-3.5 w-3.5" /> Falsa
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+            
+            {proofs.length === 0 && (
+              <div className="col-span-full py-10 text-center border border-dashed border-border rounded-xl">
+                <Check className="h-8 w-8 text-muted/30 mx-auto mb-2" />
+                <p className="text-sm text-muted">No hay fotos pendientes de verificación.</p>
+              </div>
             )}
           </div>
         </div>
       )}
+
 
       {/* PESTAÑA: DISEÑO */}
       {tab === 'design' && (

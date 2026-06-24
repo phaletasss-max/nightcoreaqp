@@ -9,7 +9,7 @@ import {
   DEMO_EVENTS, DEMO_SONGS, DEMO_SURVEY, DEMO_COSTUMES, DEMO_COMMENTS, DEMO_THEMES,
 } from './demo-data';
 import type {
-  EventItem, Song, Survey, Costume, EventComment, Attendee, VoteType, Theme, Profile
+  EventItem, Song, Survey, Costume, EventComment, Attendee, VoteType, Theme, Profile, AttendanceProof, ProofStatus
 } from './types';
 
 const cfg = () => isSupabaseConfigured();
@@ -599,4 +599,35 @@ export async function adminResetPassword(email: string): Promise<boolean> {
     return !error;
   }
   return true;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  PRUEBAS DE ASISTENCIA (Insignias)
+// ════════════════════════════════════════════════════════════════════════════
+export async function getAttendanceProofs(): Promise<AttendanceProof[]> {
+  if (cfg()) {
+    const { data } = await supabase
+      .from('attendance_proofs')
+      .select('*, profiles(username, avatar_url)')
+      .order('created_at', { ascending: false });
+    return (data as AttendanceProof[]) ?? [];
+  }
+  return lsGet<AttendanceProof[]>('nq_attendance_proofs', []);
+}
+
+export async function setAttendanceProofStatus(id: string, status: ProofStatus): Promise<void> {
+  if (cfg()) {
+    if (status === 'approved') {
+      await supabase.rpc('approve_attendance_proof', { p_proof_id: id });
+    } else if (status === 'rejected') {
+      await supabase.rpc('reject_attendance_proof', { p_proof_id: id });
+    }
+    return;
+  }
+  const all = lsGet<AttendanceProof[]>('nq_attendance_proofs', []);
+  const idx = all.findIndex((p) => p.id === id);
+  if (idx >= 0) {
+    all[idx].status = status;
+    lsSet('nq_attendance_proofs', all);
+  }
 }
