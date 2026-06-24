@@ -88,6 +88,8 @@ create table if not exists songs (
 );
 -- Para bases ya creadas antes de agregar file_url:
 alter table songs add column if not exists file_url text;
+-- Hashtags de la canción (el código inserta `tags`):
+alter table songs add column if not exists tags text[] not null default '{}';
 
 -- song_votes ─ upvote/downvote por usuario. votes_count se recalcula por trigger.
 create table if not exists song_votes (
@@ -121,6 +123,9 @@ create table if not exists costumes (
   votes_count int not null default 0,   -- mantenido por trigger
   created_at  timestamptz not null default now()
 );
+-- Columnas que el código inserta (tags / WIP):
+alter table costumes add column if not exists tags   text[]  not null default '{}';
+alter table costumes add column if not exists is_wip boolean not null default false;
 
 -- costume_votes ─ like por usuario al disfraz.
 create table if not exists costume_votes (
