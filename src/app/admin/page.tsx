@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import {
   ShieldAlert, Users, Music, TrendingUp, BarChart3, Trash2, Check,
   Plus, Calendar, Eye, EyeOff, Sparkles, Radio, Download, Film, Loader2,
-  Palette, Type, SlidersHorizontal, X,
+  Palette, Type, SlidersHorizontal, X, Search,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import {
@@ -69,6 +69,14 @@ export default function AdminPage() {
   const [crateLimit, setCrateLimit] = useState(20);
   const [crateFormat, setCrateFormat] = useState('mp3');
   const [storingId, setStoringId] = useState<string | null>(null);
+  // ── Búsqueda + orden por tabla ──
+  const [djSearch, setDjSearch] = useState('');
+  const [djSort, setDjSort] = useState<'votes' | 'title' | 'status'>('votes');
+  const [userSearch, setUserSearch] = useState('');
+  const [userSort, setUserSort] = useState<'points' | 'streak' | 'name' | 'role'>('points');
+  const [costumeSearch, setCostumeSearch] = useState('');
+  const [commentSearch, setCommentSearch] = useState('');
+  const [commentOnlyFlagged, setCommentOnlyFlagged] = useState(false);
   const [design, setDesign] = useState<Record<string, string>>({});
   const [bannedWords, setBannedWords] = useState<string[]>([]);
   const [newWord, setNewWord] = useState('');
@@ -188,6 +196,32 @@ export default function AdminPage() {
   // Canciones que el .bat puede bajar (YouTube/TikTok/IG; Spotify no). El DJ elige
   // cuántas de estas tocar → se descarga ese Top-N más votado.
   const downloadableCount = songs.filter((s) => DOWNLOADABLE_HOSTS.test(s.youtube_url)).length;
+
+  // Listas filtradas + ordenadas para las tablas del admin.
+  const inText = (q: string, ...fields: (string | null | undefined)[]) =>
+    !q.trim() || fields.some((f) => (f || '').toLowerCase().includes(q.toLowerCase()));
+
+  const djSongs = [...songs]
+    .filter((s) => inText(djSearch, s.title, s.artist, s.suggested_by_name))
+    .sort((a, b) => {
+      if (djSort === 'title') return a.title.localeCompare(b.title);
+      if (djSort === 'status') return Number(a.played) - Number(b.played) || b.votes_count - a.votes_count;
+      return b.votes_count - a.votes_count;
+    });
+
+  const userRows = [...profiles]
+    .filter((p) => inText(userSearch, p.username, p.email))
+    .sort((a, b) => {
+      if (userSort === 'name') return (a.username || '').localeCompare(b.username || '');
+      if (userSort === 'streak') return b.streak_count - a.streak_count;
+      if (userSort === 'role') return (a.role || '').localeCompare(b.role || '');
+      return b.points - a.points;
+    });
+
+  const costumeRows = costumes.filter((c) => inText(costumeSearch, c.char_name, c.anime, c.description));
+  const commentRows = comments
+    .filter((c) => !commentOnlyFlagged || c.flagged)
+    .filter((c) => inText(commentSearch, c.username, c.content));
   const flaggedComments = comments.filter((c) => c.flagged).length;
   // Asistencia por evento (para la barra de "asistencia por evento").
   const eventStats = events
@@ -434,6 +468,17 @@ export default function AdminPage() {
               </button>
             </div>
           </div>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-2" />
+              <input className="input pl-9 text-sm w-full" value={djSearch} onChange={(e) => setDjSearch(e.target.value)} placeholder="Buscar canción, artista o quién la sugirió…" />
+            </div>
+            <select className="input text-sm sm:w-52" value={djSort} onChange={(e) => setDjSort(e.target.value as 'votes' | 'title' | 'status')}>
+              <option value="votes">Ordenar: más votadas</option>
+              <option value="title">Ordenar: título (A-Z)</option>
+              <option value="status">Ordenar: en cola primero</option>
+            </select>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
@@ -446,7 +491,10 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {songs.map((s) => (
+                {djSongs.length === 0 && (
+                  <tr><td colSpan={5} className="py-6 text-center text-muted-2 text-xs">{songs.length ? 'Sin resultados para tu búsqueda.' : 'No hay canciones en la cola.'}</td></tr>
+                )}
+                {djSongs.map((s) => (
                   <tr key={s.id} className={s.played ? 'opacity-50' : ''}>
                     <td className="py-3 px-3"><div className="font-bold text-white">{s.title}</div><div className="text-xs text-muted">{s.artist}</div></td>
                     <td className="py-3 px-3 text-center font-bold text-neon-cyan">{s.votes_count}</td>
@@ -742,6 +790,18 @@ export default function AdminPage() {
             </h2>
             <p className="text-xs text-muted mt-1">Modifica roles, restablece contraseñas o elimina perfiles.</p>
           </div>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-2" />
+              <input className="input pl-9 text-sm w-full" value={userSearch} onChange={(e) => setUserSearch(e.target.value)} placeholder="Buscar por usuario o correo…" />
+            </div>
+            <select className="input text-sm sm:w-52" value={userSort} onChange={(e) => setUserSort(e.target.value as 'points' | 'streak' | 'name' | 'role')}>
+              <option value="points">Ordenar: más puntos</option>
+              <option value="streak">Ordenar: mayor racha</option>
+              <option value="name">Ordenar: nombre (A-Z)</option>
+              <option value="role">Ordenar: rol</option>
+            </select>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-sm">
               <thead>
@@ -755,7 +815,10 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border text-muted">
-                {profiles.map((p) => (
+                {userRows.length === 0 && (
+                  <tr><td colSpan={6} className="py-6 text-center text-muted-2 text-xs">{profiles.length ? 'Sin resultados.' : 'No hay usuarios.'}</td></tr>
+                )}
+                {userRows.map((p) => (
                   <tr key={p.id} className="hover:bg-white/5 transition-colors">
                     <td className="py-3 px-2 font-bold text-white flex items-center gap-2">
                       <div className="w-6 h-6 rounded-full bg-neon-pink/10 border border-neon-pink/30 flex items-center justify-center text-[10px] text-neon-pink uppercase font-extrabold">
@@ -824,8 +887,12 @@ export default function AdminPage() {
             </h2>
             <p className="text-xs text-muted mt-1">Elimina disfraces inapropiados sugeridos para el concurso.</p>
           </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-2" />
+            <input className="input pl-9 text-sm w-full" value={costumeSearch} onChange={(e) => setCostumeSearch(e.target.value)} placeholder="Buscar por personaje, anime o descripción…" />
+          </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {costumes.map((c) => (
+            {costumeRows.map((c) => (
               <div key={c.id} className="border border-border rounded-xl overflow-hidden bg-white/5 flex flex-col justify-between">
                 <div>
                   <div className="relative aspect-video w-full bg-cover bg-center" style={{ backgroundImage: `url(${c.photo_url})` }} />
@@ -850,8 +917,8 @@ export default function AdminPage() {
                 </div>
               </div>
             ))}
-            {costumes.length === 0 && (
-              <p className="text-xs text-muted text-center py-6 col-span-full">No hay disfraces postulados.</p>
+            {costumeRows.length === 0 && (
+              <p className="text-xs text-muted text-center py-6 col-span-full">{costumes.length ? 'Sin resultados para tu búsqueda.' : 'No hay disfraces postulados.'}</p>
             )}
           </div>
         </div>
@@ -885,8 +952,21 @@ export default function AdminPage() {
             </div>
           </div>
           
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-2" />
+              <input className="input pl-9 text-sm w-full" value={commentSearch} onChange={(e) => setCommentSearch(e.target.value)} placeholder="Buscar por autor o contenido…" />
+            </div>
+            <button type="button" onClick={() => setCommentOnlyFlagged((v) => !v)}
+              className={`btn px-3 py-1.5 text-xs shrink-0 ${commentOnlyFlagged ? 'btn-cyan' : 'btn-ghost border border-border'}`}>
+              <ShieldAlert className="h-3.5 w-3.5" /> {commentOnlyFlagged ? 'Solo marcados ✓' : 'Solo marcados'}
+            </button>
+          </div>
           <div className="space-y-3">
-            {comments.map((c) => (
+            {commentRows.length === 0 && (
+              <p className="text-xs text-muted-2 text-center py-6">{comments.length ? 'Sin resultados.' : 'No hay comentarios.'}</p>
+            )}
+            {commentRows.map((c) => (
               <div key={c.id} className={`p-4 rounded-xl border ${c.flagged ? 'border-yellow-500/50 bg-yellow-500/10' : 'border-border bg-white/5'} space-y-2`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
