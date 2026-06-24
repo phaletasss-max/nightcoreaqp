@@ -176,7 +176,10 @@ export async function addSong(input: Pick<Song, 'title' | 'artist' | 'youtube_ur
     votes_count: 1,
     played: false,
     userVote: 'upvote',
+    tags: input.tags ?? [],
   };
+
+  console.log('[FASE 3] Sugiriendo nueva canción:', row.title, 'con tags:', row.tags);
 
   // ★ SIEMPRE guardar en localStorage PRIMERO (garantía de persistencia)
   const all = lsGet<Song[]>('nq_songs', []);
@@ -188,10 +191,16 @@ export async function addSong(input: Pick<Song, 'title' | 'artist' | 'youtube_ur
     const { error } = await supabase.from('songs').insert({
       title: row.title, artist: row.artist, youtube_url: row.youtube_url,
       genre: row.genre, geek_tag: row.geek_tag, suggested_by: userId, suggested_by_name: userName,
+      tags: row.tags
     });
     // Causa típica: RLS (sesión no real → auth.uid() ≠ suggested_by). Antes era
     // silencioso y la canción quedaba solo en localStorage ("desaparecía").
-    if (error) logError('addSong.insert', error, { userId });
+    if (error) {
+       console.error('[FASE 3] Error al insertar canción en Supabase:', error);
+       logError('addSong.insert', error, { userId });
+    } else {
+       console.log('[FASE 3] Canción insertada en Supabase exitosamente.');
+    }
   }
 
   return row;
@@ -341,6 +350,15 @@ export async function removeBannedWord(word: string): Promise<void> {
 // ════════════════════════════════════════════════════════════════════════════
 //  PERFIL PÚBLICO + PRIVACIDAD (Fase D)
 // ════════════════════════════════════════════════════════════════════════════
+export async function getProfiles(): Promise<Profile[]> {
+  if (cfg()) {
+    const { data, error } = await supabase.from('profiles').select('*');
+    if (error) { logError('getProfiles', error); return []; }
+    return (data as Profile[]) ?? [];
+  }
+  return lsGet<Profile[]>('nq_profiles', []);
+}
+
 export async function getProfileById(id: string): Promise<Profile | null> {
   if (cfg()) {
     const { data, error } = await supabase.from('profiles').select('*').eq('id', id).single();
@@ -428,12 +446,22 @@ export async function getCostumes(): Promise<Costume[]> {
   return lsGet('nq_costumes', DEMO_COSTUMES);
 }
 
-export async function addCostume(input: Pick<Costume, 'char_name' | 'anime' | 'photo_url' | 'description'>, userId: string | null, eventId: string | null): Promise<Costume> {
-  const row: Costume = { id: `cos-${Date.now()}`, event_id: eventId, user_id: userId, ...input, votes_count: 1, voted: true, comments: [] };
+export async function addCostume(input: Pick<Costume, 'char_name' | 'anime' | 'photo_url' | 'description' | 'tags' | 'is_wip'>, userId: string | null, eventId: string | null): Promise<Costume> {
+  const row: Costume = { id: `cos-${Date.now()}`, event_id: eventId, user_id: userId, ...input, tags: input.tags ?? [], is_wip: input.is_wip ?? false, votes_count: 1, voted: true, comments: [] };
+  
+  console.log('[FASE 3] Registrando disfraz:', row.char_name, 'Anime:', row.anime, 'Tags:', row.tags, 'WIP:', row.is_wip);
+  
   if (cfg()) {
-    const { data } = await supabase.from('costumes').insert({ user_id: userId, event_id: eventId, char_name: input.char_name, anime: input.anime, photo_url: input.photo_url, description: input.description }).select().single();
+    const { data, error } = await supabase.from('costumes').insert({ user_id: userId, event_id: eventId, char_name: input.char_name, anime: input.anime, photo_url: input.photo_url, description: input.description, tags: row.tags, is_wip: row.is_wip }).select().single();
+    if (error) {
+      console.error('[FASE 3] Error al insertar disfraz en Supabase:', error);
+    } else {
+      console.log('[FASE 3] Disfraz insertado en Supabase con éxito.');
+    }
     return (data as Costume) ?? row;
   }
+  
+  console.log('[FASE 3] Modo local: Disfraz guardado en localStorage.');
   const all = lsGet('nq_costumes', DEMO_COSTUMES);
   all.unshift(row);
   lsSet('nq_costumes', all);

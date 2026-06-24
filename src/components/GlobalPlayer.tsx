@@ -150,7 +150,7 @@ export default function GlobalPlayer() {
         )}
         {/* Fondo estático cuando está congelado (la música sigue sonando) */}
         {bgFrozen && isYt && playingItem?.id && (
-          /* eslint-disable-next-line @next/next/no-img-element */
+           
           <img src={`https://i.ytimg.com/vi/${playingItem.id}/hqdefault.jpg`} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30 blur-sm" />
         )}
         <div className="absolute inset-0 bg-black/70" />

@@ -21,6 +21,7 @@ export default function DisfracesPage() {
   const [description, setDescription] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
   const [eventId, setEventId] = useState('');
+  const [isWip, setIsWip] = useState(false);
   const [openComment, setOpenComment] = useState<string | null>(null);
   const [commentText, setCommentText] = useState('');
 
@@ -50,9 +51,9 @@ export default function DisfracesPage() {
     e.preventDefault();
     if (!charName || !anime || !description) return;
     const finalPhoto = photoUrl || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80';
-    const row = await addCostume({ char_name: charName, anime, photo_url: finalPhoto, description }, profile?.id ?? null, eventId || null);
+    const row = await addCostume({ char_name: charName, anime, photo_url: finalPhoto, description, is_wip: isWip }, profile?.id ?? null, eventId || null);
     setEntries((prev) => [row, ...prev]);
-    setCharName(''); setAnime(''); setDescription(''); setPhotoUrl(''); setEventId(''); setShowForm(false);
+    setCharName(''); setAnime(''); setDescription(''); setPhotoUrl(''); setEventId(''); setIsWip(false); setShowForm(false);
     addPoints(10);
   };
 
@@ -115,6 +116,10 @@ export default function DisfracesPage() {
               </select>
               <p className="text-[11px] text-muted-2 mt-1">Solo aparecen eventos vigentes o que terminaron hace ≤ 1 semana.</p>
             </div>
+            <div className="flex items-center gap-2 mt-2">
+              <input type="checkbox" id="isWip" checked={isWip} onChange={(e) => setIsWip(e.target.checked)} className="rounded border-border bg-black/40 text-neon-cyan focus:ring-neon-cyan/50" />
+              <label htmlFor="isWip" className="text-xs font-bold text-neon-yellow">¿Es un &quot;WIP&quot; (Work In Progress)?</label>
+            </div>
             <div>
               <label className="label">Descripción</label>
               <textarea className="input resize-none" rows={3} required value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Detalles, materiales, tus redes de cosplay…" />
@@ -143,11 +148,16 @@ export default function DisfracesPage() {
         {entries.map((entry) => (
           <div key={entry.id} className="card card-hover overflow-hidden flex flex-col">
             <div className="relative aspect-[4/5] bg-black overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              { }
               <img src={entry.photo_url} alt={entry.char_name} className="w-full h-full object-cover" />
               <div className="absolute top-3 left-3 badge badge-cyan bg-black/70 backdrop-blur">
                 <Award className="h-3.5 w-3.5" /> {entry.char_name}
               </div>
+              {entry.is_wip && (
+                <div className="absolute top-3 right-3 badge badge-yellow font-extrabold shadow-[0_0_10px_rgba(250,204,21,0.5)]">
+                  WIP 🚧
+                </div>
+              )}
               <div className="absolute bottom-3 left-3 right-3 bg-black/60 backdrop-blur border border-border rounded-lg p-2.5">
                 <p className="text-[10px] text-muted-2">Anime / origen</p>
                 <p className="text-sm font-bold text-white">{entry.anime}</p>

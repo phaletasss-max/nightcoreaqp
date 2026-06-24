@@ -18,8 +18,9 @@ las **descargas**, que se terminarán "en casa").
 | Moderación por filtros de palabras | ✅ | Admin define palabras; el comentario se publica pero sale censurado `***` hasta aprobarlo. **Requiere `phase-de.sql`.** |
 | Votos de canciones | ✅ | Bug corregido (columna `vote` + `onConflict`). |
 | Persistencia (eventos/canciones) | ✅ | `saveEvent` inserta sin id no-uuid; escrituras con logs. **Requiere columnas extra de `events` (en `phase-de.sql`).** |
-| **Descargas (MP3/MP4)** | ⏳ **pendiente** | Ver sección 3. |
+| **Descargas (MP3/MP4)** | ✅ en producción | Media-service mitigado (anti-0MB y spoofing de cliente). |
 | Convertidor de archivos | ⏸️ aparcado | Carpeta `convertidor/` (proyecto propio, fuera del repo). Se reactiva si se conecta un servicio. |
+| **Arquitectura CI/CD** | ✅ estricto | Zero Trust Pipeline (`deploy-check.sh` + `pipeline.ts` + `ci-policy.ts`). Bloqueo estricto, anti-falsos positivos, hashing de manifest. Tests E2E en Playwright activos. |
 
 ---
 
@@ -75,11 +76,11 @@ El login "de emergencia" (hardcodeado) NO tiene sesión real → la RLS rechaza 
 > necesita cookies y aun así puede fallar (bloqueo de IPs de datacenter). TikTok/Instagram
 > funcionan en cualquier caso.
 
-### Estado del intento en Render (sesión actual)
-- Servicio `nightcore-media` desplegado; arrancaba en puerto 10000 y Render lo detectaba.
-- Se corrigió: (a) no fijar PORT, (b) `/health` instantáneo. Faltó confirmar que quedara
-  "Live" estable y conectar `NEXT_PUBLIC_MEDIA_SERVICE_URL`. Render free además "duerme"
-  (cold-start ~30s).
+### Estado actual en Render (Producción)
+- Servicio `nightcore-media` desplegado; arranca en puerto dinámico (PORT).
+- Se implementó **spoofing de cliente** (`player_client=android,web_creator,default`) para mitigar el bloqueo de IP por parte de YouTube.
+- Se implementó **buffer anti-0MB**: si `yt-dlp` es bloqueado por bot detection, el servidor aborta la descarga sin enviar cabeceras vacías (retorna Error 500 legible).
+- **Importante:** Si YouTube invalida las cookies (`YTDLP_COOKIES`), el servidor seguirá reportando "Sign in to confirm you're not a bot". Actualizar `cookies.txt` en Render sigue siendo el único bypass 100% definitivo a los baneos de Datacenter.
 
 ---
 
@@ -134,7 +135,16 @@ curl http://localhost:8787/health
 
 ---
 
-## 7. Convertidor (proyecto propio aparte)
+## 7. Arquitectura CI/CD (Zero Trust)
+
+Recientemente refactorizado de scripts en bash a un sistema robusto:
+1. `pipeline.ts`: Runner puro. Corre Next.js build, Playwright (E2E Tests), UI Contracts, Rutas, etc. Escribe evidencia en `pipeline-manifest.json`.
+2. `ci-policy.ts`: Motor de políticas. Audita el hash del manifest (State Spoofing protection), calcula el `Integrity Score`, y si no alcanza 100% lanza Exit 1.
+3. `deploy-check.sh`: Control de flujo que envuelve todo. Se ejecuta con `npm run deploy:check`. Ya **no** hay bypasses locales (estado "SAFE FOR LOCAL"). Es Zero Trust absoluto.
+
+---
+
+## 8. Convertidor (proyecto propio aparte)
 
 La carpeta `convertidor/` (antes `bot-erp`) quedó **fuera del repo** (gitignored), con
 `README` y `LICENSE` (MIT), lista para publicar como repo independiente. Hace conversión de

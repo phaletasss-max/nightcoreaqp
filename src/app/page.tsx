@@ -13,7 +13,7 @@ import {
 import Hero from '@/components/Hero';
 import DailyChallenges from '@/components/DailyChallenges';
 import ThemesSection from '@/components/ThemesSection';
-import CommunityFeed from '@/components/CommunityFeed';
+import LiveFeed from '@/components/LiveFeed';
 import VideoBackground from '@/components/VideoBackground';
 import ScenecoreBackground from '@/components/ScenecoreBackground';
 import AttendanceProofModal from '@/components/AttendanceProofModal';
@@ -340,97 +340,47 @@ export default function Home() {
         </section>
       )}
 
-      {/* Muro de comentarios */}
+      {/* Muro en Vivo (Feed Unificado: Comentarios, Encuestas, Rachas, Cosplays) */}
       {selected && sectionOn('wall') && (
         <section className="card p-6 sm:p-8 space-y-5 relative group overflow-hidden">
           <SectionBg sectionKey="wall" bgs={bgs} onChange={updateBg} isStaff={isStaff} defaultOpacity={0.2} />
           <div className="relative z-10 space-y-5">
-            <h3 className="section-title flex items-center gap-2 text-xl">
-              <MessageSquare className="h-5 w-5 text-neon-magenta glow-magenta" /> Muro de comentarios
-            </h3>
-
-          {!selected.comments_enabled ? (
-            <div className="badge badge-red w-full justify-start py-3 px-4 normal-case tracking-normal text-sm">
-              <AlertTriangle className="h-5 w-5" /> Comentarios desactivados para esta fecha.
-            </div>
-          ) : (
-            <>
-              <form onSubmit={handleComment} className="flex gap-3">
-                <input className="input" value={commentText} onChange={(e) => { setCommentText(e.target.value); setCommentNotice(null); }} placeholder="Escribe un comentario… (+2 pts) ✦" />
+            <LiveFeed eventId={selected.id} />
+            
+            {/* Input para añadir comentarios rápidos al feed */}
+            {selected.comments_enabled ? (
+              <form onSubmit={handleComment} className="flex gap-3 mt-4 pt-4 border-t border-border">
+                <input className="input" value={commentText} onChange={(e) => { setCommentText(e.target.value); setCommentNotice(null); }} placeholder="Publica en el muro… (+2 pts) ✦" />
                 <button type="submit" className="btn btn-primary shrink-0"><Send className="h-4 w-4" /></button>
               </form>
-              {commentNotice && (
-                <div className="badge badge-yellow w-full justify-start py-2 px-3 normal-case tracking-normal text-xs">
-                  <AlertTriangle className="h-4 w-4 shrink-0" /> <span>{commentNotice}</span>
-                </div>
-              )}
-              <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-                {comments.length === 0 ? (
-                  <p className="text-sm text-muted-2 text-center py-8 border border-dashed border-border rounded-xl">Aún no hay comentarios. ¡Comenta algo! ✦</p>
-                ) : (
-                  comments.map((c) => (
-                    <div key={c.id} className="p-4 rounded-xl bg-white/[0.03] border border-border space-y-1 rainbow-border">
-                      <div className="flex items-center justify-between text-xs">
-                        {c.user_id ? (
-                          <Link href={`/perfil/${c.user_id}`} className="font-bold text-neon-magenta hover:underline">{c.username}</Link>
-                        ) : (
-                          <span className="font-bold text-neon-magenta">{c.username}</span>
-                        )}
-                        <span className="text-muted-2">{new Date(c.created_at).toLocaleDateString('es-ES', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                      </div>
-                      <div className="flex justify-between items-start gap-4">
-                        <p className="text-sm text-foreground">
-                          {c.flagged ? censorText(c.content, bannedWords) : c.content}
-                          {c.flagged && <span className="badge badge-yellow ml-2 align-middle">en revisión</span>}
-                        </p>
-                        {isStaff && (
-                          <button onClick={async () => {
-                            if (confirm('¿Eliminar comentario?')) {
-                              await deleteComment(c.id);
-                              setComments(comments.filter(x => x.id !== c.id));
-                            }
-                          }} className="text-red-400 hover:text-red-300 p-1 shrink-0">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                )}
+            ) : (
+              <div className="badge badge-red w-full justify-start py-3 px-4 normal-case tracking-normal text-sm mt-4">
+                <AlertTriangle className="h-5 w-5" /> Comentarios desactivados.
               </div>
-            </>
-          )}
+            )}
+            {commentNotice && (
+              <div className="badge badge-yellow w-full justify-start py-2 px-3 normal-case tracking-normal text-xs mt-2">
+                <AlertTriangle className="h-4 w-4 shrink-0" /> <span>{commentNotice}</span>
+              </div>
+            )}
           </div>
         </section>
       )}
 
-      {/* Retos de la comunidad */}
+      {/* Retos de la comunidad (Mantenido para funcionalidad de votos rápida) */}
       {sectionOn('challenges') && (
       <section className="space-y-5 relative group p-6 rounded-3xl overflow-hidden">
         <SectionBg sectionKey="challenges" bgs={bgs} onChange={updateBg} isStaff={isStaff} defaultOpacity={0.2} />
         <div className="relative z-10">
           <div>
             <h3 className="section-title text-xl flex items-center gap-2">
-              <Star className="h-5 w-5 text-neon-yellow glow-lime" /> Retos de la comunidad
+              <Star className="h-5 w-5 text-neon-yellow glow-lime" /> Retos Rápidos
             </h3>
-            <p className="text-sm text-muted mt-0.5">Mantén tu racha, vota la encuesta del día y escala en el ranking.</p>
+            <p className="text-sm text-muted mt-0.5">Mantén tu racha y gana puntos extra.</p>
           </div>
           <DailyChallenges bgImage={bgs['daily_bg']} />
-          {isStaff && <div className="absolute top-2 left-2 z-50 text-xs bg-black/80 px-2 py-1 rounded text-white border border-white/10">Fondo de Racha → Usa el editor en su esquina superior derecha</div>}
         </div>
       </section>
-
-      )}
-
-      {/* Novedades de la comunidad (feed) */}
-      {sectionOn('feed') && (
-      <section className="relative group p-6 rounded-3xl overflow-hidden">
-        <SectionBg sectionKey="feed" bgs={bgs} onChange={updateBg} isStaff={isStaff} defaultOpacity={0.2} />
-        <div className="relative z-10">
-          <CommunityFeed />
-        </div>
-      </section>
-
       )}
 
       {/* Temáticas sugeridas por la comunidad */}

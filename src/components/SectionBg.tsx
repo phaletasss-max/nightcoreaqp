@@ -31,7 +31,7 @@ export default function SectionBg({ sectionKey, bgs, onChange, isStaff, defaultO
           style={{ opacity }}
         />
       ) : (
-        /* eslint-disable-next-line @next/next/no-img-element */
+         
         <img
           src={url} alt=""
           className={`absolute inset-0 w-full h-full object-cover z-0 pointer-events-none ${blend ? 'mix-blend-screen' : ''}`}

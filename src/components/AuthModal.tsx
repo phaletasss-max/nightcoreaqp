@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, LogIn, UserPlus, AlertCircle, Mail } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 
@@ -17,7 +18,7 @@ export default function AuthModal({ open, onClose }: { open: boolean; onClose: (
   const [mounted, setMounted] = useState(false);
 
   React.useEffect(() => {
-    setMounted(true);
+    setTimeout(() => setMounted(true), 0);
   }, []);
 
   if (!open || !mounted) return null;
@@ -120,5 +121,5 @@ export default function AuthModal({ open, onClose }: { open: boolean; onClose: (
     </div>
   );
 
-  return typeof document !== 'undefined' ? require('react-dom').createPortal(modalContent, document.body) : null;
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : null;
 }

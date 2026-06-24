@@ -1,0 +1,37 @@
+{
+  "project": "nightcore_aqp",
+  "environment": "production",
+  "checks": [
+    {
+      "id": "env_vars",
+      "type": "system",
+      "description": "Verifica presencia de variables de entorno",
+      "required": ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "NEXT_PUBLIC_MEDIA_SERVICE_URL"]
+    },
+    {
+      "id": "supabase_db",
+      "type": "network",
+      "description": "Prueba de ping a Supabase URL y conectividad de BD",
+      "timeoutMs": 5000
+    },
+    {
+      "id": "media_service_health",
+      "type": "http",
+      "endpoint": "/health",
+      "expectedStatus": 200,
+      "description": "Llamada al microservicio de Render para confirmar que ffmpeg y yt-dlp responden"
+    },
+    {
+      "id": "nextjs_build",
+      "type": "build",
+      "description": "Verifica que `next build` sea 0 errores y pase TS Linting"
+    },
+    {
+      "id": "cron_security",
+      "type": "http",
+      "endpoint": "/api/cron/cleanup",
+      "expectedStatus": 401,
+      "description": "Verifica que el Cronjob esté protegido y devuelva Unauthorized sin el header correcto"
+    }
+  ]
+}

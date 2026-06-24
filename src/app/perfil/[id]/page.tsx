@@ -63,7 +63,7 @@ export default function PublicProfilePage() {
       <div className="card p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
         <div className="h-20 w-20 rounded-full bg-neon-pink/15 border border-neon-pink/30 flex items-center justify-center overflow-hidden shrink-0">
           {profile.avatar_url
-            /* eslint-disable-next-line @next/next/no-img-element */
+             
             ? <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
             : <User className="h-9 w-9 text-neon-pink" />}
         </div>
@@ -121,7 +121,7 @@ export default function PublicProfilePage() {
               <h2 className="section-title text-base flex items-center gap-2"><Camera className="h-5 w-5 text-neon-cyan" /> Disfraces</h2>
               <div className="flex gap-3 overflow-x-auto pb-1">
                 {activity.costumes.map((c) => (
-                  /* eslint-disable-next-line @next/next/no-img-element */
+                   
                   <img key={c.id} src={c.photo_url} alt={c.char_name} title={c.char_name} className="h-28 w-24 rounded-lg object-cover border border-border shrink-0" />
                 ))}
               </div>

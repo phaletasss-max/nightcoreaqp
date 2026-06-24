@@ -105,7 +105,7 @@ export default function BgEditor({ sectionKey, currentBg, onBgUpdate, currentOpa
             </label>
             <input
               type="range" min="0" max="1" step="0.05" defaultValue={currentOpacity}
-              onChange={(e) => handleOpacity(parseFloat(e.target.value))}
+              onChange={(ev) => handleOpacity(parseFloat(ev.target.value))}
               className="w-full accent-neon-magenta cursor-pointer"
             />
           </div>

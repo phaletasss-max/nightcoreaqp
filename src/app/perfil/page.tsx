@@ -42,6 +42,7 @@ export default function PerfilPage() {
   const [newTitle, setNewTitle] = useState('');
   const [newArtist, setNewArtist] = useState('');
   const [newUrl, setNewUrl] = useState('');
+  const [newTags, setNewTags] = useState('');
   const [suggestSuccess, setSuggestSuccess] = useState<string | null>(null);
 
   const [editing, setEditing] = useState(false);
@@ -105,13 +106,15 @@ export default function PerfilPage() {
   const handleAddFavSong = (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile?.id || !newTitle || !newArtist) return;
-    const newSong = { id: `fav-${Date.now()}`, title: newTitle, artist: newArtist, url: newUrl };
+    const parsedTags = newTags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+    const newSong = { id: `fav-${Date.now()}`, title: newTitle, artist: newArtist, url: newUrl, tags: parsedTags };
     const updated = [...savedSongs, newSong];
     setSavedSongs(updated);
     localStorage.setItem(`nq_fav_songs_${profile.id}`, JSON.stringify(updated));
     setNewTitle('');
     setNewArtist('');
     setNewUrl('');
+    setNewTags('');
   };
 
   const handleDeleteFavSong = (id: string) => {
@@ -121,10 +124,11 @@ export default function PerfilPage() {
     localStorage.setItem(`nq_fav_songs_${profile.id}`, JSON.stringify(updated));
   };
 
-  const handleSuggestSong = async (s: { title: string; artist: string; url: string }) => {
+  const handleSuggestSong = async (s: { title: string; artist: string; url: string; tags?: string[] }) => {
     try {
+      console.log('[FASE 3] Enviando sugerencia rápida:', s.title, s.tags);
       await addSong(
-        { title: s.title, artist: s.artist, youtube_url: s.url },
+        { title: s.title, artist: s.artist, youtube_url: s.url, tags: s.tags },
         profile?.id ?? null,
         profile?.username ?? 'Tú'
       );
@@ -315,7 +319,7 @@ export default function PerfilPage() {
             <div className="relative z-10 flex flex-col items-center text-center gap-3">
               <label className="relative h-20 w-20 rounded-full bg-neon-pink/15 border border-neon-pink/30 flex items-center justify-center overflow-hidden cursor-pointer group/avatar" title="Cambiar foto de perfil">
                 {avatarUrl ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
+                   
                   <img src={avatarUrl} alt="avatar" className="absolute inset-0 w-full h-full object-cover" />
                 ) : (
                   <User className="h-9 w-9 text-neon-pink" />
@@ -559,7 +563,7 @@ export default function PerfilPage() {
                   <p className="eyebrow">Mis disfraces</p>
                   <div className="flex gap-2 overflow-x-auto pb-1">
                     {activity.costumes.map((c) => (
-                      /* eslint-disable-next-line @next/next/no-img-element */
+                       
                       <img key={c.id} src={c.photo_url} alt={c.char_name} title={c.char_name} className="h-20 w-16 rounded-lg object-cover border border-border shrink-0" />
                     ))}
                   </div>
@@ -637,7 +641,7 @@ export default function PerfilPage() {
                       return (
                         <div key={t.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-white/[0.02] border border-border hover:border-neon-cyan/40 transition-colors">
                           {t.image ? (
-                            /* eslint-disable-next-line @next/next/no-img-element */
+                             
                             <img src={t.image} alt="" className="h-10 w-10 rounded object-cover shrink-0" />
                           ) : (
                             <div className="h-10 w-10 rounded bg-white/5 shrink-0 flex items-center justify-center"><Music className="h-4 w-4 text-muted-2" /></div>
@@ -710,15 +714,27 @@ export default function PerfilPage() {
                     />
                   </div>
                 </div>
-                <div>
-                  <label className="label text-[10px] uppercase font-bold text-muted">Enlace YouTube o Spotify (Opcional)</label>
-                  <input 
-                    type="url" 
-                    className="input py-1.5 text-xs" 
-                    value={newUrl} 
-                    onChange={(e) => setNewUrl(e.target.value)} 
-                    placeholder="https://youtube.com/watch?v=... o https://open.spotify.com/track/..." 
-                  />
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="label text-[10px] uppercase font-bold text-muted">Enlace YouTube o Spotify (Opcional)</label>
+                    <input 
+                      type="url" 
+                      className="input py-1.5 text-xs" 
+                      value={newUrl} 
+                      onChange={(e) => setNewUrl(e.target.value)} 
+                      placeholder="https://youtube.com/watch?v=..." 
+                    />
+                  </div>
+                  <div>
+                    <label className="label text-[10px] uppercase font-bold text-neon-cyan">Hashtags (separados por coma)</label>
+                    <input 
+                      type="text" 
+                      className="input py-1.5 text-xs" 
+                      value={newTags} 
+                      onChange={(e) => setNewTags(e.target.value)} 
+                      placeholder="#vocaloid, #fnaf, #numetal" 
+                    />
+                  </div>
                 </div>
                 <button type="submit" className="btn btn-primary text-xs w-full py-2 flex items-center justify-center gap-1.5">
                   <Plus className="h-4 w-4" /> Guardar canción

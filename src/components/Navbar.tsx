@@ -8,14 +8,15 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Music, Calendar, Camera, User, Bell, Download,
-  Flame, Coins, Menu, X, Volume2, LogIn, LogOut, Sparkles
+  Flame, Coins, Menu, X, LogIn, LogOut, Sparkles
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import AuthModal from '@/components/AuthModal';
+import { Trophy } from 'lucide-react';
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { profile, configured, isStaff, signOut } = useAuth();
+  const { profile, configured, signOut } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
 
@@ -24,6 +25,7 @@ export default function Navbar() {
     { name: 'Eventos', href: '/', icon: Calendar },
     { name: 'Playlist', href: '/playlist', icon: Music },
     { name: 'Disfraces', href: '/disfraces', icon: Camera },
+    { name: 'Historial', href: '/history', icon: Trophy },
     { name: 'Descargas', href: '/perfil/descargas', icon: Download },
     { name: 'Perfil', href: '/perfil', icon: User },
   ];

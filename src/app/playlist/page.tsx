@@ -43,6 +43,8 @@ export default function PlaylistPage() {
   const [uploadMode, setUploadMode] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [newTags, setNewTags] = useState('');
+  const [activeTag, setActiveTag] = useState<string | null>(null);
 
   // ── Importar desde Spotify ──
   const [showSpotify, setShowSpotify] = useState(false);
@@ -145,15 +147,17 @@ export default function PlaylistPage() {
 
   useEffect(() => {
     if (!showForm || !url || !url.startsWith('http')) {
-      setVideoInfo(null);
+      setTimeout(() => setVideoInfo(null), 0);
       return;
     }
     const cUrl = cleanUrl(url);
     const isYt = cUrl.includes('youtube.com') || cUrl.includes('youtu.be');
     
     if (!isYt) {
-      setFormError('Solo se aceptan enlaces de YouTube para la playlist.');
-      setVideoInfo(null);
+      setTimeout(() => {
+        setFormError('Solo se aceptan enlaces de YouTube para la playlist.');
+        setVideoInfo(null);
+      }, 0);
       return;
     }
 
@@ -210,8 +214,11 @@ export default function PlaylistPage() {
 
   useEffect(() => { getSongs().then(setSongs); }, []);
 
+  const allTags = Array.from(new Set(songs.flatMap((s) => s.tags || []))).filter(Boolean);
+
   const filtered = songs
     .filter((s) => s.title.toLowerCase().includes(query.toLowerCase()) || s.artist.toLowerCase().includes(query.toLowerCase()))
+    .filter((s) => !activeTag || (s.tags && s.tags.includes(activeTag)))
     .sort((a, b) => b.votes_count - a.votes_count);
 
   const handleVote = async (id: string, type: VoteType) => {
@@ -257,10 +264,11 @@ export default function PlaylistPage() {
       return;
     }
 
-    const row = await addSong({ title, artist: finalArtist, youtube_url: cUrl }, profile?.id ?? null, profile?.username ?? 'Tú');
+    const parsedTags = newTags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+    const row = await addSong({ title, artist: finalArtist, youtube_url: cUrl, tags: parsedTags }, profile?.id ?? null, profile?.username ?? 'Tú');
     setSongs((prev) => [...prev, row]);
     
-    setTitle(''); setArtist(''); setUrl(''); setShowForm(false); setVideoInfo(null);
+    setTitle(''); setArtist(''); setUrl(''); setNewTags(''); setShowForm(false); setVideoInfo(null);
     addPoints(5);
   };
 
@@ -358,7 +366,7 @@ export default function PlaylistPage() {
                   const done = searchSuggested.includes(t.url);
                   return (
                     <div key={t.url} className="flex items-center gap-3 p-2 rounded-lg border border-border bg-white/[0.02]">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      { }
                       {t.thumbnail && <img src={t.thumbnail} alt="" className="h-10 w-16 rounded object-cover shrink-0" />}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-white truncate">{t.title}</p>
@@ -401,7 +409,7 @@ export default function PlaylistPage() {
                   const done = spSuggested.includes(t.id);
                   return (
                     <div key={t.id} className="flex items-center gap-3 p-2 rounded-lg border border-border bg-white/[0.02]">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      { }
                       {t.image && <img src={t.image} alt="" className="h-10 w-10 rounded object-cover shrink-0" />}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-white truncate">{t.title}</p>
@@ -470,6 +478,10 @@ export default function PlaylistPage() {
                     ? 'Validamos que el link sea reproducible antes de agregarlo.'
                     : 'El comprobante automático (yt-dlp) se activa al conectar el media-service.'}
                 </p>
+                <div>
+                  <label className="label text-neon-cyan">Hashtags (separados por coma)</label>
+                  <input className="input" value={newTags} onChange={(e) => setNewTags(e.target.value)} placeholder="Ej. #numetal, #vocaloid, #speedup" />
+                </div>
               </>
             ) : (
               <>
@@ -514,6 +526,26 @@ export default function PlaylistPage() {
           <input className="input pl-10" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar por título o artista…" />
         </div>
 
+        {allTags.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            <button 
+              onClick={() => setActiveTag(null)} 
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors whitespace-nowrap ${!activeTag ? 'bg-neon-cyan text-black' : 'bg-surface border border-border text-muted hover:text-white'}`}
+            >
+              Todos
+            </button>
+            {allTags.map(tag => (
+              <button 
+                key={tag} 
+                onClick={() => setActiveTag(tag)} 
+                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-1 ${activeTag === tag ? 'bg-neon-cyan text-black' : 'bg-surface border border-border text-neon-cyan hover:bg-neon-cyan/10'}`}
+              >
+                {tag.startsWith('#') ? tag : `#${tag}`}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="space-y-2">
           {filtered.length === 0 ? (
             <div className="card p-10 text-center text-muted-2">
@@ -541,6 +573,11 @@ export default function PlaylistPage() {
                       <span className="text-xs font-mono text-muted-2">#{i + 1}</span>
                       <h4 className="font-bold text-white truncate">{song.title}</h4>
                       {song.geek_tag && <span className={`badge ${tagColor[song.geek_tag] ?? 'badge-cyan'}`}>{song.geek_tag}</span>}
+                      {song.tags?.map(t => (
+                        <span key={t} className="text-[10px] text-neon-cyan font-bold bg-neon-cyan/10 px-1.5 py-0.5 rounded-md border border-neon-cyan/20">
+                          {t.startsWith('#') ? t : `#${t}`}
+                        </span>
+                      ))}
                     </div>
                     <p className="text-sm text-muted truncate">{song.artist}</p>
                     <p className="text-[11px] text-muted-2 mt-0.5">Sugerido por <span className="text-neon-pink font-semibold">{song.suggested_by_name}</span>{song.genre ? ` · ${song.genre}` : ''}</p>

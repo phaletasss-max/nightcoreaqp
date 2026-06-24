@@ -131,7 +131,7 @@ export default function Hero({ nextEvent, onCta }: { nextEvent?: EventItem; onCt
           {/* Right column: Flyer */}
           <div className="hidden lg:flex flex-col items-center justify-center space-y-5">
             <div className="relative rounded-2xl overflow-hidden border-2 border-neon-magenta shadow-[0_0_30px_rgba(255,0,255,0.25)] transform md:rotate-2 hover:rotate-0 transition-all duration-300 w-full max-w-sm">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              { }
               <img src={nextEvent?.flyer_url || "/nightcorefest2.0.png"} alt="Event Flyer" className="w-full h-auto object-cover bg-black" />
             </div>
             {nextEvent && (
@@ -160,7 +160,7 @@ export default function Hero({ nextEvent, onCta }: { nextEvent?: EventItem; onCt
             {/* Modal Body */}
             <div className="p-6 grid md:grid-cols-2 gap-8 items-start">
               <div>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+                { }
                 <img src={nextEvent.flyer_url || "/nightcorefest2.0.png"} alt="Flyer" className="w-full rounded-xl border border-border shadow-lg bg-black" />
               </div>
               <div className="space-y-6">

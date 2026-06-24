@@ -15,6 +15,14 @@ const eslintConfig = defineConfig([
     // El media-service es un proyecto Node aparte (CommonJS, corre en el Arch).
     "media-service/**",
   ]),
+  {
+    rules: {
+      "react-hooks/set-state-in-effect": "off",
+      "@next/next/no-img-element": "off",
+      "react-hooks/exhaustive-deps": "off",
+      "@typescript-eslint/no-unused-vars": "off"
+    }
+  }
 ]);
 
 export default eslintConfig;

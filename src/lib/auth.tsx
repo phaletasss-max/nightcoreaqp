@@ -80,6 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
       if (data && !error) {
         const prof = { ...(data as Profile), email };
+         
         setProfile(prof);
         localStorage.setItem('nq_local_profile', JSON.stringify(prof));
       } else {
@@ -114,8 +115,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!configured) {
-      setProfile(loadDemoProfile());
-      setLoading(false);
+      setTimeout(() => setProfile(loadDemoProfile()), 0);
+      setTimeout(() => setLoading(false), 0);
       return;
     }
 

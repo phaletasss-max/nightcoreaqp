@@ -30,6 +30,8 @@
   /* ── Personalización gestionable por admin (Fase B) ── */
   --card-opacity: 0.75;                                  /* opacidad de los contenedores .card */
   --display-font: var(--font-geist-sans), system-ui, sans-serif;  /* fuente de títulos */
+  --card-radius: 16px;
+  --glass-blur: 12px;
 
   /* Legacy names (remapped to scenecore) */
   --miku: #39c5bb;
@@ -150,10 +152,10 @@ body {
 /* Glassmorphism con tinte scenecore */
 .card {
   background: rgba(17, 8, 24, var(--card-opacity));
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--card-radius);
 }
 .card-hover {
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
@@ -220,7 +222,7 @@ h1 { font-family: var(--display-font); }
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  border-radius: 10px;
+  border-radius: max(4px, calc(var(--card-radius) - 6px));
   font-weight: 700;
   font-size: 0.875rem;
   padding: 0.625rem 1rem;

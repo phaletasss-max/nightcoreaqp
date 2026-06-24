@@ -6,7 +6,7 @@
 // eventos y (más adelante) el fondo de video.
 
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Plus, Flame, TrendingUp } from 'lucide-react';
+import { Sparkles, Plus, TrendingUp, Crown } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { getThemes, addTheme, clickTheme } from '@/lib/data';
 import type { Theme } from '@/lib/types';
@@ -65,12 +65,12 @@ export default function ThemesSection() {
         {top10.map((t, i) => (
           <button key={t.id} onClick={() => handleClick(t.id)}
             className={`group inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-semibold transition-colors ${
-              i === 0 ? 'border-neon-pink/40 bg-neon-pink/10 text-neon-pink'
+              i === 0 ? 'border-yellow-400 bg-yellow-400/20 text-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.3)]'
               : i < 3 ? 'border-neon-purple/30 bg-neon-purple/10 text-neon-purple'
               : 'border-border text-muted hover:text-white hover:bg-white/5'
             }`}
             title="Click para apoyar esta temática">
-            {i === 0 ? <Flame className="h-3.5 w-3.5" /> : i < 3 ? <TrendingUp className="h-3.5 w-3.5" /> : null}
+            {i === 0 ? <Crown className="h-4 w-4" /> : i < 3 ? <TrendingUp className="h-3.5 w-3.5" /> : null}
             <span>{t.name}</span>
             <span className="text-xs font-bold tabular-nums opacity-70">{t.clicks}</span>
           </button>

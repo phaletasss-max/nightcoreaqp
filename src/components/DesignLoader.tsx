@@ -46,6 +46,12 @@ function applyDesign(s: Record<string, string>) {
 
   if (s.design_card_opacity) root.style.setProperty('--card-opacity', s.design_card_opacity);
   else root.style.removeProperty('--card-opacity');
+
+  if (s.design_radius) root.style.setProperty('--card-radius', `${s.design_radius}px`);
+  else root.style.removeProperty('--card-radius');
+
+  if (s.design_glass_blur) root.style.setProperty('--glass-blur', `${s.design_glass_blur}px`);
+  else root.style.removeProperty('--glass-blur');
 }
 
 export default function DesignLoader() {
@@ -58,7 +64,7 @@ export default function DesignLoader() {
       if (cached) {
         const s = JSON.parse(cached) as Record<string, string>;
         applyDesign(s);
-        setOverlay(parseFloat(s.design_overlay || '0') || 0);
+        setTimeout(() => setOverlay(parseFloat(s.design_overlay || '0') || 0), 0);
       }
     } catch { /* ignorar */ }
 

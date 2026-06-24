@@ -34,7 +34,7 @@ export default function CommunityFeed() {
         {recent.map((c) => (
           <Link key={c.id} href="/disfraces" className="group block rounded-xl overflow-hidden border border-border card-hover">
             <div className="relative aspect-[3/4] bg-black overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              { }
               <img src={c.photo_url} alt={c.char_name} className="w-full h-full object-cover group-hover:opacity-90 transition-opacity" />
               <span className="absolute bottom-1.5 right-1.5 badge badge-pink bg-black/70 backdrop-blur text-[10px]">
                 <Heart className="h-3 w-3" /> {c.votes_count}

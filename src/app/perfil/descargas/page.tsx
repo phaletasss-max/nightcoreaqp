@@ -228,7 +228,7 @@ export default function DescargasPage() {
             <div className="max-h-80 overflow-y-auto space-y-1.5 pr-1">
               {searchResults.map((t) => (
                 <div key={t.url} className="flex items-center gap-3 p-2 rounded-lg border border-border bg-white/[0.02]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   {t.thumbnail && <img src={t.thumbnail} alt="" className="h-10 w-16 rounded object-cover shrink-0" />}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-white truncate">{t.title}</p>

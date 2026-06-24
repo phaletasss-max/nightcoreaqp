@@ -63,6 +63,7 @@ export interface Song {
   played: boolean;
   file_url?: string | null;   // MP4 propio (respaldo/fondo) subido por el media-service
   userVote?: VoteType | null;
+  tags?: string[] | null;
 }
 
 export interface EventComment {
@@ -86,6 +87,8 @@ export interface Costume {
   votes_count: number;
   voted?: boolean;
   comments?: CostumeComment[];
+  tags?: string[] | null;
+  is_wip?: boolean;
 }
 
 export interface CostumeComment {

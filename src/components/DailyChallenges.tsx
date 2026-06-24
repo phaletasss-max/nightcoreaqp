@@ -5,7 +5,7 @@
 // /encuestas; ahora son parte del feed de la home (decisión 2026-06-20).
 
 import React, { useState, useEffect } from 'react';
-import { Flame, Vote, CheckCircle2, Trophy, BarChart3, CalendarCheck } from 'lucide-react';
+import { Flame, Vote, CheckCircle2, Trophy, BarChart3 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { getActiveSurvey, voteSurvey, dailyCheckIn } from '@/lib/data';
 import { DEMO_LEADERBOARD } from '@/lib/demo-data';
@@ -23,10 +23,10 @@ export default function DailyChallenges({ bgImage }: { bgImage?: string }) {
     getActiveSurvey().then(setSurvey);
     if (typeof window !== 'undefined') {
       // Sincroniza estado desde localStorage al montar (solo cliente).
-      /* eslint-disable react-hooks/set-state-in-effect */
+       
       setCheckedIn(localStorage.getItem('nq_checked_in_today') === new Date().toDateString());
       setVotedOption(localStorage.getItem('nq_survey_voted'));
-      /* eslint-enable react-hooks/set-state-in-effect */
+       
     }
   }, []);
 

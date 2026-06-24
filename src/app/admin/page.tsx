@@ -61,6 +61,9 @@ export default function AdminPage() {
   const [costumes, setCostumes] = useState<Costume[]>([]);
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
   const [downloadingSet, setDownloadingSet] = useState(false);
+  const [showCrateModal, setShowCrateModal] = useState(false);
+  const [crateLimit, setCrateLimit] = useState(20);
+  const [crateFormat, setCrateFormat] = useState('mp3');
   const [storingId, setStoringId] = useState<string | null>(null);
   const [design, setDesign] = useState<Record<string, string>>({});
   const [bannedWords, setBannedWords] = useState<string[]>([]);
@@ -220,17 +223,12 @@ export default function AdminPage() {
     alert('Playlist vaciada con éxito.');
   };
 
-  const handleDownloadSet = async () => {
-    const queue = songs.filter((s) => !s.played);
-    if (!queue.length) return;
-    setDownloadingSet(true);
-    // Descarga secuencial de la cola (cada una abre su archivo MP3).
-    for (const s of queue) {
-      try {
-        await downloadMedia(s.youtube_url, 'mp3', `${s.artist} - ${s.title}`.replace(/[^a-z0-9]/gi, '_'));
-      } catch { /* continúa con la siguiente */ }
-    }
-    setDownloadingSet(false);
+  const handleGenerateCrate = async () => {
+    setShowCrateModal(false);
+    console.log('[FASE 2] DJ solicitando generación de Crate ZIP.', { limit: crateLimit, format: crateFormat });
+    // Descarga empaquetada (Fase 2) a través del endpoint
+    // Se abre en otra pestaña para iniciar la descarga del ZIP sin bloquear el frontend
+    window.open(`/api/crate/download?limit=${crateLimit}&format=${crateFormat}`, '_blank');
   };
 
   // Descarga el MP4 de la canción (vía media-service → Supabase Storage) y lo marca
@@ -409,13 +407,9 @@ export default function AdminPage() {
             <h3 className="section-title text-base flex items-center gap-2"><Music className="h-5 w-5 text-neon-pink" /> Control de playlist</h3>
             <div className="flex items-center gap-3">
               <span className="text-xs text-muted">En cola: {songs.length}</span>
-              {isMediaConfigured() ? (
-                <button onClick={handleDownloadSet} disabled={downloadingSet} className="btn btn-ghost px-3 py-1.5 text-xs">
-                  <Download className="h-3.5 w-3.5" /> {downloadingSet ? 'Descargando…' : 'Descargar set (MP3)'}
-                </button>
-              ) : (
-                <span className="text-[10px] text-muted-2" title="Disponible al conectar el media-service">Descarga del set: media-service no conectado</span>
-              )}
+              <button onClick={() => setShowCrateModal(true)} className="btn btn-ghost px-3 py-1.5 text-xs border border-neon-pink/30 hover:bg-neon-pink/10">
+                <Download className="h-3.5 w-3.5" /> Generar Crate (ZIP)
+              </button>
               <div className="w-px h-4 bg-border mx-1" />
               <button onClick={handleClearSongs} className="btn border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-1.5 text-xs">
                 <Trash2 className="h-3.5 w-3.5" /> Vaciar Playlist
@@ -464,6 +458,43 @@ export default function AdminPage() {
               </tbody>
             </table>
           </div>
+
+          {showCrateModal && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+              <div className="card w-full max-w-sm p-6 bg-surface border-neon-magenta/50 shadow-[0_0_30px_rgba(255,0,255,0.2)]">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-extrabold text-white text-lg flex items-center gap-2">
+                    <Download className="h-5 w-5 text-neon-magenta" /> Crate Builder
+                  </h3>
+                  <button onClick={() => setShowCrateModal(false)} className="text-muted hover:text-white"><X className="h-5 w-5" /></button>
+                </div>
+                <p className="text-xs text-muted mb-4">Empaqueta las canciones más votadas en un archivo ZIP listo para Serato o Rekordbox.</p>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="label">Formato</label>
+                    <select className="input text-sm" value={crateFormat} onChange={(e) => setCrateFormat(e.target.value)}>
+                      <option value="mp3">MP3 (Solo Audio - Alta Calidad)</option>
+                      <option value="mp4">MP4 (Video para fondo)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">Cantidad a empaquetar</label>
+                    <select className="input text-sm" value={crateLimit} onChange={(e) => setCrateLimit(Number(e.target.value))}>
+                      <option value={10}>Top 10 más votadas</option>
+                      <option value={20}>Top 20 más votadas</option>
+                      <option value={30}>Top 30 más votadas</option>
+                      <option value={100}>Todas las pendientes</option>
+                    </select>
+                  </div>
+                  <button onClick={handleGenerateCrate} className="btn btn-primary w-full mt-2">
+                    Generar y Descargar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       )}
 
@@ -963,6 +994,25 @@ export default function AdminPage() {
                 onChange={(e) => setDesignKey('design_overlay', e.target.value)}
                 className="w-full accent-neon-magenta cursor-pointer" />
               <p className="text-[11px] text-muted-2 mt-1">Capa oscura sobre el fondo (útil si pusiste imágenes muy brillantes detrás).</p>
+            </div>
+          </div>
+
+          {/* Formas y Contenedores */}
+          <div className="card p-5 space-y-5">
+            <h3 className="font-bold text-white text-sm flex items-center gap-2"><Palette className="h-4 w-4 text-neon-yellow" /> Formas y Contenedores</h3>
+            <div>
+              <label className="label flex justify-between"><span>Redondeo de bordes (Radius)</span><span className="text-neon-cyan font-mono">{design.design_radius || '16'}px</span></label>
+              <input type="range" min="0" max="32" step="1" value={design.design_radius || '16'}
+                onChange={(e) => setDesignKey('design_radius', e.target.value)}
+                className="w-full accent-neon-magenta cursor-pointer" />
+              <p className="text-[11px] text-muted-2 mt-1">Controla si los contenedores y botones son cuadrados (0px) o redondeados.</p>
+            </div>
+            <div>
+              <label className="label flex justify-between"><span>Desenfoque (Glassmorphism Blur)</span><span className="text-neon-cyan font-mono">{design.design_glass_blur || '12'}px</span></label>
+              <input type="range" min="0" max="32" step="1" value={design.design_glass_blur || '12'}
+                onChange={(e) => setDesignKey('design_glass_blur', e.target.value)}
+                className="w-full accent-neon-magenta cursor-pointer" />
+              <p className="text-[11px] text-muted-2 mt-1">Qué tan borroso se ve el fondo detrás de las tarjetas transparentes.</p>
             </div>
           </div>
 
