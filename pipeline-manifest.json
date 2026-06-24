@@ -1,0 +1,25 @@
+{
+  "timestamp": "2026-06-24T16:39:20.693Z",
+  "environment": "LOCAL",
+  "totalDurationMs": 17996,
+  "steps": [
+    {
+      "id": "build",
+      "name": "Compilación Next.js",
+      "status": "PASS",
+      "durationMs": 13240
+    },
+    {
+      "id": "verify-routes",
+      "name": "Rutas HTTP",
+      "status": "PASS",
+      "durationMs": 1233
+    },
+    {
+      "id": "playwright",
+      "name": "Smoke Tests",
+      "status": "PASS",
+      "durationMs": 3458
+    }
+  ]
+}
