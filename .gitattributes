@@ -1,0 +1,3 @@
+# Scripts de shell SIEMPRE con finales de línea LF: si git los convierte a CRLF
+# en Windows, /bin/sh dentro de Docker falla con "bad interpreter".
+*.sh text eol=lf

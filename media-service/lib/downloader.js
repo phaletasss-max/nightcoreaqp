@@ -35,11 +35,23 @@ let COOKIES_PATH = null;
 // Nota: yt-dlp usa `deno` como runtime JS por defecto para el reto nsig de YouTube;
 // la imagen Docker lo instala, así que no hace falta pasar --js-runtimes.
 
+// PO Token provider (bgutil): lo arranca start.sh dentro del contenedor. El plugin
+// vive en /opt/ytdlp-plugins (lo instala el Dockerfile) y el server escucha en
+// POT_BASE_URL. Apagable con ENABLE_POT=false (libera RAM en Render gratis).
+const POT_ENABLED = (process.env.ENABLE_POT || 'true') !== 'false';
+const POT_BASE_URL = process.env.POT_BASE_URL || `http://127.0.0.1:${process.env.POT_PORT || 4416}`;
+const PLUGIN_DIR = process.env.YTDLP_PLUGIN_DIR || '/opt/ytdlp-plugins';
+
 function defaultArgs() {
   const args = [
     '--extractor-args', 'youtube:player_client=android,web_creator,default',
     '--compat-options', 'no-youtube-unavailable-videos'
   ];
+  // Conecta yt-dlp con el provider de PO Tokens para parecer tráfico legítimo.
+  if (POT_ENABLED) {
+    args.push('--plugin-dirs', PLUGIN_DIR);
+    args.push('--extractor-args', `youtubepot-bgutilhttp:base_url=${POT_BASE_URL}`);
+  }
   if (COOKIES_PATH) args.push('--cookies', COOKIES_PATH);
   return args;
 }

@@ -65,6 +65,26 @@ pero falla con *"Sign in to confirm you're not a bot"* → no devuelve archivo. 
 > Las cookies caducan cada cierto tiempo; si vuelve a fallar, re-exporta y reemplaza el
 > Secret File. Mantén `yt-dlp` actualizado (la imagen Docker baja la última versión al build).
 
+## PO Tokens (refuerzo anti-bloqueo, ya integrado)
+
+Además de las cookies, la imagen Docker arranca un **provider de PO Tokens** (`bgutil`)
+*dentro del mismo contenedor* — no hace falta un segundo servicio. yt-dlp lo usa para
+parecer tráfico legítimo y así reducir el *"Sign in to confirm you're not a bot"*.
+
+- Está **activado por defecto**. No requiere configuración: el `Dockerfile` instala el
+  plugin y compila el server; `start.sh` lo levanta junto al server Express.
+- **Limitación honesta:** un PO Token **ayuda** pero **no garantiza** evadir el bloqueo en
+  una IP de datacenter (Render). La combinación más fiable es **PO Tokens + cookies frescas**.
+- **RAM (Render gratis, 512 MB):** el provider añade un proceso Node. Si ves reinicios por
+  memoria (*OOM*) en los Logs, apágalo con la variable de entorno `ENABLE_POT=false` y
+  re-despliega. El servicio vuelve a funcionar como antes (solo cookies).
+- Para verificar que está activo: en los Logs de Render al arrancar debe salir
+  `[start] PO Token provider ON → http://127.0.0.1:4416`.
+
+> La solución *gratis y definitiva* al bloqueo es correr este servicio en una **IP
+> residencial** (un servidor en casa, no datacenter). Ahí YouTube casi nunca bloquea y
+> los PO Tokens + cookies dejan de ser imprescindibles.
+
 ## Storage en Supabase
 Crea un bucket **público** llamado `media` (Storage → New bucket). La clave de servicio
 (`SUPABASE_SERVICE_ROLE_KEY`) solo vive aquí, en el backend.
