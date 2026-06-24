@@ -53,27 +53,58 @@ export async function checkVideo(url: string): Promise<VideoInfo | null> {
   }
 }
 
-// Descarga mp3/mp4 EN-PÁGINA. El servidor solo trae el archivo (yt-dlp); el blob
-// se guarda en el dispositivo de quien pegó el link — NO se queda en el servidor.
-// - Si hay media-service propio (Render/Arch) configurado → lo usa (YouTube con cookies).
-// - Si no → cae al proxy de Vercel → Cobalt.
-export async function downloadMedia(url: string, format: 'mp3' | 'mp4', filename: string, quality?: string): Promise<void> {
-  let r: Response;
-  if (isMediaConfigured()) {
-    r = await fetch(`${MEDIA_URL}/api/download`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, format, quality: quality || 'best' }),
-    });
-  } else {
-    const qs = `url=${encodeURIComponent(url)}&format=${format}&filename=${encodeURIComponent(filename)}`;
-    r = await fetch(`/api/download?${qs}`, { cache: 'no-store' });
-  }
+// Intenta el media-service propio (Render/Arch, yt-dlp con cookies). Lanza si falla.
+async function fetchFromMediaService(url: string, format: 'mp3' | 'mp4', quality?: string): Promise<Response> {
+  const r = await fetch(`${MEDIA_URL}/api/download`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url, format, quality: quality || 'best' }),
+  });
   if (!r.ok) {
-    let msg = 'Error en la descarga';
-    try { const j = await r.json(); msg = j.error || msg; } catch { /* respuesta binaria/no-JSON */ }
+    let msg = 'media-service falló';
+    try { const j = await r.json(); msg = j.error || msg; } catch { /* binario/no-JSON */ }
     throw new Error(msg);
   }
+  return r;
+}
+
+// Cae al proxy de Vercel → flota Cobalt. Lanza si falla.
+async function fetchFromCobalt(url: string, format: 'mp3' | 'mp4', filename: string): Promise<Response> {
+  const qs = `url=${encodeURIComponent(url)}&format=${format}&filename=${encodeURIComponent(filename)}`;
+  const r = await fetch(`/api/download?${qs}`, { cache: 'no-store' });
+  if (!r.ok) {
+    let msg = 'Error en la descarga';
+    try { const j = await r.json(); msg = j.error || msg; } catch { /* binario/no-JSON */ }
+    throw new Error(msg);
+  }
+  return r;
+}
+
+// Descarga mp3/mp4 EN-PÁGINA. El servidor solo trae el archivo; el blob se guarda
+// en el dispositivo de quien pegó el link — NO se queda en el servidor.
+//
+// Cascada: si hay media-service propio configurado se intenta primero (mejor calidad
+// y soporte de YouTube con cookies). Si falla — típicamente por el bloqueo de YouTube
+// a IPs de datacenter — cae automáticamente al proxy Cobalt en vez de abortar.
+export async function downloadMedia(url: string, format: 'mp3' | 'mp4', filename: string, quality?: string): Promise<void> {
+  let r: Response | null = null;
+
+  if (isMediaConfigured()) {
+    try {
+      r = await fetchFromMediaService(url, format, quality);
+    } catch (primaryErr) {
+      // Fallback transparente a Cobalt. Si este también falla, propagamos su error
+      // (más útil para el usuario que el del datacenter bloqueado).
+      try {
+        r = await fetchFromCobalt(url, format, filename);
+      } catch {
+        throw primaryErr;
+      }
+    }
+  } else {
+    r = await fetchFromCobalt(url, format, filename);
+  }
+
   const blob = await r.blob();
   const objUrl = URL.createObjectURL(blob);
   const a = document.createElement('a');
