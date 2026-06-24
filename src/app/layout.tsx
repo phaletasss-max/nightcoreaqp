@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
@@ -7,6 +7,7 @@ import { PlayerProvider } from "@/context/PlayerContext";
 import GlobalPlayer from "@/components/GlobalPlayer";
 import DesignLoader from "@/components/DesignLoader";
 import Assistant from "@/components/Assistant";
+import PWARegister from "@/components/PWARegister";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,6 +26,12 @@ export const metadata: Metadata = {
   description: "Eventos, playlist colaborativa, concurso de disfraces, encuestas y rachas. El club de nightcore de Arequipa, organizado por Yorch. Hecho por Los Simpatizantes de JP. Estilo scenecore. 🎵",
   keywords: ["Nightcore", "Arequipa", "AQP", "Eventos", "Anime", "Eurobeat", "Playlist", "Cosplay", "Scenecore", "Scene", "Emo"],
   authors: [{ name: "Los Simpatizantes de JP" }],
+  // PWA: nombre y barra de estado al instalar en iOS.
+  appleWebApp: { capable: true, title: "Nightcore AQP", statusBarStyle: "black-translucent" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0a0a0a",
 };
 
 export default function RootLayout({
@@ -40,6 +47,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col app-bg">
         <AuthProvider>
           <PlayerProvider>
+            <PWARegister />
             <DesignLoader />
             <GlobalPlayer />
             <Assistant />
