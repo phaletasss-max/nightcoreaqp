@@ -18,8 +18,14 @@ const isCI = !!process.env.CI;
 const environment = isCI ? 'CI' : 'LOCAL';
 
 let pipelineSteps: Step[] = [
+  { id: 'verify-env', name: 'Variables de Entorno', command: 'npx tsx scripts/verify-env.ts', abortPipelineOnFail: false, status: 'PENDING' },
+  { id: 'verify-media-service', name: 'Media Service', command: 'npx tsx scripts/verify-media-service.ts', abortPipelineOnFail: false, status: 'PENDING' },
+  { id: 'verify-supabase', name: 'Conexión Supabase', command: 'npx tsx scripts/verify-supabase.ts', abortPipelineOnFail: false, status: 'PENDING' },
+  { id: 'verify-schema', name: 'Esquema de BD', command: 'npx tsx scripts/verify-schema.ts', abortPipelineOnFail: false, status: 'PENDING' },
   { id: 'build', name: 'Compilación Next.js', command: 'npm run build', abortPipelineOnFail: true, status: 'PENDING' },
   { id: 'verify-routes', name: 'Rutas HTTP', command: 'npx tsx scripts/verify-routes.ts', abortPipelineOnFail: true, status: 'PENDING' },
+  { id: 'verify-mobile-api', name: 'API Móvil', command: 'npx tsx scripts/verify-mobile-api.ts', abortPipelineOnFail: true, status: 'PENDING' },
+  { id: 'verify-ui-contracts', name: 'Contratos UI', command: 'npx tsx scripts/verify-ui-contracts.ts', abortPipelineOnFail: true, status: 'PENDING' },
   { id: 'playwright', name: 'Smoke Tests', command: 'npx playwright test', abortPipelineOnFail: true, status: 'PENDING' },
 ];
 

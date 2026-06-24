@@ -1,14 +1,12 @@
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
-type FinalStatus = 'SAFE TO DEPLOY' | 'SAFE FOR LOCAL DEVELOPMENT' | 'DEPLOY BLOCKED';
+type FinalStatus = 'SAFE TO DEPLOY' | 'DEPLOY BLOCKED';
 
-const CI_MANDATORY = [
-  'build', 'verify-routes', 'playwright'
-];
-
-const LOCAL_MANDATORY = [
-  'build', 'verify-routes', 'playwright'
+const MANDATORY_CHECKS = [
+  'verify-env', 'verify-media-service', 'verify-supabase', 'verify-schema',
+  'build', 'verify-routes', 'verify-mobile-api', 'verify-ui-contracts', 'playwright'
 ];
 
 function runPolicy() {
@@ -18,7 +16,16 @@ function runPolicy() {
     process.exit(1);
   }
 
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  const fileContent = fs.readFileSync(manifestPath, 'utf8');
+  const actualHash = crypto.createHash('sha256').update(fileContent).digest('hex');
+  const expectedHash = process.env.MANIFEST_HASH;
+
+  if (expectedHash && actualHash !== expectedHash) {
+    console.error('❌ [POLICY ENGINE] ERROR CRÍTICO: El hash del manifest no coincide. Posible inyección detectada.');
+    process.exit(1);
+  }
+
+  const manifest = JSON.parse(fileContent);
   const env = manifest.environment;
   const steps = manifest.steps as any[];
 
@@ -28,55 +35,37 @@ function runPolicy() {
   const reportLines: string[] = [];
   let policyFailed = false;
 
-  reportLines.push(`# Pipeline Report - ${env}`);
-  reportLines.push(`**Date:** ${manifest.timestamp}\n`);
+  reportLines.push(`# Pipeline Report - SECURE MODE`);
+  reportLines.push(`**Date:** ${manifest.timestamp}`);
+  reportLines.push(`**Hash Integridad:** ${actualHash}\n`);
   reportLines.push(`## Ejecución de Pasos`);
 
-  const evaluateStep = (stepId: string, isMandatory: boolean) => {
+  const evaluateStep = (stepId: string) => {
     const step = steps.find(s => s.id === stepId);
+    maxScore += 1;
     if (!step) {
-      reportLines.push(`- ❌ **${stepId}**: MISSING (Mandatory: ${isMandatory})`);
-      if (isMandatory) policyFailed = true;
+      reportLines.push(`- ❌ **${stepId}**: MISSING`);
+      policyFailed = true;
       return;
     }
-
-    if (isMandatory) maxScore += 1;
 
     let icon = '❓';
     if (step.status === 'PASS') {
       icon = '✅';
-      if (isMandatory) score += 1;
-    } else if (step.status === 'FAIL') {
-      icon = '❌';
-      if (isMandatory) policyFailed = true;
-    } else if (step.status === 'SKIPPED') {
-      icon = '⚠️';
-      if (isMandatory) policyFailed = true; // Un skip en un obligatorio es fallo directo
+      score += 1;
+    } else if (step.status === 'FAIL' || step.status === 'SKIPPED') {
+      icon = step.status === 'FAIL' ? '❌' : '⚠️';
+      policyFailed = true;
     }
 
     reportLines.push(`- ${icon} **${step.name}** (${step.status}): ${step.reason || `Completado en ${step.durationMs}ms`}`);
   };
 
-  if (env === 'CI') {
-    CI_MANDATORY.forEach(id => evaluateStep(id, true));
-    
-    // Validar si hay algún FAIL global, incluso si no estaba en la lista (defensa en profundidad)
-    if (steps.some(s => s.status === 'FAIL')) policyFailed = true;
+  MANDATORY_CHECKS.forEach(id => evaluateStep(id));
 
-    finalStatus = policyFailed ? 'DEPLOY BLOCKED' : 'SAFE TO DEPLOY';
-  } else {
-    // LOCAL
-    CI_MANDATORY.forEach(id => {
-      const isMandatory = LOCAL_MANDATORY.includes(id);
-      evaluateStep(id, isMandatory);
-    });
+  if (steps.some(s => s.status === 'FAIL')) policyFailed = true;
 
-    if (policyFailed) {
-      finalStatus = 'DEPLOY BLOCKED';
-    } else {
-      finalStatus = 'SAFE FOR LOCAL DEVELOPMENT';
-    }
-  }
+  finalStatus = policyFailed ? 'DEPLOY BLOCKED' : 'SAFE TO DEPLOY';
 
   const integrityScore = maxScore > 0 ? (score / maxScore) * 100 : 0;
   
@@ -84,7 +73,7 @@ function runPolicy() {
   fs.writeFileSync(path.resolve(process.cwd(), 'integrity-score.json'), JSON.stringify({
     score: integrityScore,
     status: finalStatus,
-    environment: env
+    hash: actualHash
   }, null, 2));
 
   // Escribir Markdown
@@ -96,16 +85,16 @@ function runPolicy() {
   fs.writeFileSync(path.resolve(process.cwd(), 'pipeline-report.md'), reportLines.join('\n'));
 
   console.log('==============================================');
-  console.log('🛡️ POLICY ENGINE EVALUATION');
+  console.log('🛡️ ZERO TRUST POLICY ENGINE');
   console.log('==============================================');
-  console.log(`Environment: ${env}`);
   console.log(`Integrity Score: ${integrityScore.toFixed(2)}%`);
   console.log(`Status: ${finalStatus}`);
+  console.log(`Manifest Hash: ${actualHash}`);
   console.log('==============================================');
 
   if (finalStatus === 'DEPLOY BLOCKED') {
-    console.error('⚠️ [WARNING MODE] Validación fallida. El despliegue continuará porque el enforcement estricto está desactivado temporalmente.');
-    process.exit(0); // Forzamos 0 para no bloquear despliegue intermedio
+    console.error('❌ VALIDACIÓN FALLIDA: Política estricta de Zero Trust ha bloqueado el despliegue.');
+    process.exit(1);
   } else {
     console.log(`✅ VALIDACIÓN EXITOSA: ${finalStatus}`);
     process.exit(0);
