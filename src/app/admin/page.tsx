@@ -223,12 +223,81 @@ export default function AdminPage() {
     alert('Playlist vaciada con éxito.');
   };
 
-  const handleGenerateCrate = async () => {
+  // Genera un .bat con los links del top-N incrustados. El DJ lo ejecuta en SU PC:
+  // descarga yt-dlp/ffmpeg solo, baja todas las canciones (IP residencial → sin
+  // bloqueo de YouTube) y las guarda en el Escritorio. No usa el servidor.
+  const handleGenerateCrate = () => {
     setShowCrateModal(false);
-    console.log('[FASE 2] DJ solicitando generación de Crate ZIP.', { limit: crateLimit, format: crateFormat });
-    // Descarga empaquetada (Fase 2) a través del endpoint
-    // Se abre en otra pestaña para iniciar la descarga del ZIP sin bloquear el frontend
-    window.open(`/api/crate/download?limit=${crateLimit}&format=${crateFormat}`, '_blank');
+    const DOWNLOADABLE = /(youtube\.com|youtu\.be|tiktok\.com|instagram\.com|facebook\.com|fb\.watch|twitter\.com|x\.com)/i;
+    const top = [...songs]
+      .filter((s) => DOWNLOADABLE.test(s.youtube_url))
+      .sort((a, b) => b.votes_count - a.votes_count)
+      .slice(0, crateLimit);
+    if (!top.length) { alert('No hay canciones descargables (YouTube/TikTok/IG) en la playlist.'); return; }
+
+    const isMp3 = crateFormat === 'mp3';
+    const dlArgs = isMp3
+      ? '-x --audio-format mp3 --audio-quality 0'
+      : '-f bestvideo+bestaudio/best --merge-output-format mp4';
+    const urlLines = top.map((s) => `  "${s.youtube_url.replace(/["\r\n]/g, '')}"`).join('\r\n');
+
+    const bat = [
+      '@echo off',
+      'setlocal enabledelayedexpansion',
+      `title Nightcore AQP - Crate Top ${top.length} (${crateFormat.toUpperCase()})`,
+      'color 0D',
+      'cd /d "%~dp0"',
+      'echo.',
+      `echo  === NIGHTCORE AQP - DESCARGA DE CRATE (${crateFormat.toUpperCase()}) ===`,
+      `echo  Se descargaran ${top.length} canciones en TU PC.`,
+      'echo.',
+      'set "TOOLS=%~dp0_tools"',
+      'if not exist "%TOOLS%" mkdir "%TOOLS%"',
+      'set "YTDLP=%TOOLS%\\yt-dlp.exe"',
+      'set "FFMPEG=%TOOLS%\\ffmpeg.exe"',
+      'if not exist "%YTDLP%" (',
+      '  echo Descargando yt-dlp ^(una sola vez^)...',
+      '  curl -L --progress-bar -o "%YTDLP%" "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"',
+      ')',
+      'if not exist "%FFMPEG%" (',
+      '  echo Descargando ffmpeg ^(una sola vez, puede tardar^)...',
+      '  curl -L --progress-bar -o "%TOOLS%\\ffmpeg.zip" "https://github.com/yt-dlp/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-win64-gpl.zip"',
+      '  powershell -NoProfile -Command "Expand-Archive -Force \'%TOOLS%\\ffmpeg.zip\' \'%TOOLS%\\ffmpeg_tmp\'" >nul 2>&1',
+      '  for /r "%TOOLS%\\ffmpeg_tmp" %%F in (ffmpeg.exe) do copy /y "%%F" "%FFMPEG%" >nul',
+      '  for /r "%TOOLS%\\ffmpeg_tmp" %%F in (ffprobe.exe) do copy /y "%%F" "%TOOLS%\\ffprobe.exe" >nul',
+      '  del /q "%TOOLS%\\ffmpeg.zip" >nul 2>&1',
+      '  rmdir /s /q "%TOOLS%\\ffmpeg_tmp" >nul 2>&1',
+      ')',
+      '"%YTDLP%" -U >nul 2>&1',
+      'set "DEST=%USERPROFILE%\\Desktop\\NightcoreAQP_Crate"',
+      'if not exist "%DEST%" mkdir "%DEST%"',
+      'echo.',
+      'echo  Guardando en: %DEST%',
+      'for %%U in (',
+      urlLines,
+      ') do (',
+      '  echo.',
+      '  echo  ---- Descargando %%~U',
+      `  "%YTDLP%" --no-playlist --ffmpeg-location "%TOOLS%" ${dlArgs} -o "%DEST%\\%%(title)s.%%(ext)s" "%%~U"`,
+      ')',
+      'echo.',
+      'echo  =========================================================',
+      'echo   LISTO! Tu crate esta en: %DEST%',
+      'echo  =========================================================',
+      'pause',
+      'endlocal',
+      '',
+    ].join('\r\n');
+
+    const blob = new Blob([bat], { type: 'application/octet-stream' });
+    const objUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objUrl;
+    a.download = `NightcoreAQP_Crate_Top${top.length}_${crateFormat}.bat`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(objUrl);
   };
 
   // Descarga el MP4 de la canción (vía media-service → Supabase Storage) y lo marca
@@ -408,7 +477,7 @@ export default function AdminPage() {
             <div className="flex items-center gap-3">
               <span className="text-xs text-muted">En cola: {songs.length}</span>
               <button onClick={() => setShowCrateModal(true)} className="btn btn-ghost px-3 py-1.5 text-xs border border-neon-pink/30 hover:bg-neon-pink/10">
-                <Download className="h-3.5 w-3.5" /> Generar Crate (ZIP)
+                <Download className="h-3.5 w-3.5" /> Generar Crate (.bat)
               </button>
               <div className="w-px h-4 bg-border mx-1" />
               <button onClick={handleClearSongs} className="btn border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-1.5 text-xs">
@@ -468,8 +537,8 @@ export default function AdminPage() {
                   </h3>
                   <button onClick={() => setShowCrateModal(false)} className="text-muted hover:text-white"><X className="h-5 w-5" /></button>
                 </div>
-                <p className="text-xs text-muted mb-4">Empaqueta las canciones más votadas en un archivo ZIP listo para Serato o Rekordbox.</p>
-                
+                <p className="text-xs text-muted mb-4">Genera un <strong>.bat</strong> con los links del top elegido. Ejecútalo en <strong>tu PC</strong>: descarga yt-dlp solo y baja todo a tu Escritorio (sin bloqueos de YouTube).</p>
+
                 <div className="space-y-4">
                   <div>
                     <label className="label">Formato</label>
@@ -479,16 +548,17 @@ export default function AdminPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="label">Cantidad a empaquetar</label>
+                    <label className="label">Cantidad a descargar</label>
                     <select className="input text-sm" value={crateLimit} onChange={(e) => setCrateLimit(Number(e.target.value))}>
                       <option value={10}>Top 10 más votadas</option>
+                      <option value={12}>Top 12 más votadas</option>
                       <option value={20}>Top 20 más votadas</option>
                       <option value={30}>Top 30 más votadas</option>
                       <option value={100}>Todas las pendientes</option>
                     </select>
                   </div>
                   <button onClick={handleGenerateCrate} className="btn btn-primary w-full mt-2">
-                    Generar y Descargar
+                    Generar .bat de descarga
                   </button>
                 </div>
               </div>

@@ -75,7 +75,7 @@ export default function PlaylistPage() {
     }
   };
 
-  // ── Buscar canción por nombre (YouTube, vía media-service) ──
+  // ── Buscar canción por nombre (YouTube, vía Data API v3 → respaldo yt-dlp) ──
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<YtSearchResult[]>([]);
@@ -88,11 +88,12 @@ export default function PlaylistPage() {
     e.preventDefault();
     const q = searchQuery.trim();
     if (!q) return;
-    if (!isMediaConfigured()) { setSearchError('La búsqueda necesita el media-service conectado.'); return; }
+    // La búsqueda corre por la YouTube Data API (Vercel), no por el media-service:
+    // funciona aunque el servidor de descargas esté caído/bloqueado.
     setSearchLoading(true); setSearchError(null); setSearchResults([]);
     try {
       const results = await searchYouTubeList(q, 6);
-      if (!results.length) setSearchError('Sin resultados. Prueba con otro nombre.');
+      if (!results.length) setSearchError('Sin resultados. Revisa que YOUTUBE_API_KEY esté configurada o prueba otro nombre.');
       else setSearchResults(results);
     } finally {
       setSearchLoading(false);
@@ -652,7 +653,6 @@ export default function PlaylistPage() {
                     {yt && (
                       <div className="hidden sm:block ml-2 w-20 h-12 rounded overflow-hidden border border-border shrink-0 relative group bg-black">
                         <img src={`https://i.ytimg.com/vi/${yt}/mqdefault.jpg`} alt="thumbnail" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
-                        <div className="absolute bottom-0.5 right-0.5 bg-black/80 px-1 rounded text-[8px] font-bold text-white">2:00</div>
                       </div>
                     )}
                   </div>

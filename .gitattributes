@@ -1,3 +1,6 @@
 # Scripts de shell SIEMPRE con finales de línea LF: si git los convierte a CRLF
 # en Windows, /bin/sh dentro de Docker falla con "bad interpreter".
 *.sh text eol=lf
+
+# Los .bat (Windows) SIEMPRE con CRLF: con LF, cmd.exe puede romper goto/labels.
+*.bat text eol=crlf
