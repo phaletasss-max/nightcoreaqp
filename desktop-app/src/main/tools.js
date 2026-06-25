@@ -166,10 +166,10 @@ function buildArgs(url, format, quality, dest, ffmpegDir, cookiesBrowser, cookie
   if (format === 'mp3') {
     a.push('-x', '--audio-format', 'mp3', '--audio-quality', '0')
   } else if (isTikTok) {
-    // TikTok suele venir en HEVC/H.265 → Windows no lo reproduce (error 0xc00d5212).
-    // Recodificamos a H.264 + AAC para que reproduzca en cualquier reproductor.
-    a.push('-f', 'best[ext=mp4]/best', '--recode-video', 'mp4',
-      '--postprocessor-args', 'VideoConvertor:-c:v libx264 -preset fast -crf 23 -c:a aac')
+    // TikTok ofrece H.264 y HEVC. Windows no reproduce HEVC (0xc00d5212). Elegimos
+    // explícitamente un formato NO-HEVC (sin "hev"/"hvc" en el vcodec) → reproduce en
+    // cualquier lado, sin recodificar (--recode-video no re-encoda un HEVC ya en mp4).
+    a.push('-f', 'best[ext=mp4][vcodec!*=hev][vcodec!*=hvc]/best[ext=mp4]/best', '--merge-output-format', 'mp4')
   } else if (quality && quality !== 'best' && /^\d+$/.test(String(quality))) {
     a.push('-f', `bestvideo[height<=${quality}]+bestaudio/best[height<=${quality}]`, '--merge-output-format', 'mp4')
   } else {
