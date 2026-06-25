@@ -79,7 +79,7 @@ els.download.addEventListener('click', async () => {
 
   els.download.disabled = false
   if (res.ok) {
-    setStatus(res.fail ? `Listo con ${res.fail} error(es)` : `¡Listo! ${res.ok} descargada(s)`, res.fail ? 'warn' : 'ok')
+    setStatus(res.fail ? `Listo con ${res.fail} error(es) — revisa el registro` : `¡Listo! ${res.done} descargada(s)`, res.fail ? 'warn' : 'ok')
   } else {
     setStatus('Error: ' + (res.error || 'desconocido'), 'error')
   }

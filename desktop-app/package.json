@@ -1,6 +1,6 @@
 {
   "name": "nightcore-downloader",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": true,
   "description": "Nightcore AQP — descargador de musica de escritorio (Electron + yt-dlp).",
   "author": "Nightcore AQP",

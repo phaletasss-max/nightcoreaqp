@@ -13,11 +13,17 @@ const IS_WIN = process.platform === 'win32'
 const BIN = join(app.getPath('userData'), 'bin')
 const YTDLP = join(BIN, IS_WIN ? 'yt-dlp.exe' : 'yt-dlp')
 const FFMPEG = join(BIN, IS_WIN ? 'ffmpeg.exe' : 'ffmpeg')
+const DENO = join(BIN, IS_WIN ? 'deno.exe' : 'deno')
 
 const YTDLP_URL = IS_WIN
   ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe'
   : 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp'
 const FFMPEG_ZIP = 'https://github.com/yt-dlp/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-win64-gpl.zip'
+// deno = runtime JS que yt-dlp usa para resolver el reto nsig de YouTube. El zip de Windows
+// trae deno.exe en la raíz (se extrae directo a BIN).
+const DENO_ZIP_WIN = 'https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip'
+
+let ytdlpUpdatedThisSession = false
 
 // Carpeta de destino por defecto: Descargas/NightcoreAQP.
 export function defaultDownloadDir() {
@@ -82,6 +88,18 @@ export async function ensureTools(log) {
     if (!IS_WIN) chmodSync(YTDLP, 0o755)
   } else {
     log({ type: 'dim', text: 'yt-dlp ya instalado.' })
+    // Mantener yt-dlp al día (YouTube cambia seguido). Una vez por sesión, best-effort.
+    if (!ytdlpUpdatedThisSession) {
+      ytdlpUpdatedThisSession = true
+      log({ type: 'info', text: 'Buscando actualización de yt-dlp…' })
+      await new Promise((resolve) => {
+        const p = spawn(YTDLP, ['-U'])
+        p.stdout.on('data', (d) => { const s = d.toString().trim(); if (s) log({ type: 'dim', text: s }) })
+        p.stderr.on('data', () => {})
+        p.on('error', () => resolve())
+        p.on('close', () => resolve())
+      })
+    }
   }
 
   let ffmpegDir = null
@@ -95,6 +113,22 @@ export async function ensureTools(log) {
     log({ type: 'dim', text: 'En este SO instala ffmpeg manualmente si falta (brew/apt).' })
   }
 
+  // deno: motor JS para el reto nsig de YouTube (sin él, YouTube suele bloquear).
+  if (existsSync(DENO)) {
+    log({ type: 'dim', text: 'deno ya instalado.' })
+  } else if (IS_WIN) {
+    try {
+      const zip = join(BIN, 'deno.zip')
+      await downloadTo(DENO_ZIP_WIN, zip, log)
+      log({ type: 'info', text: 'Extrayendo deno…' })
+      await runPowershell(`Expand-Archive -Force '${zip}' '${BIN}'`, log)
+      try { rmSync(zip) } catch { /* limpieza best-effort */ }
+      log({ type: 'ok', text: 'deno listo (motor JS para YouTube).' })
+    } catch (e) {
+      log({ type: 'dim', text: `No pude instalar deno (${e.message}). YouTube podría pedir verificación.` })
+    }
+  }
+
   return { ytdlp: YTDLP, ffmpegDir }
 }
 
@@ -102,8 +136,10 @@ export async function ensureTools(log) {
 function humanize(stderr) {
   if (!stderr) return null
   const s = stderr.toLowerCase()
+  if (s.includes('could not copy') && s.includes('cookie'))
+    return 'No pude leer las cookies de tu navegador (pasa si está abierto). Cierra Chrome/Edge y reintenta, o elige Firefox en "Cookies" (no necesita cerrarse). Con deno instalado, normalmente NO necesitas cookies.'
   if (s.includes("confirm you're not a bot") || s.includes('sign in to confirm'))
-    return 'YouTube pide verificación (anti-bot). Elige tu navegador en "Cookies" (arriba) y reintenta: usa tu sesión de YouTube para pasar la verificación.'
+    return 'YouTube pide verificación (anti-bot). Reintenta (al instalar deno suele resolverse); si insiste, elige tu navegador en "Cookies".'
   if (s.includes('private video')) return 'El video es privado.'
   if (s.includes('video unavailable') || s.includes('not available')) return 'El video no está disponible o fue eliminado.'
   if (s.includes('unsupported url')) return 'Enlace no soportado.'
@@ -141,7 +177,10 @@ function buildArgs(url, format, quality, dest, ffmpegDir, cookiesBrowser) {
 
 function runYtdlp(bin, args, log) {
   return new Promise((resolve, reject) => {
-    const p = spawn(bin, args)
+    // Pone la carpeta bin en el PATH para que yt-dlp encuentre deno (reto nsig de YouTube)
+    // y ffmpeg sin rutas absolutas.
+    const env = { ...process.env, PATH: `${BIN}${IS_WIN ? ';' : ':'}${process.env.PATH || ''}` }
+    const p = spawn(bin, args, { env })
     let err = ''
     p.stdout.on('data', (d) => d.toString().split(/\r?\n/).forEach((l) => l.trim() && log({ type: 'line', text: l.trim() })))
     p.stderr.on('data', (d) => { const s = d.toString(); err += s; s.split(/\r?\n/).forEach((l) => l.trim() && log({ type: 'dim', text: l.trim() })) })
@@ -171,5 +210,6 @@ export async function downloadAll({ urls, format = 'mp3', quality = 'best', dest
     }
   }
   log({ type: fail ? 'info' : 'ok', text: `Terminado: ${ok} ok · ${fail} con error. Carpeta: ${target}` })
-  return { ok, fail, dest: target }
+  // OJO: la clave es `done` (no `ok`) para no chocar con el `ok: true` del IPC.
+  return { done: ok, fail, dest: target }
 }
