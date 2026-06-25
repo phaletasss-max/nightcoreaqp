@@ -103,7 +103,7 @@ function humanize(stderr) {
   if (!stderr) return null
   const s = stderr.toLowerCase()
   if (s.includes("confirm you're not a bot") || s.includes('sign in to confirm'))
-    return 'YouTube pide verificación (anti-bot). Reintenta o usa otro enlace; TikTok/Instagram suelen funcionar.'
+    return 'YouTube pide verificación (anti-bot). Elige tu navegador en "Cookies" (arriba) y reintenta: usa tu sesión de YouTube para pasar la verificación.'
   if (s.includes('private video')) return 'El video es privado.'
   if (s.includes('video unavailable') || s.includes('not available')) return 'El video no está disponible o fue eliminado.'
   if (s.includes('unsupported url')) return 'Enlace no soportado.'
@@ -112,7 +112,7 @@ function humanize(stderr) {
 }
 
 // Args de yt-dlp según formato/calidad. Descarga a archivo (no a stdout).
-function buildArgs(url, format, quality, dest, ffmpegDir) {
+function buildArgs(url, format, quality, dest, ffmpegDir, cookiesBrowser) {
   const isTikTok = url.includes('tiktok.com')
   // --restrict-filenames: nombres ASCII sin espacios ni '#'. Evita el bug de Windows que
   // recorta el espacio final del nombre (TikTok: "#foryou .mp4") y rompe ffprobe al
@@ -121,6 +121,8 @@ function buildArgs(url, format, quality, dest, ffmpegDir) {
     '--extractor-args', 'youtube:player_client=android,web_creator,default',
     '-o', join(dest, '%(title)s.%(ext)s')]
   if (ffmpegDir) a.unshift('--ffmpeg-location', ffmpegDir)
+  // Cookies del navegador del usuario → pasa la verificación anti-bot de YouTube.
+  if (cookiesBrowser) a.push('--cookies-from-browser', cookiesBrowser)
   if (format === 'mp3') {
     a.push('-x', '--audio-format', 'mp3', '--audio-quality', '0')
   } else if (isTikTok) {
@@ -149,19 +151,20 @@ function runYtdlp(bin, args, log) {
 }
 
 // Descarga una lista de URLs a `dest`, en secuencia, reportando logs.
-export async function downloadAll({ urls, format = 'mp3', quality = 'best', dest }, log) {
+export async function downloadAll({ urls, format = 'mp3', quality = 'best', dest, cookiesBrowser }, log) {
   const list = (urls || []).map((u) => String(u).trim()).filter(Boolean)
   if (!list.length) throw new Error('No hay enlaces para descargar.')
   const target = dest || defaultDownloadDir()
   ensureDir(target)
 
   const { ytdlp, ffmpegDir } = await ensureTools(log)
+  if (cookiesBrowser) log({ type: 'dim', text: `Usando cookies de: ${cookiesBrowser}` })
 
   let ok = 0, fail = 0
   for (let i = 0; i < list.length; i++) {
     log({ type: 'head', text: `[${i + 1}/${list.length}] ${list[i]}` })
     try {
-      await runYtdlp(ytdlp, buildArgs(list[i], format, quality, target, ffmpegDir), log)
+      await runYtdlp(ytdlp, buildArgs(list[i], format, quality, target, ffmpegDir, cookiesBrowser), log)
       ok++; log({ type: 'ok', text: `✓ Descargada (${i + 1}/${list.length})` })
     } catch (e) {
       fail++; log({ type: 'error', text: `✗ Falló: ${e.message}` })

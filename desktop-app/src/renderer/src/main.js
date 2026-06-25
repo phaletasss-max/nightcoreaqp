@@ -5,6 +5,7 @@ const els = {
   urls: $('urls'),
   format: $('format'),
   quality: $('quality'),
+  cookies: $('cookies'),
   download: $('download'),
   folderPath: $('folder-path'),
   changeFolder: $('change-folder'),
@@ -13,7 +14,7 @@ const els = {
   status: $('status'),
 }
 
-let state = { format: 'mp3', quality: 'best', dest: '' }
+let state = { format: 'mp3', quality: 'best', dest: '', cookiesBrowser: '' }
 
 function logLine(entry) {
   const div = document.createElement('div')
@@ -42,6 +43,7 @@ els.format.querySelectorAll('.seg-btn').forEach((btn) => {
 })
 
 els.quality.addEventListener('change', () => { state.quality = els.quality.value })
+els.cookies.addEventListener('change', () => { state.cookiesBrowser = els.cookies.value })
 
 // Carpeta de destino.
 async function refreshFolder(path) {
@@ -72,6 +74,7 @@ els.download.addEventListener('click', async () => {
     format: state.format,
     quality: state.quality,
     dest: state.dest,
+    cookiesBrowser: state.cookiesBrowser,
   })
 
   els.download.disabled = false
