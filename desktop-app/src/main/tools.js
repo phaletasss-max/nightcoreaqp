@@ -113,15 +113,21 @@ function humanize(stderr) {
 
 // Args de yt-dlp según formato/calidad. Descarga a archivo (no a stdout).
 function buildArgs(url, format, quality, dest, ffmpegDir) {
-  const a = ['--no-playlist', '--newline', '--no-warnings',
+  const isTikTok = url.includes('tiktok.com')
+  // --restrict-filenames: nombres ASCII sin espacios ni '#'. Evita el bug de Windows que
+  // recorta el espacio final del nombre (TikTok: "#foryou .mp4") y rompe ffprobe al
+  // extraer MP3 ("unable to obtain file audio codec with ffprobe").
+  const a = ['--no-playlist', '--newline', '--no-warnings', '--restrict-filenames',
     '--extractor-args', 'youtube:player_client=android,web_creator,default',
     '-o', join(dest, '%(title)s.%(ext)s')]
   if (ffmpegDir) a.unshift('--ffmpeg-location', ffmpegDir)
   if (format === 'mp3') {
     a.push('-x', '--audio-format', 'mp3', '--audio-quality', '0')
-  } else if (url.includes('tiktok.com')) {
-    // Fix HEVC de TikTok (fuerza H.264 para que reproduzca en cualquier lado).
-    a.push('-f', 'best[ext=mp4][vcodec~="^((?!hevc).)*$"]/best[ext=mp4]/best', '--merge-output-format', 'mp4')
+  } else if (isTikTok) {
+    // TikTok suele venir en HEVC/H.265 → Windows no lo reproduce (error 0xc00d5212).
+    // Recodificamos a H.264 + AAC para que reproduzca en cualquier reproductor.
+    a.push('-f', 'best[ext=mp4]/best', '--recode-video', 'mp4',
+      '--postprocessor-args', 'VideoConvertor:-c:v libx264 -preset fast -crf 23 -c:a aac')
   } else if (quality && quality !== 'best' && /^\d+$/.test(String(quality))) {
     a.push('-f', `bestvideo[height<=${quality}]+bestaudio/best[height<=${quality}]`, '--merge-output-format', 'mp4')
   } else {

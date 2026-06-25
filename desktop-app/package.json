@@ -8,10 +8,27 @@
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
-    "preview": "electron-vite preview"
+    "preview": "electron-vite preview",
+    "dist": "electron-vite build && electron-builder --win"
+  },
+  "build": {
+    "appId": "com.nightcoreaqp.downloader",
+    "productName": "Nightcore AQP Downloader",
+    "directories": { "output": "dist" },
+    "files": ["out/**/*", "package.json"],
+    "win": { "target": ["nsis"] },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Nightcore AQP Downloader"
+    }
   },
   "devDependencies": {
     "electron": "^31.0.0",
+    "electron-builder": "^25.0.0",
     "electron-vite": "^2.3.0",
     "vite": "^5.4.0"
   }
