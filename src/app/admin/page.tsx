@@ -16,6 +16,7 @@ import {
   getAttendanceProofs, setAttendanceProofStatus,
 } from '@/lib/data';
 import Link from 'next/link';
+import { supabase } from '@/utils/supabase';
 import { storeBackup, isMediaConfigured } from '@/lib/media';
 import { buildCrateBat, downloadTextFile } from '@/lib/crate';
 import type { EventItem, Song, Attendee, EventStatus, Profile, Costume, EventComment, AttendanceProof } from '@/lib/types';
@@ -55,7 +56,7 @@ function askDangerKey(action: string): boolean {
 }
 
 export default function AdminPage() {
-  const { isStaff } = useAuth();
+  const { isStaff, loading, signIn, signOut, configured, profile } = useAuth();
   const [tab, setTab] = useState<Tab>('kpi');
   const [events, setEvents] = useState<EventItem[]>([]);
   const [songs, setSongs] = useState<Song[]>([]);
@@ -105,15 +106,42 @@ export default function AdminPage() {
   const [evTikToksList, setEvTikToksList] = useState<{title: string; url: string}[]>([]);
   const [evDJs, setEvDJs] = useState<{ name: string; tel: string; color: string; bg_url: string }[]>([]);
 
-  const [strictAuth, setStrictAuth] = useState(false);
+  // Acceso al panel: con Supabase configurado se exige SESIÓN REAL de Supabase. La RLS solo
+  // deja GUARDAR ajustes/eventos con un JWT real + rol staff; el viejo login "maestro"
+  // hardcodeado abría la UI pero sus escrituras daban 401 (bug B1). En modo demo (sin
+  // Supabase) se entra como staff y todo persiste en localStorage.
+  const [realSession, setRealSession] = useState<boolean | null>(configured ? null : true);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [loggingIn, setLoggingIn] = useState(false);
 
-  // Si el usuario YA es staff por rol real de Supabase (admin/dj), no le pedimos la
-  // contraseña maestra: entra directo desde el botón "Consola" de su perfil. La
-  // contraseña queda como respaldo (acceso de emergencia sin sesión real).
-  useEffect(() => { if (isStaff) setStrictAuth(true); }, [isStaff]);
+  useEffect(() => {
+    if (!configured) { setRealSession(true); return; }
+    let active = true;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (active) setRealSession(!!session?.user);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setRealSession(!!session?.user);
+    });
+    return () => { active = false; sub.subscription.unsubscribe(); };
+  }, [configured]);
+
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    setLoggingIn(true);
+    const { error } = await signIn(loginEmail.trim(), loginPass);
+    setLoggingIn(false);
+    if (error) setLoginError(error);
+    // onAuthStateChange refresca realSession; el contexto recarga perfil/rol.
+  };
+
+  // En producción, el acceso depende del rol REAL en la BD (lo que valida is_staff() en la
+  // RLS). En demo basta con isStaff del contexto.
+  const roleIsStaff = profile?.role === 'admin' || profile?.role === 'dj';
+  const canAccess = configured ? roleIsStaff : isStaff;
 
   const PRESET_DJS = [
     { name: 'DJ Lobito', tel: '946 388 627', color: 'neon-magenta', bg_url: '/fondoscenecoe.mp4' },
@@ -158,27 +186,52 @@ export default function AdminPage() {
     window.dispatchEvent(new CustomEvent('nq-design-updated', { detail: next }));
   };
 
-  if (!strictAuth) {
+  // 1) Verificando sesión.
+  if (loading || (configured && realSession === null)) {
+    return (
+      <div className="card p-10 text-center max-w-md mx-auto space-y-4">
+        <Loader2 className="h-8 w-8 text-neon-cyan mx-auto animate-spin" />
+        <p className="text-sm text-muted">Verificando sesión…</p>
+      </div>
+    );
+  }
+
+  // 2) En producción sin sesión real → login REAL de Supabase. Su JWT es lo que la RLS exige
+  //    para que los ajustes se GUARDEN (el login hardcodeado anterior daba 401).
+  if (configured && !realSession) {
     return (
       <div className="card p-10 text-center max-w-md mx-auto space-y-4">
         <ShieldAlert className="h-10 w-10 text-neon-pink mx-auto mb-3" />
         <h1 className="section-title text-xl">Acceso Admin</h1>
-        <p className="text-sm text-muted">Ingresa tus credenciales maestras para continuar.</p>
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          const ADMIN_EMAILS = ['manchuriam@nightcore.aqp.fest.com', 'manchuria@nightcoreaqp.com', 'admin@nightcore.aqp', 'phaletasss@gmail.com'];
-          if (ADMIN_EMAILS.includes(loginEmail) && loginPass === 'Nakamura321.') {
-            setStrictAuth(true);
-            setLoginError('');
-          } else {
-            setLoginError('Credenciales incorrectas');
-          }
-        }} className="space-y-4 mt-4">
+        <p className="text-sm text-muted">Inicia sesión con tu <strong>cuenta real de Supabase</strong> (rol admin/DJ). Solo así se guardan los cambios.</p>
+        <form onSubmit={handleAdminLogin} className="space-y-4 mt-4">
           <input type="email" required className="input w-full text-center" placeholder="Correo electrónico" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} />
           <input type="password" required className="input w-full text-center" placeholder="Contraseña" value={loginPass} onChange={e => setLoginPass(e.target.value)} />
           {loginError && <p className="text-red-500 text-xs font-bold">{loginError}</p>}
-          <button type="submit" className="btn btn-primary w-full">Ingresar a Consola</button>
+          <button type="submit" disabled={loggingIn} className="btn btn-primary w-full">
+            {loggingIn ? 'Ingresando…' : 'Ingresar a Consola'}
+          </button>
         </form>
+        <p className="text-[11px] text-muted-2 pt-3 border-t border-border leading-relaxed">
+          ¿Aún no eres admin? Regístrate normal en la app y promueve tu cuenta en Supabase:<br />
+          <code className="text-neon-cyan">update profiles set role=&apos;admin&apos; where email=&apos;TU_CORREO&apos;;</code>
+        </p>
+      </div>
+    );
+  }
+
+  // 3) Hay sesión real pero la cuenta no tiene rol staff (sus escrituras darían 401).
+  if (!canAccess) {
+    return (
+      <div className="card p-10 text-center max-w-md mx-auto space-y-4">
+        <ShieldAlert className="h-10 w-10 text-neon-pink mx-auto mb-3" />
+        <h1 className="section-title text-xl">Sin permisos</h1>
+        <p className="text-sm text-muted">
+          Tu cuenta <strong>{profile?.email || ''}</strong> no tiene rol <strong>admin</strong> ni <strong>DJ</strong>.
+          Promuévela en el SQL Editor de Supabase:
+        </p>
+        <code className="text-neon-cyan text-xs block break-all">update profiles set role=&apos;admin&apos; where email=&apos;{profile?.email || 'TU_CORREO'}&apos;;</code>
+        <button onClick={() => signOut()} className="text-xs text-neon-cyan font-bold hover:underline">Cerrar sesión</button>
       </div>
     );
   }
