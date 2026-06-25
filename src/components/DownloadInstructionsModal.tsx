@@ -25,14 +25,24 @@ export default function DownloadInstructionsModal({ onClose }: { onClose: () => 
             <div className="p-4 rounded-xl border border-neon-cyan/20 bg-neon-cyan/5">
               <div className="flex items-center gap-3 mb-2">
                 <Monitor className="h-5 w-5 text-neon-cyan" />
-                <h4 className="font-bold text-white text-sm">Para PC (Windows)</h4>
+                <h4 className="font-bold text-white text-sm">Para PC (Windows) — recomendado</h4>
               </div>
-              <ol className="text-xs text-muted-2 space-y-1.5 list-decimal list-inside">
-                <li>Elige <strong>MP3 o MP4</strong> y pulsa <strong>Descargar</strong> (toda la lista) o el <strong>⏬</strong> de una canción.</li>
-                <li>Se baja un archivo <strong>.bat</strong> con tus canciones ya incluidas.</li>
-                <li><strong>Doble clic</strong> en ese .bat: instala yt-dlp solo y guarda la música en tu Escritorio.</li>
-              </ol>
-              <p className="text-[11px] text-neon-cyan/80 mt-2 flex items-center gap-1"><Terminal className="h-3 w-3" /> Sin terminal manual: tú solo das doble clic.</p>
+              <p className="text-xs text-muted-2 mb-3">
+                Instala la <strong>app de escritorio</strong>: pega tus enlaces, elige MP3/MP4 y descarga con botones (sin terminal). Se instala en 2 clics, pregunta la carpeta y crea el acceso directo. Se actualiza sola.
+              </p>
+              <a
+                href="https://github.com/phaletasss-max/nightcoreaqp/releases/latest/download/NightcoreAQP-Downloader-Setup.exe"
+                target="_blank" rel="noreferrer"
+                className="btn btn-primary w-full justify-center text-xs py-2.5"
+              >
+                <Download className="h-4 w-4 mr-1" /> Descargar la App (.exe)
+              </a>
+              <a
+                href="/downloads/Crate_Builder.bat" download
+                className="mt-2 block text-center text-[11px] text-neon-cyan/80 hover:text-neon-cyan flex items-center justify-center gap-1"
+              >
+                <Terminal className="h-3 w-3" /> ¿Prefieres sin instalar? Usa el script .bat
+              </a>
             </div>
 
             <div className="p-4 rounded-xl border border-neon-pink/20 bg-neon-pink/5">

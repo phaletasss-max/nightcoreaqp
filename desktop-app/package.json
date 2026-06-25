@@ -9,13 +9,18 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
-    "dist": "electron-vite build && electron-builder --win"
+    "dist": "electron-vite build && electron-builder --win",
+    "release": "electron-vite build && electron-builder --win --publish always"
   },
   "build": {
     "appId": "com.nightcoreaqp.downloader",
     "productName": "Nightcore AQP Downloader",
     "directories": { "output": "dist" },
     "files": ["out/**/*", "package.json"],
+    "artifactName": "NightcoreAQP-Downloader-Setup.${ext}",
+    "publish": [
+      { "provider": "github", "owner": "phaletasss-max", "repo": "nightcoreaqp" }
+    ],
     "win": { "target": ["nsis"] },
     "nsis": {
       "oneClick": false,
@@ -25,6 +30,9 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Nightcore AQP Downloader"
     }
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
   },
   "devDependencies": {
     "electron": "^31.0.0",

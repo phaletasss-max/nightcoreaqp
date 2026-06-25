@@ -115,7 +115,7 @@ Tailwind v4              Storage · RLS            media-service (Render) = resp
 | Asistente IA (Gemini) | ✅ | `GEMINI_API_KEY` |
 | PWA instalable + offline básico | ✅ | SW arreglado hoy (fallback) |
 | App móvil (Expo) | ⛔ | Solo el stub por defecto |
-| App de escritorio · descargas (Electron) | 🟡 | `desktop-app/`: UI + auto-instala yt-dlp/ffmpeg + descarga. YouTube/IG/TikTok OK (TikTok: `--restrict-filenames` para MP3 + `--recode-video` H.264 para MP4). `electron-builder` configurado (`npm run dist` → instalador `.exe` con acceso directo). Falta: generar el `.exe` + icono (2026-06-25) |
+| App de escritorio · descargas (Electron) | 🟡 | `desktop-app/`: UI + auto-instala yt-dlp/ffmpeg + descarga (YouTube/IG/TikTok OK). Instalador NSIS (`npm run dist`, requiere Modo desarrollador) + **auto-update** vía GitHub Releases (`npm run release`). Web: botón "Descargar la App (.exe)". Falta: que el usuario active Modo desarrollador y publique la 1ª release + icono (2026-06-25) |
 | Convertidor de archivos | ⏸️ | Fuera del repo |
 | Verificación de cuenta (email/WhatsApp) | ⛔ | Investigado en ROADMAP §8 |
 | Feed personalizado por interés | ⛔ | `feed_items` / `feed_seen` no creadas |

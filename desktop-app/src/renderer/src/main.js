@@ -87,3 +87,35 @@ setStatus('Preparando herramientas…', 'busy')
 window.api.ensureTools().then((r) => {
   setStatus(r.ok ? 'Listo para descargar.' : 'Revisa el registro.', r.ok ? 'ok' : 'error')
 })
+
+// ── Versión + auto-actualización ─────────────────────────────────────────────
+window.api.appVersion().then((v) => { $('version').textContent = `v${v}` })
+
+const updateBar = $('update-bar')
+const updateText = $('update-text')
+const updateInstall = $('update-install')
+
+window.api.onUpdate((d) => {
+  switch (d.state) {
+    case 'checking':
+      updateBar.classList.remove('hidden'); updateBar.className = 'update-bar info'
+      updateText.textContent = 'Buscando actualizaciones…'; break
+    case 'available':
+      updateBar.className = 'update-bar info'
+      updateText.textContent = `Nueva versión ${d.version} encontrada. Descargando…`; break
+    case 'downloading':
+      updateBar.className = 'update-bar info'
+      updateText.textContent = `Descargando actualización… ${d.percent}%`; break
+    case 'ready':
+      updateBar.className = 'update-bar ready'
+      updateText.textContent = `Actualización ${d.version} lista.`
+      updateInstall.classList.remove('hidden'); break
+    case 'error':
+      updateBar.classList.add('hidden'); break // sin internet / sin releases: no molestar
+    case 'none':
+    default:
+      updateBar.classList.add('hidden'); break
+  }
+})
+
+updateInstall.addEventListener('click', () => window.api.installUpdate())

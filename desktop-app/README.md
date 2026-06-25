@@ -38,10 +38,40 @@ desktop-app/
    └─ renderer/               # interfaz (HTML/CSS/JS)
 ```
 
-## Próximo (Fase 2 · versión de usuario)
-- Empaquetar a un **`.exe` profesional** con `electron-builder` (doble clic, sin instalar nada).
-- Integración con la web: botón "Abrir en la app" que pase la lista de canciones.
-- Firma de código / icono / instalador.
+## Empaquetar el `.exe` (instalador)
+
+```bash
+npm run dist
+```
+
+Genera `dist/NightcoreAQP-Downloader-Setup.exe` — un instalador NSIS: 2 clics, pregunta la
+carpeta de instalación y crea el acceso directo al escritorio. El cliente **no ve terminal**.
+
+> ⚠️ La **primera vez** en Windows hay que activar **Modo de desarrollador**
+> (*Configuración → Privacidad y seguridad → Para desarrolladores → Modo de desarrollador*)
+> **o** correr el comando desde una terminal **como Administrador**. Es porque `electron-builder`
+> extrae una herramienta con symlinks de macOS y Windows exige privilegio para crearlos.
+
+## Publicar + auto-actualización
+
+La app se **auto-actualiza** desde **GitHub Releases** (renderer CSS/JS + proceso principal).
+Para sacar una versión nueva:
+
+1. Sube el número en `package.json` (`"version"`), p. ej. `0.1.0` → `0.1.1`.
+2. Exporta un token de GitHub con permiso `repo`: `set GH_TOKEN=ghp_...` (Windows) / `export GH_TOKEN=...`.
+3. `npm run release` → compila, genera el instalador y lo **publica** en
+   `github.com/phaletasss-max/nightcoreaqp/releases` (con `latest.yml` para el updater).
+
+Las apps ya instaladas detectan la versión nueva al abrir, la descargan y la aplican al
+reiniciar (botón "Reiniciar y actualizar"). Hasta los parches de CSS/función llegan así.
+
+> El botón "Descargar la App (.exe)" de la web apunta a
+> `releases/latest/download/NightcoreAQP-Downloader-Setup.exe` — funciona en cuanto publiques
+> la primera release.
+
+## Próximo
+- Icono propio (`build/icon.ico`) y firma de código (opcional).
+- Botón "Abrir en la app" desde la web que pase la lista de canciones directo.
 
 ## Notas
 - Requiere **Node 18+** para desarrollo.

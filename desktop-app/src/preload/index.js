@@ -13,4 +13,12 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('log', handler)
     return () => ipcRenderer.removeListener('log', handler)
   },
+  // Auto-actualización.
+  appVersion: () => ipcRenderer.invoke('app-version'),
+  installUpdate: () => ipcRenderer.invoke('install-update'),
+  onUpdate: (cb) => {
+    const handler = (_e, data) => cb(data)
+    ipcRenderer.on('update', handler)
+    return () => ipcRenderer.removeListener('update', handler)
+  },
 })
