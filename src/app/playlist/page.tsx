@@ -315,8 +315,8 @@ export default function PlaylistPage() {
             </h1>
             <p className="text-sm text-muted mt-1">Sugiere y vota. El Top 10 entra al setlist en vivo.</p>
           </div>
-          <div className="flex gap-2">
-            <button 
+          <div className="flex flex-wrap gap-2">
+            <button
               onClick={() => {
                 if (filtered.length === 0) return;
                 const itemsToQueue = filtered.map(s => {
