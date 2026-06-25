@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Music, Calendar, Camera, User, Bell, Download,
-  Flame, Coins, Menu, X, LogIn, LogOut, Sparkles
+  Flame, Coins, Menu, X, LogIn, LogOut, Sparkles, MessageCircle
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import AuthModal from '@/components/AuthModal';
@@ -24,6 +24,7 @@ export default function Navbar() {
   const navItems = [
     { name: 'Eventos', href: '/', icon: Calendar },
     { name: 'Playlist', href: '/playlist', icon: Music },
+    { name: 'Chat', href: '/chat', icon: MessageCircle },
     { name: 'Disfraces', href: '/disfraces', icon: Camera },
     { name: 'Historial', href: '/history', icon: Trophy },
     { name: 'Descargas', href: '/perfil/descargas', icon: Download },

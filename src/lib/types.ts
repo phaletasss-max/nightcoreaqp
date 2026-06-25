@@ -16,6 +16,20 @@ export interface Profile {
   avatar_url: string | null;
   email?: string;
   is_private?: boolean;
+  bio?: string | null;
+  tiktok_url?: string | null;
+  instagram_url?: string | null;
+  bg_url?: string | null;
+  accent?: string | null;
+}
+
+export interface ProfilePhoto {
+  id: string;
+  user_id: string;
+  url: string;
+  caption?: string | null;
+  position: number;
+  created_at: string;
 }
 
 export interface EventItem {
@@ -135,4 +149,14 @@ export interface AttendanceProof {
   reviewed_by?: string;
   // Joins
   profiles?: { username: string; avatar_url: string | null };
+}
+
+export interface ChatMessage {
+  id: string;
+  room: string;
+  user_id: string | null;
+  username: string;
+  content: string;
+  hidden?: boolean;
+  created_at: string;
 }

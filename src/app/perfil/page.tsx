@@ -9,6 +9,7 @@ import {
 import { useAuth } from '@/lib/auth';
 import { getAttendees, getUserActivity, addSong, uploadMediaFile, updateProfilePrivacy, updateProfileAvatar } from '@/lib/data';
 import { searchYouTube } from '@/lib/media';
+import ProfileEditorExtras from '@/components/ProfileEditorExtras';
 import type { UserActivity } from '@/lib/data';
 import type { Attendee } from '@/lib/types';
 
@@ -331,7 +332,7 @@ export default function PerfilPage() {
                   onChange={(e) => handleAvatarUpload(e.target.files?.[0])} />
               </label>
               <div>
-                <h2 className="text-xl font-extrabold text-white">
+                <h2 className="text-xl font-extrabold text-white" style={profile?.accent ? { color: profile.accent } : undefined}>
                   {displayName}
                 </h2>
                 <span className={`badge ${rank.cls} mt-2`}>{rank.title}</span>
@@ -438,6 +439,9 @@ export default function PerfilPage() {
               </div>
             </div>
           </div>
+
+        {/* Bio, links sociales, acento y galería (Perfil+) — al activar "Personalizar perfil" */}
+        {editing && <ProfileEditorExtras />}
 
         {/* Notificaciones */}
         <div className="card accent-pink p-6 space-y-4">

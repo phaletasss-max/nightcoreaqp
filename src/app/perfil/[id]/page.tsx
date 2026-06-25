@@ -7,10 +7,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { User, Flame, Coins, Camera, MessageSquare, Heart, Medal, Lock, ArrowLeft } from 'lucide-react';
-import { getProfileById, getUserActivity } from '@/lib/data';
+import { User, Flame, Coins, Camera, MessageSquare, Heart, Medal, Lock, ArrowLeft, AtSign, Music2, ExternalLink } from 'lucide-react';
+import { getProfileById, getUserActivity, getProfilePhotos } from '@/lib/data';
 import type { UserActivity } from '@/lib/data';
-import type { Profile } from '@/lib/types';
+import type { Profile, ProfilePhoto } from '@/lib/types';
 
 function rankFor(points: number) {
   if (points >= 200) return { title: 'Hypebeast de Oro', cls: 'badge-yellow' };
@@ -23,6 +23,7 @@ export default function PublicProfilePage() {
   const id = params?.id;
   const [profile, setProfile] = useState<Profile | null>(null);
   const [activity, setActivity] = useState<UserActivity>({ costumes: [], comments: [], attended: [], likesGiven: 0 });
+  const [photos, setPhotos] = useState<ProfilePhoto[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,8 +33,11 @@ export default function PublicProfilePage() {
     getProfileById(id).then((p) => {
       if (!active) return;
       setProfile(p);
-      // Solo cargamos actividad si el perfil NO es privado.
-      if (p && !p.is_private) getUserActivity(id).then((a) => active && setActivity(a));
+      // Solo cargamos actividad y galería si el perfil NO es privado.
+      if (p && !p.is_private) {
+        getUserActivity(id).then((a) => active && setActivity(a));
+        getProfilePhotos(id).then((ph) => active && setPhotos(ph));
+      }
     }).finally(() => active && setLoading(false));
     return () => { active = false; };
   }, [id]);
@@ -54,27 +58,52 @@ export default function PublicProfilePage() {
 
   const rank = rankFor(profile.points);
   const isPrivate = !!profile.is_private;
+  const accent = profile.accent || undefined;
+  const hasSocials = !!(profile.tiktok_url || profile.instagram_url);
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <Link href="/" className="text-muted hover:text-white text-sm inline-flex items-center gap-1"><ArrowLeft className="h-4 w-4" /> Volver</Link>
 
       {/* Cabecera */}
-      <div className="card p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
-        <div className="h-20 w-20 rounded-full bg-neon-pink/15 border border-neon-pink/30 flex items-center justify-center overflow-hidden shrink-0">
+      <div
+        className="card p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left"
+        style={accent ? { borderColor: `color-mix(in srgb, ${accent} 50%, transparent)` } : undefined}
+      >
+        <div
+          className="h-20 w-20 rounded-full bg-neon-pink/15 border border-neon-pink/30 flex items-center justify-center overflow-hidden shrink-0"
+          style={accent ? { borderColor: `color-mix(in srgb, ${accent} 60%, transparent)`, backgroundColor: `color-mix(in srgb, ${accent} 14%, transparent)` } : undefined}
+        >
           {profile.avatar_url
-             
+
             ? <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
             : <User className="h-9 w-9 text-neon-pink" />}
         </div>
         <div className="flex-1">
-          <h1 className="text-2xl font-extrabold text-white">{profile.username}</h1>
+          <h1 className="text-2xl font-extrabold text-white" style={accent ? { color: accent } : undefined}>{profile.username}</h1>
           <div className="flex items-center justify-center sm:justify-start gap-2 mt-2 flex-wrap">
             <span className={`badge ${rank.cls}`}>{rank.title}</span>
             <span className="badge badge-cyan"><Coins className="h-3.5 w-3.5" /> {profile.points} pts</span>
             <span className="badge badge-pink"><Flame className="h-3.5 w-3.5" /> {profile.streak_count}d</span>
             {isPrivate && <span className="badge badge-yellow"><Lock className="h-3.5 w-3.5" /> Privado</span>}
           </div>
+
+          {profile.bio && <p className="text-sm text-muted mt-3 whitespace-pre-wrap">{profile.bio}</p>}
+
+          {hasSocials && (
+            <div className="flex items-center justify-center sm:justify-start gap-2 mt-3 flex-wrap">
+              {profile.tiktok_url && (
+                <a href={profile.tiktok_url} target="_blank" rel="noopener noreferrer" className="badge badge-pink hover:opacity-80">
+                  <Music2 className="h-3.5 w-3.5" /> TikTok <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
+              {profile.instagram_url && (
+                <a href={profile.instagram_url} target="_blank" rel="noopener noreferrer" className="badge badge-cyan hover:opacity-80">
+                  <AtSign className="h-3.5 w-3.5" /> Instagram <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -86,6 +115,21 @@ export default function PublicProfilePage() {
         </div>
       ) : (
         <>
+          {/* Galería de fotos */}
+          {photos.length > 0 && (
+            <div className="card p-6 space-y-3">
+              <h2 className="section-title text-base flex items-center gap-2"><Camera className="h-5 w-5 text-neon-cyan" /> Galería</h2>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {photos.map((ph) => (
+                  <a key={ph.id} href={ph.url} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-lg overflow-hidden border border-border hover:opacity-90 transition-opacity">
+                    { }
+                    <img src={ph.url} alt={ph.caption ?? 'foto'} className="w-full h-full object-cover" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Stats */}
           <div className="grid grid-cols-3 gap-3">
             {[

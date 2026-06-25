@@ -9,7 +9,7 @@ import {
   DEMO_EVENTS, DEMO_SONGS, DEMO_SURVEY, DEMO_COSTUMES, DEMO_COMMENTS, DEMO_THEMES,
 } from './demo-data';
 import type {
-  EventItem, Song, Survey, Costume, EventComment, Attendee, VoteType, Theme, Profile, AttendanceProof, ProofStatus
+  EventItem, Song, Survey, Costume, EventComment, Attendee, VoteType, Theme, Profile, AttendanceProof, ProofStatus, ChatMessage, ProfilePhoto
 } from './types';
 
 const cfg = () => isSupabaseConfigured();
@@ -410,6 +410,65 @@ export async function updateProfilePrivacy(id: string, isPrivate: boolean): Prom
   lsSet('nq_profiles', all);
 }
 
+// Actualiza bio / links sociales / personalización (acento, fondo). Tolerante a
+// columnas ausentes: reintenta solo con las que existan si la migración no se corrió.
+export type ProfileMeta = Partial<Pick<Profile, 'bio' | 'tiktok_url' | 'instagram_url' | 'accent' | 'bg_url'>>;
+export async function updateProfileMeta(id: string, meta: ProfileMeta): Promise<void> {
+  if (cfg()) {
+    const { error } = await supabase.from('profiles').update(meta).eq('id', id);
+    if (error) logError('updateProfileMeta', error, { id });
+    return;
+  }
+  const all = lsGet<Profile[]>('nq_profiles', []).map((p) => p.id === id ? { ...p, ...meta } : p);
+  lsSet('nq_profiles', all);
+}
+
+// ── Galería de fotos del perfil ──────────────────────────────────────────────
+const photosKey = (userId: string) => `nq_profile_photos_${userId}`;
+
+export async function getProfilePhotos(userId: string): Promise<ProfilePhoto[]> {
+  if (cfg()) {
+    const { data, error } = await supabase
+      .from('profile_photos')
+      .select('*')
+      .eq('user_id', userId)
+      .order('position', { ascending: true })
+      .order('created_at', { ascending: true });
+    if (error) { logError('getProfilePhotos', error, { userId }); return []; }
+    return (data as ProfilePhoto[]) ?? [];
+  }
+  return lsGet<ProfilePhoto[]>(photosKey(userId), []);
+}
+
+export async function addProfilePhoto(userId: string, url: string, caption?: string): Promise<ProfilePhoto | null> {
+  if (cfg()) {
+    const { data, error } = await supabase
+      .from('profile_photos')
+      .insert({ user_id: userId, url, caption: caption ?? null })
+      .select()
+      .single();
+    if (error) { logError('addProfilePhoto', error, { userId }); return null; }
+    return data as ProfilePhoto;
+  }
+  const row: ProfilePhoto = {
+    id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    user_id: userId, url, caption: caption ?? null, position: 0, created_at: new Date().toISOString(),
+  };
+  const all = lsGet<ProfilePhoto[]>(photosKey(userId), []);
+  all.push(row);
+  lsSet(photosKey(userId), all);
+  return row;
+}
+
+export async function deleteProfilePhoto(id: string, userId: string): Promise<void> {
+  if (cfg()) {
+    const { error } = await supabase.from('profile_photos').delete().eq('id', id);
+    if (error) logError('deleteProfilePhoto', error, { id });
+    return;
+  }
+  lsSet(photosKey(userId), lsGet<ProfilePhoto[]>(photosKey(userId), []).filter((p) => p.id !== id));
+}
+
 export async function deleteComment(commentId: string): Promise<void> {
   if (cfg()) { await supabase.from('event_comments').delete().eq('id', commentId); return; }
   lsSet('nq_comments', lsGet('nq_comments', DEMO_COMMENTS).filter((c) => c.id !== commentId));
@@ -679,4 +738,118 @@ export async function setAttendanceProofStatus(id: string, status: ProofStatus):
     all[idx].status = status;
     lsSet('nq_attendance_proofs', all);
   }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  CHAT DE COMUNIDAD (Fase Chat) — tiempo real vía Supabase Realtime
+//  Requiere correr supabase/phase-chat.sql. Si la tabla aún no existe, las
+//  lecturas devuelven [] y los envíos caen al modo local (no rompen la app).
+// ════════════════════════════════════════════════════════════════════════════
+const chatKey = (room: string) => `nq_chat_${room}`;
+
+// Últimos N mensajes de una sala, en orden cronológico (viejo → nuevo).
+export async function getChatMessages(room = 'general', limit = 80): Promise<ChatMessage[]> {
+  if (cfg()) {
+    const { data, error } = await supabase
+      .from('chat_messages')
+      .select('*')
+      .eq('room', room)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (error) { logError('getChatMessages', error, { room }); return []; }
+    return ((data as ChatMessage[]) ?? []).reverse();
+  }
+  return lsGet<ChatMessage[]>(chatKey(room), []).slice(-limit);
+}
+
+// Envía un mensaje (el contenido ya viene censurado/validado por el caller).
+export async function sendChatMessage(room: string, content: string, userId: string | null, username: string): Promise<ChatMessage | null> {
+  const text = content.trim();
+  if (!text) return null;
+  if (cfg()) {
+    const { data, error } = await supabase
+      .from('chat_messages')
+      .insert({ room, user_id: userId, username, content: text })
+      .select()
+      .single();
+    if (error) { logError('sendChatMessage', error, { room }); return null; }
+    return data as ChatMessage;
+  }
+  // Modo demo: persiste local y avisa a otras pestañas vía evento 'storage'.
+  const row: ChatMessage = {
+    id: `chat-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    room, user_id: userId, username, content: text, hidden: false,
+    created_at: new Date().toISOString(),
+  };
+  const all = lsGet<ChatMessage[]>(chatKey(room), []);
+  all.push(row);
+  lsSet(chatKey(room), all.slice(-200));
+  return row;
+}
+
+// Reporta un mensaje (un reporte por persona; duplicados se ignoran).
+export async function reportChatMessage(messageId: string, reporterId: string | null, reason?: string): Promise<void> {
+  if (cfg()) {
+    const { error } = await supabase
+      .from('chat_reports')
+      .insert({ message_id: messageId, reporter_id: reporterId, reason: reason ?? null });
+    // 23505 = unique_violation (ya reportado) → no es un error real.
+    if (error && error.code !== '23505') logError('reportChatMessage', error, { messageId });
+    return;
+  }
+  const key = 'nq_chat_reports';
+  const all = lsGet<{ message_id: string; reporter_id: string | null }[]>(key, []);
+  if (!all.some((r) => r.message_id === messageId && r.reporter_id === reporterId)) {
+    all.push({ message_id: messageId, reporter_id: reporterId });
+    lsSet(key, all);
+  }
+}
+
+// Staff: oculta/muestra un mensaje sin borrarlo.
+export async function setChatMessageHidden(id: string, hidden: boolean, room = 'general'): Promise<void> {
+  if (cfg()) {
+    const { error } = await supabase.from('chat_messages').update({ hidden }).eq('id', id);
+    if (error) logError('setChatMessageHidden', error, { id });
+    return;
+  }
+  const all = lsGet<ChatMessage[]>(chatKey(room), []).map((m) => m.id === id ? { ...m, hidden } : m);
+  lsSet(chatKey(room), all);
+}
+
+// Borra un mensaje (autor o staff; lo valida la RLS).
+export async function deleteChatMessage(id: string, room = 'general'): Promise<void> {
+  if (cfg()) {
+    const { error } = await supabase.from('chat_messages').delete().eq('id', id);
+    if (error) logError('deleteChatMessage', error, { id });
+    return;
+  }
+  lsSet(chatKey(room), lsGet<ChatMessage[]>(chatKey(room), []).filter((m) => m.id !== id));
+}
+
+// Suscripción en vivo a nuevos mensajes de una sala. Devuelve una función para
+// cancelar. En modo demo usa el evento 'storage' (sincroniza entre pestañas).
+export function subscribeChatMessages(room: string, onInsert: (m: ChatMessage) => void): () => void {
+  if (cfg()) {
+    const channel = supabase
+      .channel(`chat:${room}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `room=eq.${room}` },
+        (payload) => onInsert(payload.new as ChatMessage),
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }
+  // Demo: escucha cambios de localStorage de otras pestañas.
+  if (typeof window === 'undefined') return () => {};
+  const handler = (e: StorageEvent) => {
+    if (e.key !== chatKey(room) || !e.newValue) return;
+    try {
+      const list = JSON.parse(e.newValue) as ChatMessage[];
+      const last = list[list.length - 1];
+      if (last) onInsert(last);
+    } catch { /* ignore */ }
+  };
+  window.addEventListener('storage', handler);
+  return () => window.removeEventListener('storage', handler);
 }

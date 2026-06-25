@@ -4,6 +4,42 @@ Historial real de lo construido. Lo más reciente arriba.
 
 ---
 
+## 2026-06-25 — Parte social: chat en vivo + perfiles con galería + personalización
+
+> Requiere correr 2 migraciones en el SQL Editor de Supabase para activarse en prod:
+> `supabase/phase-chat.sql` y `supabase/phase-profile-extras.sql`. Sin ellas la app **no
+> se rompe** (las funciones degradan con elegancia), pero el chat sale vacío y la galería/bio
+> no persisten.
+
+### Chat de comunidad en tiempo real (`/chat`) — nuevo
+- ✅ **Sala pública en vivo** con Supabase **Realtime** (primer uso en el repo): los mensajes
+  llegan sin recargar (`postgres_changes` sobre `chat_messages`).
+- ✅ **Login para escribir**, invitados leen; **filtro de groserías** reutilizando
+  `banned_words` + `censorText`; **reportar** (todos) y **ocultar/eliminar** (staff admin/dj).
+- ✅ Rate-limit suave, límite de longitud, autoscroll, +2 puntos por el primer mensaje del día.
+- ✅ Item **Chat** en el Navbar (desktop + móvil). Migración `supabase/phase-chat.sql`
+  (`chat_rooms`, `chat_messages`, `chat_reports` + RLS + publicación Realtime).
+
+### Perfiles con galería + bio + links (Perfil+) — nuevo
+- ✅ **Galería de fotos** por usuario (`profile_photos`): subir/eliminar en tu perfil
+  (reusa `uploadMediaFile` → bucket `media`); se muestra en el **perfil público** (oculta si el
+  perfil es privado).
+- ✅ **Biografía** + **links de TikTok/Instagram** en el perfil.
+- ✅ Componente `ProfileEditorExtras` montado tras "Personalizar perfil".
+
+### Personalización del perfil ("sentirse a gusto")
+- ✅ **Color de acento por perfil** (paleta scenecore) persistido en BD y aplicado al nombre y
+  bordes en el perfil propio y público, con `color-mix` sobre la variable (no color fijo).
+- ✅ Migración `supabase/phase-profile-extras.sql` (`profiles.bio/tiktok_url/instagram_url/
+  accent/bg_url` + tabla `profile_photos` + RLS).
+
+### Verificación
+- ✅ `npx tsc --noEmit` y `npm run build` verdes. Chat probado en vivo en preview (envío,
+  render, puntos, acciones de staff); galería y editor de perfil verificados; **0 errores de
+  consola**.
+
+---
+
 ## 2026-06-23 — Descargador mejorado + métricas reales (cierre de sesión)
 
 ### Descargas (`/perfil/descargas`)

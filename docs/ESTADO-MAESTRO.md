@@ -45,6 +45,10 @@
   typecheck (script añadido), blur de tarjetas, fondo de los temas del desktop (B4).
 - **Web base en producción**: eventos/RSVP, playlist+votos+Spotify, disfraces, encuestas, temáticas,
   retos/racha, perfiles, asistente IA, PWA, historial.
+- **Parte social nueva (2026-06-25)**: **chat de comunidad en vivo** (`/chat`, Supabase Realtime
+  + filtro de groserías + moderación staff), **perfiles con galería de fotos + bio + links**, y
+  **color de acento por perfil**. Código verificado (tsc/build verdes, chat probado en preview);
+  **falta correr** `phase-chat.sql` y `phase-profile-extras.sql` en Supabase para activar en prod.
 
 ### 🟡 En proceso (falta un paso, casi nada de código)
 - **Repo → público** (Settings → Danger Zone → Make public): destraba el **auto-update** del desktop
@@ -146,6 +150,9 @@ Tailwind v4              Storage · RLS            media-service (Render) = resp
 | Temáticas sugeridas (ranking por clicks) | ✅ | |
 | Retos diarios / racha | ✅ | |
 | Perfil + actividad | ✅ | |
+| **Chat de comunidad en vivo** (`/chat`) | ✅ **nuevo** (2026-06-25) | Supabase Realtime; login para escribir; filtro `banned_words`; reportar + ocultar/eliminar staff. **Correr `phase-chat.sql`** en prod |
+| **Perfil: galería de fotos + bio + links** | ✅ **nuevo** (2026-06-25) | `profile_photos` + bio + TikTok/IG; galería gated por privacidad. **Correr `phase-profile-extras.sql`** |
+| **Perfil: color de acento (personalización)** | ✅ **nuevo** (2026-06-25) | `profiles.accent` aplicado con `color-mix` en perfil propio + público |
 | Perfil privado (toggle) | 🟡 | **Falta `phase-de.sql`** (`is_private`) |
 | Moderación por palabras | 🟡 | **Falta `phase-de.sql`** (`banned_words`, `flagged`) |
 | Gestor de diseño en vivo (admin) | 🟡 | Código arreglado (§10 B1); falta promover tu cuenta a `role=admin` para que persista |
@@ -176,6 +183,8 @@ Correr en el **SQL Editor** (orden sugerido). Marcar aquí cuando se corra:
 | `supabase/phase-f.sql` | `profiles.email` + `bg_url`; redefine `handle_new_user` | ⛔ **PENDIENTE** (panel muestra correos; fondo de perfil) |
 | `supabase/phase-g.sql` | recrea bucket `media` **público (anon)** | ⛔ **PENDIENTE** (subir avatar/flyer/fondos falla sin esto si no hay sesión real) |
 | `supabase/saved-songs.sql` | `saved_songs` (playlist personal) | ✅ absorbida en `schema.sql` |
+| `supabase/phase-chat.sql` | `chat_rooms`, `chat_messages`, `chat_reports` + RLS + Realtime | ⛔ **PENDIENTE** (activa el chat `/chat`; sin ella el chat sale vacío pero no rompe) |
+| `supabase/phase-profile-extras.sql` | `profiles.bio/tiktok_url/instagram_url/accent/bg_url` + `profile_photos` + RLS | ⛔ **PENDIENTE** (activa galería, bio, links y acento del perfil) |
 
 > **Hallazgo de auditoría:** `scripts/verify-schema.ts` valida `events.is_visible` y columnas
 > `setting_key/setting_value` que **no existen** (la tabla usa `key/value`); ninguna migración crea
