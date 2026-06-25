@@ -63,15 +63,15 @@ const ACCENT_OPTIONS = [
   { key: '#fff01f', label: 'Amarillo', color: '#fff01f' },
 ];
 
-// Clave de seguridad para acciones DESTRUCTIVAS (vaciar playlist, borrar usuarios/eventos).
-// Es una barrera anti-accidentes; la seguridad real la da la RLS de Supabase. Cámbiala aquí.
-const ADMIN_DANGER_KEY = 'VcsgDSnLgQcH@';
+// Confirmación anti-accidentes para acciones DESTRUCTIVAS (vaciar playlist, borrar
+// usuarios/eventos). Es solo un freno; la seguridad real la da la RLS de Supabase (solo
+// staff con sesión real puede escribir). Sin clave hardcodeada → se escribe "ELIMINAR".
 function askDangerKey(action: string): boolean {
   if (typeof window === 'undefined') return false;
-  const v = window.prompt(`⚠️ ACCIÓN PELIGROSA: ${action}\n\nEscribe la CLAVE DE SEGURIDAD para confirmar:`);
+  const v = window.prompt(`⚠️ ACCIÓN PELIGROSA: ${action}\n\nEscribe ELIMINAR para confirmar:`);
   if (v === null) return false;               // canceló
-  if (v === ADMIN_DANGER_KEY) return true;
-  alert('Clave de seguridad incorrecta. Acción cancelada.');
+  if (v.trim().toUpperCase() === 'ELIMINAR') return true;
+  alert('Confirmación incorrecta. Acción cancelada.');
   return false;
 }
 

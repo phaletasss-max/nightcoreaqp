@@ -55,19 +55,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ── Función para restaurar perfil desde localStorage (instantáneo) ──
   const restoreLocalProfile = useCallback((): Profile | null => {
     if (typeof window === 'undefined') return null;
-    const isEmergency = localStorage.getItem('nq_emergency_admin');
-    if (isEmergency === 'true') {
-      return {
-        id: '11111111-1111-1111-1111-111111111111',
-        username: 'AdminSupremo',
-        role: 'admin',
-        points: 9999,
-        streak_count: 999,
-        last_check_in: null,
-        avatar_url: null,
-        email: 'admin@nightcore.aqp'
-      };
-    }
     const saved = localStorage.getItem('nq_local_profile');
     if (saved) {
       try { return JSON.parse(saved); } catch { /* ignorar */ }
@@ -167,23 +154,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [configured, loadProfile, restoreLocalProfile]);
 
   const signIn: AuthContextValue['signIn'] = async (email, password) => {
-    // ⚠️ EMERGENCY ADMIN BYPASS (Para evitar bloqueos de Supabase)
-    if (email === 'admin@nightcore.aqp' && password === 'Nakamura321.') {
-      const emergencyProfile: Profile = {
-        id: '11111111-1111-1111-1111-111111111111',
-        username: 'AdminSupremo',
-        role: 'admin',
-        points: 9999,
-        streak_count: 999,
-        last_check_in: null,
-        avatar_url: null,
-        email: 'admin@nightcore.aqp'
-      };
-      setProfile(emergencyProfile);
-      localStorage.setItem('nq_emergency_admin', 'true');
-      return { error: null };
-    }
-
     if (!configured) return { error: 'Conecta Supabase para iniciar sesión real.' };
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error: error?.message ?? null };
@@ -270,8 +240,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (session?.user) await loadProfile(session.user.id, session.user.email);
   };
 
-  const ADMIN_EMAILS = ['manchuriam@nightcore.aqp.fest.com', 'phaletasss@gmail.com', 'manchuria@nightcoreaqp.com', 'admin@nightcore.aqp'];
-  const isStaff = profile?.role === 'admin' || profile?.role === 'dj' || (profile?.email ? ADMIN_EMAILS.includes(profile.email) : false);
+  // Staff = rol real en la BD (lo que valida is_staff() en la RLS). Sin allowlist de
+  // correos hardcodeados (no daban permisos reales y exponían datos).
+  const isStaff = profile?.role === 'admin' || profile?.role === 'dj';
 
   return (
     <AuthContext.Provider value={{ profile, loading, configured, isStaff, signIn, signUp, resetPassword, signOut, addPoints, refresh }}>

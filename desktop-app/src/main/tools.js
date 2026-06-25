@@ -153,8 +153,10 @@ function buildArgs(url, format, quality, dest, ffmpegDir, cookiesBrowser) {
   // --restrict-filenames: nombres ASCII sin espacios ni '#'. Evita el bug de Windows que
   // recorta el espacio final del nombre (TikTok: "#foryou .mp4") y rompe ffprobe al
   // extraer MP3 ("unable to obtain file audio codec with ffprobe").
+  // Sin forzar player_client: yt-dlp elige los clientes actuales (el android viejo hoy
+  // dispara más el bloqueo anti-bot). deno resuelve el nsig; para videos que exigen
+  // sesión, el usuario añade Cookies.
   const a = ['--no-playlist', '--newline', '--no-warnings', '--restrict-filenames',
-    '--extractor-args', 'youtube:player_client=android,web_creator,default',
     '-o', join(dest, '%(title)s.%(ext)s')]
   if (ffmpegDir) a.unshift('--ffmpeg-location', ffmpegDir)
   // Cookies del navegador del usuario → pasa la verificación anti-bot de YouTube.

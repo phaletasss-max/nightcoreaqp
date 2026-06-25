@@ -166,8 +166,8 @@ Correr en el **SQL Editor** (orden sugerido). Marcar aquí cuando se corra:
 
 | # | Hallazgo | Severidad | Acción |
 |---|---|---|---|
-| S1 | **Login admin hardcodeado** en cliente: `ADMIN_EMAILS` + password `Nakamura321.` en `src/app/admin/page.tsx` (va en el bundle) | 🔴 Alta | Mover a sesión real Supabase con `role=admin`; quitar credenciales del código |
-| S2 | **Admin de emergencia** vía flag `localStorage` (`nq_emergency_admin`) en `auth.tsx` | 🟠 Media | Solo da UI (RLS rechaza escrituras), pero es engañoso. Quitar o aislar |
+| S1 | ~~Login admin hardcodeado + password en el bundle~~ | ✅ Resuelto | Panel usa sesión real (B1); credenciales hardcodeadas eliminadas; clave destructiva → "ELIMINAR" (2026-06-25) |
+| S2 | ~~Admin de emergencia + allowlist de correos~~ | ✅ Resuelto | Bypass de emergencia y `ADMIN_EMAILS` eliminados; `isStaff` = rol real en BD (2026-06-25) |
 | S3 | Toda la seguridad real recae en **RLS**; el cliente usa anon key | 🟢 Info | Correcto, pero auditar que cada tabla tenga RLS cerrada (la mayoría usa `is_staff()`) |
 | S4 | Demo: rol por defecto `admin` (`auth.tsx`) | 🟢 Info | Solo aplica sin Supabase configurado |
 | S5 | `console.log('[FASE 3]…')` de depuración en `data.ts` de producción | 🟢 Bajo | Limpiar |
