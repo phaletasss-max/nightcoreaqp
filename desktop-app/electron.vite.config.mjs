@@ -7,5 +7,10 @@ import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 export default defineConfig({
   main: { plugins: [externalizeDepsPlugin()] },
   preload: { plugins: [externalizeDepsPlugin()] },
-  renderer: {}
+  renderer: {
+    // El renderer usa CSS plano (sin Tailwind). `postcss: {}` (config inline vacía)
+    // evita que Vite suba al postcss.config.mjs del sitio web en la raíz del repo,
+    // que requiere @tailwindcss/postcss (no instalado en el build de la app).
+    css: { postcss: {} }
+  }
 })
