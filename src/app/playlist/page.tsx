@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Music, Plus, ChevronUp, ChevronDown, Play, ExternalLink, Search, Music3,
-  Link2, Check, AlertCircle, Loader2, Video, CheckCircle2, UploadCloud, Bookmark, BookmarkCheck
+  Link2, Check, AlertCircle, Loader2, Video, CheckCircle2, UploadCloud, Bookmark, BookmarkCheck, Download
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { getSongs, addSong, setSongVote, uploadMediaFile, getSavedSongIds, setSongSaved } from '@/lib/data';
@@ -11,6 +11,7 @@ import { isMediaConfigured, searchYouTube, searchYouTubeList, type VideoInfo, ty
 import type { Song, VoteType } from '@/lib/types';
 import { usePlayer, type PlayableItem } from '@/context/PlayerContext';
 import DownloadInstructionsModal from '@/components/DownloadInstructionsModal';
+import { buildCrateBat, downloadTextFile } from '@/lib/crate';
 
 function getYouTubeId(url: string) {
   const m = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
@@ -50,6 +51,23 @@ export default function PlaylistPage() {
   // ── Playlist personal (canciones guardadas) ──
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [showSavedOnly, setShowSavedOnly] = useState(false);
+
+  // ── Descarga estilo DJ: genera un .bat con las URLs reales incrustadas (igual que el
+  // crate del DJ, que sí funciona). Reemplaza la descarga "por unidad" confusa. ──
+  const [dlFormat, setDlFormat] = useState<'mp3' | 'mp4'>('mp3');
+  const [crateNote, setCrateNote] = useState<string | null>(null);
+
+  const downloadCrate = (list: Song[], label: string) => {
+    const urls = list.filter((s) => DOWNLOADABLE.test(s.youtube_url)).map((s) => s.youtube_url);
+    if (urls.length === 0) {
+      setCrateNote('Esas canciones no se pueden descargar (las de Spotify no; usa enlaces de YouTube/TikTok).');
+      return;
+    }
+    const safe = (label || 'Playlist').replace(/[^\w]+/g, '_').slice(0, 30) || 'Playlist';
+    const bat = buildCrateBat(urls, dlFormat, { title: safe });
+    downloadTextFile(`Nightcore_${safe}_${dlFormat.toUpperCase()}.bat`, bat);
+    setCrateNote(`Listo: se descargó un .bat con ${urls.length} canción${urls.length === 1 ? '' : 'es'}. Haz doble clic en ese archivo y se bajan a tu PC (instala yt-dlp solo).`);
+  };
 
 
   // ── Buscar canción por nombre (YouTube, vía Data API v3 → respaldo yt-dlp) ──
@@ -492,6 +510,44 @@ export default function PlaylistPage() {
           </div>
         )}
 
+        {/* Descarga masiva (estilo DJ): baja la lista visible a un .bat con un clic */}
+        {(() => {
+          const dlable = filtered.filter((s) => DOWNLOADABLE.test(s.youtube_url));
+          return (
+            <div className="card p-3 flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-white flex items-center gap-2">
+                  <Download className="h-4 w-4 text-neon-lime glow-lime" /> Descargar a tu PC
+                </p>
+                <p className="text-[11px] text-muted-2">
+                  Genera un <strong>.bat</strong> con {dlable.length} canción{dlable.length === 1 ? '' : 'es'} {showSavedOnly ? 'guardada(s)' : 'visible(s)'}. Doble clic y se bajan solas (instala yt-dlp por ti).
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="flex rounded-lg border border-border overflow-hidden text-xs font-bold">
+                  {(['mp3', 'mp4'] as const).map((f) => (
+                    <button key={f} type="button" onClick={() => setDlFormat(f)}
+                      className={`px-3 py-1.5 transition-colors ${dlFormat === f ? 'bg-neon-cyan text-black' : 'text-muted hover:text-white'}`}>
+                      {f.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+                <button type="button" onClick={() => downloadCrate(dlable, showSavedOnly ? 'Guardadas' : 'Playlist')}
+                  disabled={!dlable.length} className="btn btn-primary text-xs">
+                  <Download className="h-4 w-4" /> Descargar{dlable.length ? ` (${dlable.length})` : ''}
+                </button>
+                <button type="button" onClick={() => setShowDownloadModal(true)} title="¿Cómo funciona? / Android / Celular"
+                  className="h-8 w-8 rounded-lg border border-border text-muted hover:text-white flex items-center justify-center text-xs font-bold shrink-0">?</button>
+              </div>
+            </div>
+          );
+        })()}
+        {crateNote && (
+          <div className="badge badge-lime w-full justify-start py-2 px-3 normal-case tracking-normal text-xs">
+            <CheckCircle2 className="h-4 w-4 shrink-0" /> <span>{crateNote}</span>
+          </div>
+        )}
+
         <div className="space-y-2">
           {filtered.length === 0 ? (
             <div className="card p-10 text-center text-muted-2">
@@ -563,7 +619,7 @@ export default function PlaylistPage() {
                     {/* Botón de instrucciones de descarga local */}
                     {DOWNLOADABLE.test(song.youtube_url) ? (
                       <div className="hidden sm:flex items-center border-l border-border pl-2 ml-1">
-                        <button onClick={() => setShowDownloadModal(true)} className="btn btn-ghost px-2 py-1 text-xs text-neon-lime">
+                        <button onClick={() => downloadCrate([song], song.title)} title={`Descargar esta canción en ${dlFormat.toUpperCase()}`} className="btn btn-ghost px-2 py-1 text-xs text-neon-lime">
                           Descargar ⏬
                         </button>
                       </div>

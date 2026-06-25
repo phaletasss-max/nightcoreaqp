@@ -17,20 +17,22 @@ export default function DownloadInstructionsModal({ onClose }: { onClose: () => 
         
         <div className="p-5 space-y-5">
           <p className="text-sm text-muted">
-            Debido a bloqueos recientes de YouTube a nuestros servidores en la nube, hemos migrado a una arquitectura de <strong>Descarga Local</strong>. 
-            Ahora descargas a máxima velocidad y sin restricciones directamente desde tu dispositivo.
+            Para no depender de servidores que YouTube bloquea, la descarga ocurre <strong>en tu propio dispositivo</strong>,
+            a máxima velocidad y sin restricciones.
           </p>
 
           <div className="space-y-4">
             <div className="p-4 rounded-xl border border-neon-cyan/20 bg-neon-cyan/5">
               <div className="flex items-center gap-3 mb-2">
                 <Monitor className="h-5 w-5 text-neon-cyan" />
-                <h4 className="font-bold text-white text-sm">Para PC (Windows/Linux)</h4>
+                <h4 className="font-bold text-white text-sm">Para PC (Windows)</h4>
               </div>
-              <p className="text-xs text-muted-2 mb-3">Descarga nuestro script oficial que instala y usa yt-dlp automáticamente para máxima calidad.</p>
-              <a href="/downloads/Crate_Builder.bat" download className="btn btn-outline border-neon-cyan text-neon-cyan hover:bg-neon-cyan hover:text-black w-full justify-center text-xs py-2">
-                <Terminal className="h-4 w-4 mr-2" /> Descargar Crate Builder (.bat)
-              </a>
+              <ol className="text-xs text-muted-2 space-y-1.5 list-decimal list-inside">
+                <li>Elige <strong>MP3 o MP4</strong> y pulsa <strong>Descargar</strong> (toda la lista) o el <strong>⏬</strong> de una canción.</li>
+                <li>Se baja un archivo <strong>.bat</strong> con tus canciones ya incluidas.</li>
+                <li><strong>Doble clic</strong> en ese .bat: instala yt-dlp solo y guarda la música en tu Escritorio.</li>
+              </ol>
+              <p className="text-[11px] text-neon-cyan/80 mt-2 flex items-center gap-1"><Terminal className="h-3 w-3" /> Sin terminal manual: tú solo das doble clic.</p>
             </div>
 
             <div className="p-4 rounded-xl border border-neon-pink/20 bg-neon-pink/5">

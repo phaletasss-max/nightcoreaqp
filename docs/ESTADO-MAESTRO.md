@@ -101,7 +101,8 @@ Tailwind v4              Storage · RLS            media-service (Render) = resp
 | Playlist: sugerir + votar + Top-N | ✅ | |
 | Importar de Spotify | ✅ | playlists de usuario (no editoriales) |
 | Playlist personal (guardar canciones) | 🟡 | verificar `saved-songs.sql` corrido |
-| Descargas MP3/MP4 (.bat local) | 🔒 | |
+| Descargas MP3/MP4 (.bat local) — DJ | 🔒 | |
+| Descarga masiva para usuarios (estilo DJ) | ✅ | Playlist: barra "Descargar a tu PC" (MP3/MP4) + botón por canción → `.bat` con URLs reales. Reemplaza la descarga por unidad confusa (2026-06-25) |
 | Búsqueda de respaldo (media-service) | 🟡 | Render + cookies YouTube |
 | Disfraces (cosplay) + votos + comentarios | ✅ | |
 | Encuestas | ✅ | |
