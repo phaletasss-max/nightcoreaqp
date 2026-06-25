@@ -52,18 +52,23 @@ carpeta de instalación y crea el acceso directo al escritorio. El cliente **no 
 > **o** correr el comando desde una terminal **como Administrador**. Es porque `electron-builder`
 > extrae una herramienta con symlinks de macOS y Windows exige privilegio para crearlos.
 
-## Publicar + auto-actualización
+## Publicar + auto-actualización (DESDE LA WEB, recomendado)
 
 La app se **auto-actualiza** desde **GitHub Releases** (renderer CSS/JS + proceso principal).
+No hace falta build local ni token personal: lo hace **GitHub Actions**.
+
 Para sacar una versión nueva:
 
-1. Sube el número en `package.json` (`"version"`), p. ej. `0.1.0` → `0.1.1`.
-2. Exporta un token de GitHub con permiso `repo`: `set GH_TOKEN=ghp_...` (Windows) / `export GH_TOKEN=...`.
-3. `npm run release` → compila, genera el instalador y lo **publica** en
-   `github.com/phaletasss-max/nightcoreaqp/releases` (con `latest.yml` para el updater).
+1. Sube el número en `package.json` (`"version"`), p. ej. `0.1.0` → `0.1.1`, y haz commit/push.
+2. En GitHub → pestaña **Actions** → **"Desktop App — build & release"** → **Run workflow**.
+   (El runner de Windows compila y publica el `.exe` + `latest.yml`, usando el token automático
+   del workflow. Sin Modo desarrollador, sin localhost.)
 
 Las apps ya instaladas detectan la versión nueva al abrir, la descargan y la aplican al
 reiniciar (botón "Reiniciar y actualizar"). Hasta los parches de CSS/función llegan así.
+
+> **Alternativa local** (si algún día lo necesitas): `set GH_TOKEN=...` (token clásico con scope
+> `repo`) y `npm run release`. Requiere Modo desarrollador en Windows.
 
 > El botón "Descargar la App (.exe)" de la web apunta a
 > `releases/latest/download/NightcoreAQP-Downloader-Setup.exe` — funciona en cuanto publiques

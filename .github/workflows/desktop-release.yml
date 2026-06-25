@@ -1,0 +1,39 @@
+name: Desktop App — build & release
+
+# Compila y publica el instalador .exe en GitHub Releases DESDE LA NUBE.
+# No requiere token personal ni build local: usa el GITHUB_TOKEN automatico del
+# workflow y un runner de Windows (sin el problema de Modo desarrollador).
+#
+# Disparar: pestaña "Actions" -> "Desktop App — build & release" -> "Run workflow".
+# (o empujando un tag `desktop-v*`).
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['desktop-v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: desktop-app/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Compilar y publicar instalador
+        run: npm run release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

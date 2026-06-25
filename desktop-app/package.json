@@ -19,7 +19,7 @@
     "files": ["out/**/*", "package.json"],
     "artifactName": "NightcoreAQP-Downloader-Setup.${ext}",
     "publish": [
-      { "provider": "github", "owner": "phaletasss-max", "repo": "nightcoreaqp" }
+      { "provider": "github", "owner": "phaletasss-max", "repo": "nightcoreaqp", "releaseType": "release" }
     ],
     "win": { "target": ["nsis"] },
     "nsis": {
