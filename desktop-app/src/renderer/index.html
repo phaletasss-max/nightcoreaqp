@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;" />
+    <title>Nightcore AQP · Descargador</title>
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand"><span class="logo">✦</span> NIGHTCORE <span class="aqp">AQP</span></div>
+      <div class="subtitle">Descargador de música — local y a máxima calidad</div>
+    </header>
+
+    <main class="wrap">
+      <section class="card">
+        <label class="label" for="urls">Enlaces (uno por línea)</label>
+        <textarea id="urls" rows="5" placeholder="https://www.youtube.com/watch?v=…&#10;https://www.tiktok.com/@…&#10;…"></textarea>
+
+        <div class="row">
+          <div class="seg" id="format">
+            <button class="seg-btn active" data-format="mp3">MP3</button>
+            <button class="seg-btn" data-format="mp4">MP4</button>
+          </div>
+
+          <select id="quality" class="select" title="Calidad de video (solo MP4)" disabled>
+            <option value="best">Mejor calidad</option>
+            <option value="1080">1080p</option>
+            <option value="720">720p</option>
+            <option value="480">480p</option>
+            <option value="360">360p</option>
+          </select>
+
+          <button id="download" class="btn-primary">⏬ Descargar</button>
+        </div>
+
+        <div class="folder">
+          <span class="folder-label">Carpeta:</span>
+          <code id="folder-path" title="Carpeta de destino">…</code>
+          <button id="change-folder" class="btn-ghost">Cambiar</button>
+          <button id="open-folder" class="btn-ghost">Abrir</button>
+        </div>
+      </section>
+
+      <section class="card log-card">
+        <div class="log-head">
+          <span>Registro</span>
+          <span id="status" class="status"></span>
+        </div>
+        <pre id="log" class="log"></pre>
+      </section>
+    </main>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

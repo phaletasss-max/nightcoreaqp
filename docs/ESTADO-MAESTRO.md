@@ -115,6 +115,7 @@ Tailwind v4              Storage · RLS            media-service (Render) = resp
 | Asistente IA (Gemini) | ✅ | `GEMINI_API_KEY` |
 | PWA instalable + offline básico | ✅ | SW arreglado hoy (fallback) |
 | App móvil (Expo) | ⛔ | Solo el stub por defecto |
+| App de escritorio · descargas (Electron) | 🟡 | `desktop-app/`: UI + auto-instala yt-dlp/ffmpeg + descarga. Fase 1 local (`npm run dev`); falta empaquetar a `.exe` (2026-06-25) |
 | Convertidor de archivos | ⏸️ | Fuera del repo |
 | Verificación de cuenta (email/WhatsApp) | ⛔ | Investigado en ROADMAP §8 |
 | Feed personalizado por interés | ⛔ | `feed_items` / `feed_seen` no creadas |

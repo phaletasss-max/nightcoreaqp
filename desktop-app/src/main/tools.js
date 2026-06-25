@@ -1,0 +1,166 @@
+// ── Motor de descarga (proceso principal) ────────────────────────────────────
+// Auto-instala yt-dlp + ffmpeg en userData/bin (como el .bat de la web) y descarga
+// a una carpeta local. Reusa los args probados del media-service.
+
+import { app } from 'electron'
+import { spawn } from 'node:child_process'
+import {
+  existsSync, mkdirSync, writeFileSync, copyFileSync, rmSync, chmodSync, readdirSync, statSync,
+} from 'node:fs'
+import { join } from 'node:path'
+
+const IS_WIN = process.platform === 'win32'
+const BIN = join(app.getPath('userData'), 'bin')
+const YTDLP = join(BIN, IS_WIN ? 'yt-dlp.exe' : 'yt-dlp')
+const FFMPEG = join(BIN, IS_WIN ? 'ffmpeg.exe' : 'ffmpeg')
+
+const YTDLP_URL = IS_WIN
+  ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe'
+  : 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp'
+const FFMPEG_ZIP = 'https://github.com/yt-dlp/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-win64-gpl.zip'
+
+// Carpeta de destino por defecto: Descargas/NightcoreAQP.
+export function defaultDownloadDir() {
+  return join(app.getPath('downloads'), 'NightcoreAQP')
+}
+
+function ensureDir(d) { if (!existsSync(d)) mkdirSync(d, { recursive: true }) }
+
+// Descarga un archivo por HTTP (fetch sigue redirects de GitHub).
+async function downloadTo(url, dest, log) {
+  log({ type: 'info', text: `Descargando ${url.split('/').pop()}…` })
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`HTTP ${res.status} al bajar ${url}`)
+  const buf = Buffer.from(await res.arrayBuffer())
+  writeFileSync(dest, buf)
+  log({ type: 'ok', text: `Guardado (${(buf.length / 1e6).toFixed(1)} MB).` })
+}
+
+// Busca un archivo por nombre dentro de una carpeta (recursivo).
+function findFile(dir, name) {
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry)
+    const st = statSync(full)
+    if (st.isDirectory()) { const hit = findFile(full, name); if (hit) return hit }
+    else if (entry.toLowerCase() === name.toLowerCase()) return full
+  }
+  return null
+}
+
+function runPowershell(command, log) {
+  return new Promise((resolve, reject) => {
+    const p = spawn('powershell', ['-NoProfile', '-NonInteractive', '-Command', command])
+    let err = ''
+    p.stderr.on('data', (d) => { err += d.toString() })
+    p.on('error', reject)
+    p.on('close', (code) => (code === 0 ? resolve() : reject(new Error(err.trim() || `powershell salió con ${code}`))))
+  })
+}
+
+// Descarga y extrae ffmpeg.exe (+ ffprobe) en BIN. Solo Windows.
+async function installFfmpegWin(log) {
+  const zip = join(BIN, 'ffmpeg.zip')
+  const tmp = join(BIN, 'ffmpeg_tmp')
+  await downloadTo(FFMPEG_ZIP, zip, log)
+  log({ type: 'info', text: 'Extrayendo ffmpeg…' })
+  await runPowershell(`Expand-Archive -Force '${zip}' '${tmp}'`, log)
+  const ff = findFile(tmp, 'ffmpeg.exe')
+  if (!ff) throw new Error('ffmpeg.exe no estaba en el zip')
+  copyFileSync(ff, FFMPEG)
+  const probe = findFile(tmp, 'ffprobe.exe')
+  if (probe) copyFileSync(probe, join(BIN, 'ffprobe.exe'))
+  try { rmSync(zip); rmSync(tmp, { recursive: true, force: true }) } catch { /* limpieza best-effort */ }
+  log({ type: 'ok', text: 'ffmpeg listo.' })
+}
+
+// Garantiza yt-dlp y ffmpeg disponibles. Devuelve sus rutas.
+export async function ensureTools(log) {
+  ensureDir(BIN)
+
+  if (!existsSync(YTDLP)) {
+    await downloadTo(YTDLP_URL, YTDLP, log)
+    if (!IS_WIN) chmodSync(YTDLP, 0o755)
+  } else {
+    log({ type: 'dim', text: 'yt-dlp ya instalado.' })
+  }
+
+  let ffmpegDir = null
+  if (existsSync(FFMPEG)) {
+    ffmpegDir = BIN
+    log({ type: 'dim', text: 'ffmpeg ya instalado.' })
+  } else if (IS_WIN) {
+    try { await installFfmpegWin(log); ffmpegDir = existsSync(FFMPEG) ? BIN : null }
+    catch (e) { log({ type: 'dim', text: `No pude auto-instalar ffmpeg (${e.message}). Usaré el del sistema si está en PATH.` }) }
+  } else {
+    log({ type: 'dim', text: 'En este SO instala ffmpeg manualmente si falta (brew/apt).' })
+  }
+
+  return { ytdlp: YTDLP, ffmpegDir }
+}
+
+// Traduce el stderr de yt-dlp a algo legible.
+function humanize(stderr) {
+  if (!stderr) return null
+  const s = stderr.toLowerCase()
+  if (s.includes("confirm you're not a bot") || s.includes('sign in to confirm'))
+    return 'YouTube pide verificación (anti-bot). Reintenta o usa otro enlace; TikTok/Instagram suelen funcionar.'
+  if (s.includes('private video')) return 'El video es privado.'
+  if (s.includes('video unavailable') || s.includes('not available')) return 'El video no está disponible o fue eliminado.'
+  if (s.includes('unsupported url')) return 'Enlace no soportado.'
+  const lines = stderr.trim().split('\n').filter(Boolean)
+  return lines.length ? lines[lines.length - 1].slice(0, 200) : null
+}
+
+// Args de yt-dlp según formato/calidad. Descarga a archivo (no a stdout).
+function buildArgs(url, format, quality, dest, ffmpegDir) {
+  const a = ['--no-playlist', '--newline', '--no-warnings',
+    '--extractor-args', 'youtube:player_client=android,web_creator,default',
+    '-o', join(dest, '%(title)s.%(ext)s')]
+  if (ffmpegDir) a.unshift('--ffmpeg-location', ffmpegDir)
+  if (format === 'mp3') {
+    a.push('-x', '--audio-format', 'mp3', '--audio-quality', '0')
+  } else if (url.includes('tiktok.com')) {
+    // Fix HEVC de TikTok (fuerza H.264 para que reproduzca en cualquier lado).
+    a.push('-f', 'best[ext=mp4][vcodec~="^((?!hevc).)*$"]/best[ext=mp4]/best', '--merge-output-format', 'mp4')
+  } else if (quality && quality !== 'best' && /^\d+$/.test(String(quality))) {
+    a.push('-f', `bestvideo[height<=${quality}]+bestaudio/best[height<=${quality}]`, '--merge-output-format', 'mp4')
+  } else {
+    a.push('-f', 'bestvideo+bestaudio/best', '--merge-output-format', 'mp4')
+  }
+  a.push(url)
+  return a
+}
+
+function runYtdlp(bin, args, log) {
+  return new Promise((resolve, reject) => {
+    const p = spawn(bin, args)
+    let err = ''
+    p.stdout.on('data', (d) => d.toString().split(/\r?\n/).forEach((l) => l.trim() && log({ type: 'line', text: l.trim() })))
+    p.stderr.on('data', (d) => { const s = d.toString(); err += s; s.split(/\r?\n/).forEach((l) => l.trim() && log({ type: 'dim', text: l.trim() })) })
+    p.on('error', () => reject(new Error('No se pudo ejecutar yt-dlp')))
+    p.on('close', (code) => (code === 0 ? resolve() : reject(new Error(humanize(err) || `yt-dlp salió con código ${code}`))))
+  })
+}
+
+// Descarga una lista de URLs a `dest`, en secuencia, reportando logs.
+export async function downloadAll({ urls, format = 'mp3', quality = 'best', dest }, log) {
+  const list = (urls || []).map((u) => String(u).trim()).filter(Boolean)
+  if (!list.length) throw new Error('No hay enlaces para descargar.')
+  const target = dest || defaultDownloadDir()
+  ensureDir(target)
+
+  const { ytdlp, ffmpegDir } = await ensureTools(log)
+
+  let ok = 0, fail = 0
+  for (let i = 0; i < list.length; i++) {
+    log({ type: 'head', text: `[${i + 1}/${list.length}] ${list[i]}` })
+    try {
+      await runYtdlp(ytdlp, buildArgs(list[i], format, quality, target, ffmpegDir), log)
+      ok++; log({ type: 'ok', text: `✓ Descargada (${i + 1}/${list.length})` })
+    } catch (e) {
+      fail++; log({ type: 'error', text: `✗ Falló: ${e.message}` })
+    }
+  }
+  log({ type: fail ? 'info' : 'ok', text: `Terminado: ${ok} ok · ${fail} con error. Carpeta: ${target}` })
+  return { ok, fail, dest: target }
+}
