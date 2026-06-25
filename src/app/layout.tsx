@@ -21,13 +21,34 @@ const geistMono = Geist_Mono({
   display: 'swap',
 });
 
+const SITE_URL = "https://nightcoreaqp-five.vercel.app";
+// Imagen para compartir (Open Graph). Usa el icono por defecto; para un banner propio,
+// genera uno con el editor de fondos (Generar con IA) y reemplaza por '/og.png'.
+const OG_IMAGE = "/icon-512x512.png";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "Nightcore AQP — El club de nightcore de Arequipa ✦",
   description: "Eventos, playlist colaborativa, concurso de disfraces, encuestas y rachas. El club de nightcore de Arequipa, organizado por Yorch. Hecho por Los Simpatizantes de JP. Estilo scenecore. 🎵",
   keywords: ["Nightcore", "Arequipa", "AQP", "Eventos", "Anime", "Eurobeat", "Playlist", "Cosplay", "Scenecore", "Scene", "Emo"],
   authors: [{ name: "Los Simpatizantes de JP" }],
   // PWA: nombre y barra de estado al instalar en iOS.
   appleWebApp: { capable: true, title: "Nightcore AQP", statusBarStyle: "black-translucent" },
+  openGraph: {
+    type: "website",
+    locale: "es_PE",
+    url: SITE_URL,
+    siteName: "Nightcore AQP",
+    title: "Nightcore AQP — El club de nightcore de Arequipa ✦",
+    description: "Eventos, playlist colaborativa, concurso de disfraces y más. El club de nightcore de Arequipa. 🎵",
+    images: [{ url: OG_IMAGE, width: 512, height: 512, alt: "Nightcore AQP" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "Nightcore AQP — El club de nightcore de Arequipa ✦",
+    description: "Eventos, playlist colaborativa, concurso de disfraces y más. Estilo scenecore. 🎵",
+    images: [OG_IMAGE],
+  },
 };
 
 export const viewport: Viewport = {

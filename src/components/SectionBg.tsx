@@ -43,6 +43,7 @@ export default function SectionBg({ sectionKey, bgs, onChange, isStaff, defaultO
           sectionKey={sectionKey}
           currentBg={url}
           currentOpacity={opacity}
+          theme={bgs['design_theme'] || 'default'}
           onBgUpdate={(u) => onChange(sectionKey, u)}
           onOpacityUpdate={(o) => onChange(`bg_opacity_${sectionKey}`, String(o))}
         />

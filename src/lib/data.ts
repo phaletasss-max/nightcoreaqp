@@ -302,6 +302,33 @@ export async function uploadMediaFile(file: File): Promise<string | null> {
   return publicUrl;
 }
 
+// ── Generación de imágenes con IA (Gemini/Imagen) ────────────────────────────
+// Llama a la ruta server (que tiene la key) con el token de sesión staff. Devuelve
+// un dataURL base64. Lanza con el mensaje del server para que la UI lo muestre.
+export async function generateImage(prompt: string, opts: { theme?: string; aspect?: 'banner' | 'square' | 'og' } = {}): Promise<string> {
+  let token = '';
+  if (cfg()) {
+    const { data } = await supabase.auth.getSession();
+    token = data.session?.access_token || '';
+  }
+  const r = await fetch('/api/generate-image', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: JSON.stringify({ prompt, theme: opts.theme, aspect: opts.aspect }),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok || !data.image) throw new Error(data.error || 'No se pudo generar la imagen.');
+  return data.image as string;
+}
+
+// Convierte un dataURL (base64) en archivo y lo sube a Storage; devuelve la URL pública.
+export async function uploadDataUrl(dataUrl: string, ext = 'png'): Promise<string | null> {
+  const res = await fetch(dataUrl);
+  const blob = await res.blob();
+  const file = new File([blob], `ai-${Date.now()}.${ext}`, { type: blob.type || 'image/png' });
+  return uploadMediaFile(file);
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 //  COMENTARIOS DEL EVENTO
 // ════════════════════════════════════════════════════════════════════════════

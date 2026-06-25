@@ -4,6 +4,31 @@ Historial real de lo construido. Lo más reciente arriba.
 
 ---
 
+## 2026-06-25 — Generación de imágenes con IA (fondos estilo scenecore) + OG
+
+Rellenar la web con imágenes generadas por IA que respetan la estética + el tema activo. Reusa la
+maquinaria de fondos (`BgEditor`/`SectionBg` → Storage `media` → `site_settings`). **Sin tablas nuevas.**
+
+- ✅ **Ruta `POST /api/generate-image`** — usa `GEMINI_API_KEY` (server, como el asistente).
+  **Cascada de modelos de imagen** (`gemini-2.5-flash-image` → `imagen-3.0-generate-002`). **Gateada
+  a staff** (valida el token de sesión Supabase + rol admin/dj — cuesta dinero). Errores claros:
+  503 sin key, 403 si la key no tiene acceso/billing, 429 sin cuota.
+- ✅ **`src/lib/imagePrompts.ts`** — envuelve la idea del usuario con un preámbulo de estilo
+  scenecore + la **paleta del tema activo** (los 7) + presets de aspecto (banner/cuadrado/OG) y
+  presets rápidos. Así lo generado combina con "los estilos/headers".
+- ✅ **Botón "✨ Generar con IA" en `BgEditor`** — prompt + presets + aspecto; genera → sube a
+  Storage → aplica como fondo de la sección (misma vía que ya existía). Pasa el `design_theme` actual.
+- ✅ **`data.ts`**: `generateImage()` (con token de sesión) + `uploadDataUrl()` (base64 → Storage).
+- ✅ **OG/SEO** — `layout.tsx` ahora define `openGraph`/`twitter` + `metadataBase` (antes faltaban);
+  imagen base = el icono (reemplazable por un banner generado en `/og.png`).
+
+**Verificación:** `tsc` + `build` verdes, ruta registrada (`ƒ /api/generate-image`). En preview sin
+key se probó la **degradación**: la UI muestra "falta GEMINI_API_KEY" sin romperse, 0 errores de
+consola. **La generación real requiere tu key de Google con acceso a imágenes (normalmente de pago).**
+Veo3 (video) queda como **Fase 2** opcional.
+
+---
+
 ## 2026-06-25 — Doc maestra del descargador + "Problema y origen"
 
 - ✅ **`docs/DESCARGADOR.md`** (nuevo) — fuente única de verdad del sistema de descargas: la idea

@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Image as ImageIcon, Check, X, Loader2 } from 'lucide-react';
-import { updateSiteSetting, uploadMediaFile } from '@/lib/data';
+import { Image as ImageIcon, Check, X, Loader2, Sparkles } from 'lucide-react';
+import { updateSiteSetting, uploadMediaFile, generateImage, uploadDataUrl } from '@/lib/data';
+import { PROMPT_PRESETS, type ImageAspect } from '@/lib/imagePrompts';
 
 interface BgEditorProps {
   sectionKey: string;
@@ -10,12 +11,19 @@ interface BgEditorProps {
   onBgUpdate: (bgUrl: string) => void;
   currentOpacity?: number;
   onOpacityUpdate?: (opacity: number) => void;
+  theme?: string;   // tema activo (design_theme) para que la imagen combine
 }
 
-export default function BgEditor({ sectionKey, currentBg, onBgUpdate, currentOpacity = 0.2, onOpacityUpdate }: BgEditorProps) {
+export default function BgEditor({ sectionKey, currentBg, onBgUpdate, currentOpacity = 0.2, onOpacityUpdate, theme = 'default' }: BgEditorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [url, setUrl] = useState(currentBg || '');
   const [uploading, setUploading] = useState(false);
+
+  // Generación con IA
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiAspect, setAiAspect] = useState<ImageAspect>('banner');
+  const [generating, setGenerating] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   // Guarda la opacidad de este fondo (clave bg_opacity_<sección> en site_settings).
   const handleOpacity = async (value: number) => {
@@ -49,6 +57,26 @@ export default function BgEditor({ sectionKey, currentBg, onBgUpdate, currentOpa
     } catch (e) {
       alert('Error al subir la imagen');
       setUploading(false);
+    }
+  };
+
+  // Genera un fondo con IA (estilo del sitio + tema), lo sube a Storage y lo aplica.
+  const handleGenerate = async () => {
+    setGenerating(true);
+    setAiError(null);
+    try {
+      const dataUrl = await generateImage(aiPrompt, { theme, aspect: aiAspect });
+      const publicUrl = await uploadDataUrl(dataUrl, 'png');
+      if (publicUrl) {
+        setUrl(publicUrl);
+        await handleSave(publicUrl);
+      } else {
+        setAiError('La imagen se generó pero no se pudo guardar (revisa el bucket "media").');
+      }
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : 'No se pudo generar la imagen.');
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -94,6 +122,41 @@ export default function BgEditor({ sectionKey, currentBg, onBgUpdate, currentOpa
             {uploading ? 'Subiendo...' : 'Seleccionar Archivo'}
             <input type="file" accept="image/*,video/mp4" className="hidden" onChange={handleFileChange} disabled={uploading} />
           </label>
+        </div>
+
+        {/* Generar con IA */}
+        <div className="pt-2 border-t border-white/10 space-y-2">
+          <span className="text-[10px] text-neon-magenta uppercase font-bold flex items-center gap-1"><Sparkles className="h-3 w-3" /> Generar con IA</span>
+          <textarea
+            value={aiPrompt}
+            onChange={(e) => setAiPrompt(e.target.value)}
+            rows={2}
+            placeholder="Describe el fondo (ej. ciudad cyberpunk lluviosa)…"
+            className="w-full bg-black/50 border border-border rounded px-2 py-1 text-xs text-white resize-none"
+          />
+          <div className="flex flex-wrap gap-1">
+            {PROMPT_PRESETS.slice(0, 4).map((p) => (
+              <button key={p.label} type="button" onClick={() => setAiPrompt(p.idea)}
+                className="text-[9px] px-1.5 py-0.5 rounded border border-border text-muted-2 hover:text-white hover:border-neon-magenta/50">
+                {p.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1">
+            {(['banner', 'square'] as const).map((a) => (
+              <button key={a} type="button" onClick={() => setAiAspect(a)}
+                className={`text-[9px] px-2 py-0.5 rounded border font-bold ${aiAspect === a ? 'border-neon-cyan text-neon-cyan' : 'border-border text-muted-2'}`}>
+                {a === 'banner' ? 'Banner' : 'Cuadrado'}
+              </button>
+            ))}
+            <button type="button" onClick={handleGenerate} disabled={generating}
+              className="ml-auto flex items-center gap-1 bg-neon-magenta text-white text-[10px] font-bold px-2.5 py-1 rounded hover:bg-pink-600 disabled:opacity-50">
+              {generating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+              {generating ? 'Generando…' : 'Generar'}
+            </button>
+          </div>
+          {aiError && <p className="text-[10px] text-red-400 leading-tight">{aiError}</p>}
+          <p className="text-[9px] text-muted-2 leading-tight">Usa el tema activo para combinar. Requiere key de Google con acceso a imágenes (de pago).</p>
         </div>
 
         {/* Opacidad del fondo de esta sección */}

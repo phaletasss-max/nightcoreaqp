@@ -121,6 +121,7 @@ Tailwind v4              Storage · RLS            media-service (Render) = resp
 | `GET /api/spotify/tracks` | ✅ | Client Credentials. **No** sirve playlists editoriales de Spotify (502/404) |
 | `GET /api/youtube/search` | ✅ | YouTube Data API (no la bloquea YouTube). 501 si falta key → fallback a media-service |
 | `POST /api/assistant` | ✅ | Gemini ("Nightie"). Cascada de modelos free. Requiere `GEMINI_API_KEY` |
+| `POST /api/generate-image` | 🟡 | Genera fondos con IA (cascada `gemini-2.5-flash-image`→`imagen-3`). Gateada a staff. **Requiere key con acceso a imágenes (de pago)**; degrada con mensaje si no. UI en `BgEditor` (2026-06-25) |
 | `GET /api/health` · `/api/health/dependencies` | ✅ | Health checks |
 | `GET /api/cron/cleanup` | 🟡 | Existe; verificar que esté agendado |
 | media-service `/api/search` `/api/store` `/health` | 🟡 | Render free se duerme (~30s cold start); YouTube necesita cookies |
