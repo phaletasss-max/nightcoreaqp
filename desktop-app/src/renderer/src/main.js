@@ -127,3 +127,46 @@ window.api.onUpdate((d) => {
 })
 
 updateInstall.addEventListener('click', () => window.api.installUpdate())
+
+// ── Personalización (tema + imagen de fondo), guardada en localStorage ────────
+const pz = {
+  panel: $('personalize'), toggle: $('personalize-toggle'), themes: $('pz-themes'),
+  bgLayer: $('bg-layer'), bgFile: $('bg-file'), bgClear: $('bg-clear'), bgOpacity: $('bg-opacity'),
+}
+
+pz.toggle.addEventListener('click', () => pz.panel.classList.toggle('hidden'))
+
+function applyTheme(t) {
+  if (t && t !== 'default') document.documentElement.dataset.theme = t
+  else delete document.documentElement.dataset.theme
+  pz.themes.querySelectorAll('.pz-theme').forEach((b) => b.classList.toggle('active', b.dataset.theme === (t || 'default')))
+}
+function applyBg(dataUrl) { pz.bgLayer.style.backgroundImage = dataUrl ? `url(${dataUrl})` : '' }
+function applyBgOpacity(o) { pz.bgLayer.style.opacity = o }
+
+pz.themes.querySelectorAll('.pz-theme').forEach((b) => b.addEventListener('click', () => {
+  applyTheme(b.dataset.theme)
+  try { localStorage.setItem('pz_theme', b.dataset.theme) } catch { /* ignore */ }
+}))
+
+pz.bgFile.addEventListener('change', (e) => {
+  const f = e.target.files[0]
+  if (!f) return
+  const r = new FileReader()
+  r.onload = () => {
+    applyBg(r.result)
+    try { localStorage.setItem('pz_bg', r.result) } catch { setStatus('Imagen muy grande para guardar; usa una más liviana.', 'warn') }
+  }
+  r.readAsDataURL(f)
+})
+pz.bgClear.addEventListener('click', () => { applyBg(''); try { localStorage.removeItem('pz_bg') } catch { /* ignore */ } })
+pz.bgOpacity.addEventListener('input', () => {
+  applyBgOpacity(pz.bgOpacity.value)
+  try { localStorage.setItem('pz_bg_opacity', pz.bgOpacity.value) } catch { /* ignore */ }
+})
+
+// Cargar lo guardado al iniciar.
+applyTheme(localStorage.getItem('pz_theme') || 'default')
+const savedBg = localStorage.getItem('pz_bg'); if (savedBg) applyBg(savedBg)
+const savedOp = localStorage.getItem('pz_bg_opacity')
+if (savedOp) { pz.bgOpacity.value = savedOp; applyBgOpacity(savedOp) } else { applyBgOpacity(0.5) }

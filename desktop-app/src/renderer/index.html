@@ -8,10 +8,34 @@
     <link rel="stylesheet" href="./src/style.css" />
   </head>
   <body>
+    <div id="bg-layer"></div>
+
     <header class="topbar">
-      <div class="brand"><span class="logo">✦</span> NIGHTCORE <span class="aqp">AQP</span></div>
-      <div class="subtitle">Descargador de música — local y a máxima calidad <span id="version" class="version"></span></div>
+      <div>
+        <div class="brand"><span class="logo">✦</span> NIGHTCORE <span class="aqp">AQP</span></div>
+        <div class="subtitle">Descargador de música — local y a máxima calidad <span id="version" class="version"></span></div>
+      </div>
+      <button id="personalize-toggle" class="btn-ghost" title="Personalizar la apariencia">🎨 Personalizar</button>
     </header>
+
+    <div id="personalize" class="personalize hidden">
+      <div class="pz-group">
+        <span class="pz-label">Tema</span>
+        <div class="pz-themes" id="pz-themes">
+          <button class="pz-theme" data-theme="default">Scenecore</button>
+          <button class="pz-theme" data-theme="pixel">Pixel</button>
+          <button class="pz-theme" data-theme="gothic">Gótico</button>
+          <button class="pz-theme" data-theme="anime">Anime</button>
+        </div>
+      </div>
+      <div class="pz-group">
+        <span class="pz-label">Fondo</span>
+        <label class="btn-ghost pz-file">Elegir imagen<input type="file" id="bg-file" accept="image/*" hidden></label>
+        <button id="bg-clear" class="btn-ghost">Quitar</button>
+        <span class="pz-label">Opacidad</span>
+        <input type="range" id="bg-opacity" min="0" max="1" step="0.05" value="0.5" class="pz-range">
+      </div>
+    </div>
 
     <div id="update-bar" class="update-bar hidden">
       <span id="update-text"></span>

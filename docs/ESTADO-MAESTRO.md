@@ -115,7 +115,7 @@ Tailwind v4              Storage · RLS            media-service (Render) = resp
 | Asistente IA (Gemini) | ✅ | `GEMINI_API_KEY` |
 | PWA instalable + offline básico | ✅ | SW arreglado hoy (fallback) |
 | App móvil (Expo) | ⛔ | Solo el stub por defecto |
-| App de escritorio · descargas (Electron) | ✅ | `desktop-app/`: UI + auto-instala yt-dlp/ffmpeg + descarga. **Release v0.1.0 publicada** (GitHub Actions, auto-publica). Instalador NSIS + **auto-update** + botón "Descargar la App (.exe)" en la web. Cookies del navegador para la verificación anti-bot de YouTube. Pendiente menor: icono propio (2026-06-25) |
+| App de escritorio · descargas (Electron) | ✅ | `desktop-app/`: UI + auto-instala yt-dlp/ffmpeg + descarga. Releases auto-publicadas (GitHub Actions). Instalador NSIS + **auto-update** (visible + log) + botón ".exe" en la web (con aviso de SmartScreen). Cookies del navegador (anti-bot YouTube). **Personalización: temas + imagen de fondo** (0.1.2). Pendiente menor: icono propio (2026-06-25) |
 | Convertidor de archivos | ⏸️ | Fuera del repo |
 | Verificación de cuenta (email/WhatsApp) | ⛔ | Investigado en ROADMAP §8 |
 | Feed personalizado por interés | ⛔ | `feed_items` / `feed_seen` no creadas |

@@ -15,6 +15,11 @@
 
 * { box-sizing: border-box; margin: 0; }
 
+/* Presets de tema (como en la web): redefinen la paleta → recoloran toda la app. */
+html[data-theme="pixel"] { --background:#050505; --surface:#0d0d0d; --surface-2:#171717; --fg:#e9ffe9; --muted:#86c986; --muted-2:#4f7d4f; --border:rgba(0,255,102,.20); --magenta:#ff00d4; --cyan:#00e5ff; --lime:#00ff66; }
+html[data-theme="gothic"] { --background:#0a0709; --surface:#120b0e; --surface-2:#1a0e12; --fg:#e7e2e6; --muted:#a98f97; --muted-2:#6e5a61; --border:rgba(193,18,31,.22); --magenta:#c1121f; --cyan:#6b8cae; --lime:#8a9a5b; }
+html[data-theme="anime"] { --background:#16101d; --surface:#1d1526; --surface-2:#261b31; --fg:#fce8f4; --muted:#c9a8d4; --muted-2:#8f7299; --border:rgba(255,143,199,.22); --magenta:#ff6fb5; --cyan:#7ec8ff; --lime:#9bf6c8; }
+
 body {
   background: var(--bg);
   color: var(--fg);
@@ -25,11 +30,36 @@ body {
   overflow: hidden;
 }
 
+/* Capa de imagen de fondo (detrás del contenido, delante del color del body). */
+#bg-layer {
+  position: fixed; inset: 0; z-index: -1;
+  background-size: cover; background-position: center;
+  pointer-events: none; opacity: 0.5; transition: opacity 0.3s ease;
+}
+
 .topbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 14px 20px;
   border-bottom: 1px solid var(--border);
   background: linear-gradient(180deg, var(--surface), transparent);
 }
+
+/* Panel de personalización */
+.personalize {
+  display: flex; flex-wrap: wrap; gap: 16px; align-items: center;
+  padding: 12px 20px; border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+}
+.pz-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pz-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.pz-themes { display: inline-flex; gap: 6px; }
+.pz-theme {
+  background: transparent; color: var(--muted); border: 1px solid var(--border);
+  border-radius: 8px; padding: 5px 10px; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.pz-theme.active { background: var(--magenta); color: #fff; border-color: var(--magenta); }
+.pz-file { cursor: pointer; }
+.pz-range { width: 110px; accent-color: var(--magenta); cursor: pointer; }
 .brand { font-weight: 800; letter-spacing: 0.04em; }
 .brand .logo { color: var(--magenta); }
 .brand .aqp { color: var(--cyan); }

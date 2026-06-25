@@ -37,6 +37,9 @@ export default function DownloadInstructionsModal({ onClose }: { onClose: () => 
               >
                 <Download className="h-4 w-4 mr-1" /> Descargar la App (.exe)
               </a>
+              <p className="text-[10px] text-muted-2 mt-2 leading-relaxed">
+                ⚠️ Windows puede mostrar <strong>&quot;protegió tu PC&quot;</strong> (app sin firma): clic en <strong>Más información</strong> → <strong>Ejecutar de todas formas</strong>.
+              </p>
               <a
                 href="/downloads/Crate_Builder.bat" download
                 className="mt-2 block text-center text-[11px] text-neon-cyan/80 hover:text-neon-cyan flex items-center justify-center gap-1"

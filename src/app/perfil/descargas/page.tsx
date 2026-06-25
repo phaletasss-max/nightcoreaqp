@@ -160,6 +160,25 @@ export default function DescargasPage() {
         </p>
       </div>
 
+      {/* App de PC (recomendada) */}
+      <div className="card p-5 space-y-3 accent-magenta">
+        <div className="flex items-center gap-2">
+          <Monitor className="h-5 w-5 text-neon-magenta glow-magenta" />
+          <h3 className="font-bold text-white text-sm">App de PC — recomendado</h3>
+        </div>
+        <p className="text-xs text-muted-2">Instálala una vez: pega enlaces, elige MP3/MP4, cookies para YouTube, y se actualiza sola. Sin terminal.</p>
+        <a
+          href="https://github.com/phaletasss-max/nightcoreaqp/releases/latest/download/NightcoreAQP-Downloader-Setup.exe"
+          target="_blank" rel="noreferrer"
+          className="btn btn-primary w-full justify-center"
+        >
+          <Download className="h-4 w-4" /> Descargar la App (.exe)
+        </a>
+        <p className="text-[11px] text-muted-2 bg-white/5 border border-border rounded-lg p-2.5 leading-relaxed">
+          ⚠️ Al abrir el instalador, Windows puede mostrar <strong>&quot;Windows protegió tu PC&quot;</strong>. Es normal (la app no está firmada digitalmente): haz clic en <strong>Más información</strong> → <strong>Ejecutar de todas formas</strong>.
+        </p>
+      </div>
+
       {/* Buscador de YouTube por nombre */}
       <div className="card p-5 space-y-3 accent-cyan">
         <label className="label flex items-center gap-2"><Search className="h-3.5 w-3.5" /> Buscar en YouTube por nombre</label>
@@ -294,7 +313,7 @@ export default function DescargasPage() {
         </div>
 
         <p className="text-[11px] text-muted-2 text-center border-t border-border pt-3">
-          En PC se baja un <strong>.bat</strong> que descarga el video en tu equipo (la primera vez instala yt-dlp solo). En celular usa la app recomendada.
+          &quot;Descargar en PC&quot; baja un <strong>.bat</strong> rápido para este enlace (la primera vez instala yt-dlp solo). Para algo más cómodo, instala la <strong>App de PC</strong> de arriba. En celular usa la app recomendada.
         </p>
       </div>
 
