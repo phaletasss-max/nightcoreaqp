@@ -152,6 +152,7 @@ Tailwind v4              Storage · RLS            media-service (Render) = resp
 | Retos diarios / racha | ✅ | |
 | Perfil + actividad | ✅ | |
 | **Chat de comunidad en vivo** (`/chat`) | ✅ **nuevo** (2026-06-25) | Supabase Realtime; login para escribir; filtro `banned_words`; reportar + ocultar/eliminar staff. **Correr `phase-chat.sql`** en prod |
+| **Buzón de sugerencias/denuncias** (`/sugerencias`) | ✅ **nuevo** (2026-06-25) | Formulario 100% anónimo (sin login). Dos categorías: sugerencia/denuncia. Solo el staff lee en Admin → Buzón. **Correr `phase-sugerencias.sql`** en prod |
 | **Perfil: galería de fotos + bio + links** | ✅ **nuevo** (2026-06-25) | `profile_photos` + bio + TikTok/IG; galería gated por privacidad. **Correr `phase-profile-extras.sql`** |
 | **Perfil: color de acento (personalización)** | ✅ **nuevo** (2026-06-25) | `profiles.accent` aplicado con `color-mix` en perfil propio + público |
 | Perfil privado (toggle) | 🟡 | **Falta `phase-de.sql`** (`is_private`) |
@@ -186,6 +187,8 @@ Correr en el **SQL Editor** (orden sugerido). Marcar aquí cuando se corra:
 | `supabase/saved-songs.sql` | `saved_songs` (playlist personal) | ✅ absorbida en `schema.sql` |
 | `supabase/phase-chat.sql` | `chat_rooms`, `chat_messages`, `chat_reports` + RLS + Realtime | ⛔ **PENDIENTE** (activa el chat `/chat`; sin ella el chat sale vacío pero no rompe) |
 | `supabase/phase-profile-extras.sql` | `profiles.bio/tiktok_url/instagram_url/accent/bg_url` + `profile_photos` + RLS | ⛔ **PENDIENTE** (activa galería, bio, links y acento del perfil) |
+| `supabase/phase-sugerencias.sql` | tabla `suggestions` + RLS (insert anon, read/update/delete staff) | ⛔ **PENDIENTE** (sin ella el buzón usa localStorage; no pierde envíos pero no persiste en BD) |
+| `supabase/phase-bloques.sql` | tabla `custom_blocks` + RLS (público lee visibles, staff gestiona todo) | ⛔ **PENDIENTE** (sin ella los bloques usan localStorage) |
 
 > **Hallazgo de auditoría:** `scripts/verify-schema.ts` valida `events.is_visible` y columnas
 > `setting_key/setting_value` que **no existen** (la tabla usa `key/value`); ninguna migración crea
@@ -274,7 +277,7 @@ mostrar/ocultar secciones **fijas**. Lo que pides es subir un nivel. Propuesta p
 |---|---|---|
 | **A. Más tokens** | Acento, opacidad, radio, blur, overlay + **fuente de títulos Y de texto**, **colores a medida** (fondo/superficie/texto), **tamaño de letra** y **reset** como variables en `site_settings` | ✅ Hecho (ampliado 2026-06-25: la fuente del cuerpo, colores granulares, escala y reset) |
 | **B. Presets de tema** | Dropdown *Scenecore · Pixel · Gótico · Anime · **Y2K · Vaporwave · Cyber*** (7) — cada uno setea toda la paleta vía `html[data-theme]` | ✅ Hecho (3 packs nuevos 2026-06-25) |
-| **C. Bloques/contenedores** | Tabla `custom_blocks` (tipo, título, contenido, orden, sección) + render dinámico → el admin añade/ordena contenedores sin tocar código | ⛔ Pendiente (fase aparte) |
+| **C. Bloques/contenedores** | Tabla `custom_blocks` (tipo, título, contenido, orden, sección) + render dinámico → el admin añade/ordena contenedores sin tocar código | ✅ Hecho (2026-06-25) — Admin → Bloques: 5 tipos (anuncio/texto/enlace/imagen/video), orden ↑↓, toggle visible, editar inline. **Correr `phase-bloques.sql`** |
 | **D. CSS libre** | Inyectar CSS crudo | ❌ Descartado (footgun + XSS) |
 
 **Implementado (2026-06-25):** presets en `globals.css` (`html[data-theme="..."]`),

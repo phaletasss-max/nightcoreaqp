@@ -160,3 +160,29 @@ export interface ChatMessage {
   hidden?: boolean;
   created_at: string;
 }
+
+export interface Suggestion {
+  id: string;
+  category: 'sugerencia' | 'denuncia';
+  content: string;
+  contact: string | null;
+  user_id: string | null;
+  read: boolean;
+  created_at: string;
+}
+
+export type BlockType = 'anuncio' | 'texto' | 'enlace' | 'imagen' | 'video';
+
+export interface CustomBlock {
+  id: string;
+  type: BlockType;
+  title: string | null;
+  content: string | null;
+  url: string | null;
+  img_url: string | null;
+  accent: string;        // 'cyan' | 'magenta' | 'lime' | 'yellow' | 'purple'
+  section: string;       // 'home' por defecto
+  position: number;
+  visible: boolean;
+  created_at: string;
+}

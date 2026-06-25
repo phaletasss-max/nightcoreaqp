@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import {
   ShieldAlert, Users, Music, TrendingUp, BarChart3, Trash2, Check,
   Plus, Calendar, Eye, EyeOff, Sparkles, Radio, Download, Film, Loader2,
-  Palette, Type, SlidersHorizontal, X, Search,
+  Palette, Type, SlidersHorizontal, X, Search, Inbox, Mail, MailOpen, Megaphone,
+  Layout, ArrowUp, ArrowDown, ExternalLink, Link as LinkIcon, Image as ImageIcon, Video,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import {
@@ -14,14 +15,16 @@ import {
   adminResetPassword, deleteComment, getCostumes, getSiteSettings, updateSiteSetting,
   getBannedWords, addBannedWord, removeBannedWord, approveComment, uploadMediaFile,
   getAttendanceProofs, setAttendanceProofStatus,
+  getSuggestions, markSuggestionRead, deleteSuggestion,
+  getCustomBlocks, saveCustomBlock, deleteCustomBlock, moveCustomBlock, toggleCustomBlockVisible,
 } from '@/lib/data';
 import Link from 'next/link';
 import { supabase } from '@/utils/supabase';
 import { storeBackup, isMediaConfigured } from '@/lib/media';
 import { buildCrateBat, downloadTextFile } from '@/lib/crate';
-import type { EventItem, Song, Attendee, EventStatus, Profile, Costume, EventComment, AttendanceProof } from '@/lib/types';
+import type { EventItem, Song, Attendee, EventStatus, Profile, Costume, EventComment, AttendanceProof, Suggestion, CustomBlock, BlockType } from '@/lib/types';
 
-type Tab = 'kpi' | 'dj' | 'survey' | 'events' | 'users' | 'posts' | 'comments' | 'design' | 'proofs';
+type Tab = 'kpi' | 'dj' | 'survey' | 'events' | 'users' | 'posts' | 'comments' | 'design' | 'proofs' | 'buzon' | 'bloques';
 
 // Hosts que yt-dlp puede descargar (Spotify no: DRM). Spotify solo sirve de pedido.
 const DOWNLOADABLE_HOSTS = /(youtube\.com|youtu\.be|tiktok\.com|instagram\.com|facebook\.com|fb\.watch|twitter\.com|x\.com)/i;
@@ -121,6 +124,12 @@ export default function AdminPage() {
   const [bannedWords, setBannedWords] = useState<string[]>([]);
   const [newWord, setNewWord] = useState('');
   const [proofs, setProofs] = useState<AttendanceProof[]>([]);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [blocks, setBlocks] = useState<CustomBlock[]>([]);
+  // form bloque
+  const EMPTY_BLOCK: Omit<CustomBlock, 'created_at'> = { id: '', type: 'anuncio', title: '', content: '', url: '', img_url: '', accent: 'cyan', section: 'home', position: 0, visible: true };
+  const [blkForm, setBlkForm] = useState(EMPTY_BLOCK);
+  const [blkSaving, setBlkSaving] = useState(false);
 
   // form encuesta
   const [sQuestion, setSQuestion] = useState('');
@@ -198,6 +207,8 @@ export default function AdminPage() {
     getSiteSettings().then(setDesign);
     getBannedWords().then(setBannedWords);
     getAttendanceProofs().then(setProofs);
+    getSuggestions().then(setSuggestions);
+    getCustomBlocks('home').then(setBlocks);
   }, []);
 
   const handleAddWord = async (e: React.FormEvent) => {
@@ -439,6 +450,66 @@ export default function AdminPage() {
     setEvDJs(newDjs);
   };
 
+  const handleMarkSuggestionRead = async (s: Suggestion, read: boolean) => {
+    setSuggestions((prev) => prev.map((x) => x.id === s.id ? { ...x, read } : x));
+    await markSuggestionRead(s.id, read);
+  };
+
+  const handleDeleteSuggestion = async (id: string) => {
+    setSuggestions((prev) => prev.filter((x) => x.id !== id));
+    await deleteSuggestion(id);
+  };
+
+  const unreadCount = suggestions.filter((s) => !s.read).length;
+
+  // ── Handlers de bloques ──
+  const handleSaveBlock = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBlkSaving(true);
+    const toSave: CustomBlock = {
+      ...blkForm,
+      id: blkForm.id || 'blk-new',
+      position: blkForm.id ? blkForm.position : blocks.length,
+      created_at: '',
+    };
+    const saved = await saveCustomBlock(toSave);
+    if (saved) {
+      setBlocks((prev) => {
+        const idx = prev.findIndex((b) => b.id === saved.id);
+        if (idx >= 0) { const next = [...prev]; next[idx] = saved; return next; }
+        return [...prev, saved];
+      });
+      setBlkForm({ ...EMPTY_BLOCK });
+    }
+    setBlkSaving(false);
+  };
+
+  const handleDeleteBlock = async (b: CustomBlock) => {
+    setBlocks((prev) => prev.filter((x) => x.id !== b.id));
+    await deleteCustomBlock(b.id, b.section);
+  };
+
+  const handleToggleBlock = async (b: CustomBlock) => {
+    const next = !b.visible;
+    setBlocks((prev) => prev.map((x) => x.id === b.id ? { ...x, visible: next } : x));
+    await toggleCustomBlockVisible(b.id, next, b.section);
+  };
+
+  const handleMoveBlock = async (b: CustomBlock, dir: 'up' | 'down') => {
+    const sorted = [...blocks].sort((a, x) => a.position - x.position);
+    const idx = sorted.findIndex((x) => x.id === b.id);
+    const swap = dir === 'up' ? idx - 1 : idx + 1;
+    if (swap < 0 || swap >= sorted.length) return;
+    const posA = sorted[idx].position;
+    const posB = sorted[swap].position;
+    setBlocks((prev) => prev.map((x) => {
+      if (x.id === sorted[idx].id) return { ...x, position: posB };
+      if (x.id === sorted[swap].id) return { ...x, position: posA };
+      return x;
+    }));
+    await moveCustomBlock(b.id, dir, b.section);
+  };
+
   const tabs: { id: Tab; label: string }[] = [
     { id: 'kpi', label: 'Métricas' },
     { id: 'dj', label: 'Consola DJ' },
@@ -448,6 +519,8 @@ export default function AdminPage() {
     { id: 'posts', label: 'Disfraces' },
     { id: 'comments', label: 'Comentarios' },
     { id: 'proofs', label: 'Insignias' },
+    { id: 'buzon', label: 'Buzón' },
+    { id: 'bloques', label: 'Bloques' },
     { id: 'design', label: 'Diseño' },
   ];
 
@@ -484,9 +557,16 @@ export default function AdminPage() {
       <div className="flex flex-wrap gap-1 border-b border-border">
         {tabs.map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)}
-            className={`px-4 py-2.5 text-sm font-bold border-b-2 -mb-px transition-colors ${
+            className={`px-4 py-2.5 text-sm font-bold border-b-2 -mb-px transition-colors flex items-center gap-1.5 ${
               tab === t.id ? 'border-neon-pink text-neon-pink' : 'border-transparent text-muted hover:text-white'
-            }`}>{t.label}</button>
+            }`}>
+            {t.label}
+            {t.id === 'buzon' && unreadCount > 0 && (
+              <span className="inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-neon-pink text-black text-[10px] font-extrabold leading-none">
+                {unreadCount}
+              </span>
+            )}
+          </button>
         ))}
       </div>
 
@@ -1179,6 +1259,147 @@ export default function AdminPage() {
       )}
 
 
+      {/* ── BLOQUES ──────────────────────────────────────────────────── */}
+      {tab === 'bloques' && (
+        <div className="space-y-6 animate-fade-in">
+          <div>
+            <h2 className="font-bold text-white flex items-center gap-2">
+              <Layout className="h-5 w-5 text-neon-cyan" /> Bloques de contenido
+            </h2>
+            <p className="text-xs text-muted mt-0.5">
+              Añade anuncios, textos, enlaces, imágenes o videos a la home sin tocar código.
+            </p>
+          </div>
+
+          {/* Form añadir / editar */}
+          <form onSubmit={handleSaveBlock} className="card p-5 space-y-4">
+            <h3 className="font-bold text-white text-sm flex items-center gap-2">
+              <Plus className="h-4 w-4 text-neon-lime" />
+              {blkForm.id ? 'Editar bloque' : 'Añadir bloque'}
+            </h3>
+
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              {(['anuncio', 'texto', 'enlace', 'imagen', 'video'] as BlockType[]).map((t) => {
+                const icons = { anuncio: Megaphone, texto: Type, enlace: LinkIcon, imagen: ImageIcon, video: Video };
+                const Icon = icons[t];
+                return (
+                  <button key={t} type="button"
+                    onClick={() => setBlkForm((f) => ({ ...f, type: t }))}
+                    className={`flex flex-col items-center gap-1 py-2.5 rounded-xl border text-xs font-bold capitalize transition-colors ${blkForm.type === t ? 'border-neon-cyan/60 text-neon-cyan bg-neon-cyan/10' : 'border-border text-muted hover:text-white'}`}
+                  >
+                    <Icon className="h-4 w-4" /> {t}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Campos comunes */}
+            {blkForm.type !== 'imagen' && blkForm.type !== 'video' && (
+              <input value={blkForm.title ?? ''} onChange={(e) => setBlkForm((f) => ({ ...f, title: e.target.value }))}
+                placeholder="Título (opcional)" className="input w-full text-sm" />
+            )}
+            {(blkForm.type === 'anuncio' || blkForm.type === 'texto' || blkForm.type === 'enlace') && (
+              <textarea value={blkForm.content ?? ''} onChange={(e) => setBlkForm((f) => ({ ...f, content: e.target.value }))}
+                rows={3} placeholder={blkForm.type === 'enlace' ? 'Descripción (opcional)' : 'Contenido *'}
+                className="input w-full text-sm resize-none" />
+            )}
+            {(blkForm.type === 'enlace' || blkForm.type === 'video') && (
+              <input value={blkForm.url ?? ''} onChange={(e) => setBlkForm((f) => ({ ...f, url: e.target.value }))}
+                placeholder={blkForm.type === 'video' ? 'URL de YouTube *' : 'URL destino *'}
+                className="input w-full text-sm" />
+            )}
+            {blkForm.type === 'imagen' && (
+              <>
+                <input value={blkForm.img_url ?? ''} onChange={(e) => setBlkForm((f) => ({ ...f, img_url: e.target.value }))}
+                  placeholder="URL de la imagen *" className="input w-full text-sm" />
+                <input value={blkForm.title ?? ''} onChange={(e) => setBlkForm((f) => ({ ...f, title: e.target.value }))}
+                  placeholder="Caption (opcional)" className="input w-full text-sm" />
+              </>
+            )}
+            {blkForm.type === 'video' && (
+              <input value={blkForm.title ?? ''} onChange={(e) => setBlkForm((f) => ({ ...f, title: e.target.value }))}
+                placeholder="Título del video (opcional)" className="input w-full text-sm" />
+            )}
+
+            {/* Acento de color */}
+            {(blkForm.type === 'anuncio' || blkForm.type === 'enlace') && (
+              <div className="flex flex-wrap gap-2 items-center">
+                <span className="text-xs text-muted font-bold">Color:</span>
+                {['cyan', 'magenta', 'lime', 'yellow', 'purple'].map((c) => {
+                  const bg: Record<string, string> = { cyan: 'bg-neon-cyan', magenta: 'bg-neon-magenta', lime: 'bg-neon-lime', yellow: 'bg-neon-yellow', purple: 'bg-neon-purple' };
+                  return (
+                    <button key={c} type="button"
+                      onClick={() => setBlkForm((f) => ({ ...f, accent: c }))}
+                      className={`h-6 w-6 rounded-full ${bg[c]} ${blkForm.accent === c ? 'ring-2 ring-white ring-offset-1 ring-offset-black' : 'opacity-60 hover:opacity-100'}`}
+                      title={c}
+                    />
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="flex items-center gap-3 pt-1">
+              <button type="submit" disabled={blkSaving}
+                className="btn btn-primary py-2 px-4 text-sm disabled:opacity-50 flex items-center gap-2">
+                {blkSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                {blkForm.id ? 'Guardar cambios' : 'Añadir bloque'}
+              </button>
+              {blkForm.id && (
+                <button type="button" onClick={() => setBlkForm({ ...EMPTY_BLOCK })}
+                  className="text-xs text-muted hover:text-white">
+                  Cancelar
+                </button>
+              )}
+            </div>
+          </form>
+
+          {/* Lista de bloques */}
+          {blocks.length === 0 ? (
+            <div className="card p-10 text-center text-muted-2 space-y-2">
+              <Layout className="h-9 w-9 mx-auto opacity-40" />
+              <p className="text-sm font-bold">Sin bloques todavía</p>
+              <p className="text-xs">Usa el formulario de arriba para añadir el primero.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {[...blocks].sort((a, b) => a.position - b.position).map((b, i, arr) => {
+                const icons = { anuncio: Megaphone, texto: Type, enlace: ExternalLink, imagen: ImageIcon, video: Video };
+                const Icon = icons[b.type];
+                return (
+                  <div key={b.id} className={`card p-4 flex items-center gap-3 ${!b.visible ? 'opacity-50' : ''}`}>
+                    <div className="flex flex-col gap-0.5">
+                      <button onClick={() => handleMoveBlock(b, 'up')} disabled={i === 0}
+                        className="text-muted hover:text-white disabled:opacity-20 p-0.5"><ArrowUp className="h-3.5 w-3.5" /></button>
+                      <button onClick={() => handleMoveBlock(b, 'down')} disabled={i === arr.length - 1}
+                        className="text-muted hover:text-white disabled:opacity-20 p-0.5"><ArrowDown className="h-3.5 w-3.5" /></button>
+                    </div>
+                    <Icon className="h-4 w-4 text-neon-cyan shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-white truncate">{b.title || b.content || b.url || '(sin texto)'}</p>
+                      <span className="text-[10px] text-muted-2 capitalize">{b.type} · {b.section}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button onClick={() => handleToggleBlock(b)}
+                        className="flex items-center gap-1 px-2 py-1 rounded-lg border border-border text-[11px] text-muted hover:text-white transition-colors">
+                        {b.visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                      </button>
+                      <button onClick={() => setBlkForm({ id: b.id, type: b.type, title: b.title ?? '', content: b.content ?? '', url: b.url ?? '', img_url: b.img_url ?? '', accent: b.accent, section: b.section, position: b.position, visible: b.visible })}
+                        className="px-2 py-1 rounded-lg border border-border text-[11px] text-muted hover:text-white transition-colors">
+                        Editar
+                      </button>
+                      <button onClick={() => handleDeleteBlock(b)}
+                        className="px-2 py-1 rounded-lg border border-red-500/20 text-[11px] text-red-400 hover:bg-red-500/10 transition-colors">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* PESTAÑA: DISEÑO */}
       {tab === 'design' && (
         <div className="space-y-6 animate-fade-in max-w-3xl">
@@ -1364,6 +1585,80 @@ export default function AdminPage() {
               Restablecer
             </button>
           </div>
+        </div>
+      )}
+
+      {/* ── BUZÓN ───────────────────────────────────────────────────── */}
+      {tab === 'buzon' && (
+        <div className="space-y-5 animate-fade-in">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-bold text-white flex items-center gap-2">
+                <Inbox className="h-5 w-5 text-neon-cyan" /> Buzón de sugerencias y denuncias
+              </h2>
+              <p className="text-xs text-muted mt-0.5">Solo visible para el staff. Los visitantes envían desde <strong>/sugerencias</strong>.</p>
+            </div>
+            {unreadCount > 0 && (
+              <span className="badge badge-cyan">{unreadCount} sin leer</span>
+            )}
+          </div>
+
+          {suggestions.length === 0 ? (
+            <div className="card p-10 text-center text-muted-2 space-y-2">
+              <Inbox className="h-9 w-9 mx-auto opacity-40" />
+              <p className="text-sm font-bold">El buzón está vacío</p>
+              <p className="text-xs">Cuando alguien envíe una sugerencia o denuncia aparecerá aquí.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {suggestions.map((s) => (
+                <div key={s.id} className={`card p-4 flex flex-col sm:flex-row gap-3 ${s.read ? 'opacity-60' : ''}`}>
+                  {/* Icono + badge */}
+                  <div className="shrink-0 flex sm:flex-col items-center gap-2">
+                    {s.category === 'denuncia'
+                      ? <ShieldAlert className="h-5 w-5 text-neon-pink" />
+                      : <Megaphone className="h-5 w-5 text-neon-cyan" />}
+                    <span className={`badge text-[10px] ${s.category === 'denuncia' ? 'badge-red' : 'badge-cyan'}`}>
+                      {s.category}
+                    </span>
+                  </div>
+
+                  {/* Contenido */}
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <p className="text-sm text-white whitespace-pre-wrap break-words">{s.content}</p>
+                    <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-2">
+                      <span>{new Date(s.created_at).toLocaleString('es-PE', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                      {s.contact && (
+                        <span className="flex items-center gap-1">
+                          <Mail className="h-3 w-3" /> {s.contact}
+                        </span>
+                      )}
+                      {!s.read && <span className="badge badge-yellow text-[9px] py-0 px-1.5">nuevo</span>}
+                    </div>
+                  </div>
+
+                  {/* Acciones */}
+                  <div className="flex sm:flex-col items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => handleMarkSuggestionRead(s, !s.read)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-border text-[11px] text-muted hover:text-white hover:border-neon-cyan/40 transition-colors"
+                      title={s.read ? 'Marcar como no leído' : 'Marcar como leído'}
+                    >
+                      {s.read ? <Mail className="h-3.5 w-3.5" /> : <MailOpen className="h-3.5 w-3.5" />}
+                      {s.read ? 'No leído' : 'Leído'}
+                    </button>
+                    <button
+                      onClick={() => handleDeleteSuggestion(s.id)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-red-500/20 text-[11px] text-red-400 hover:bg-red-500/10 transition-colors"
+                      title="Eliminar"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Borrar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

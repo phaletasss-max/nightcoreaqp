@@ -11,6 +11,7 @@ import {
   Headphones, Star, Link2, Trash2,
 } from 'lucide-react';
 import Hero from '@/components/Hero';
+import CustomBlocks from '@/components/CustomBlocks';
 import DailyChallenges from '@/components/DailyChallenges';
 import ThemesSection from '@/components/ThemesSection';
 import LiveFeed from '@/components/LiveFeed';
@@ -115,6 +116,9 @@ export default function Home() {
           <Hero nextEvent={nextEvent} onCta={goToDetail} />
         </div>
       </section>
+
+      {/* Bloques de contenido del admin (anuncios, links, etc.) */}
+      <CustomBlocks section="home" />
 
       {/* DJs del evento — mostrado solo para Nightcore Fest 2.0 */}
       {selected && selected.title.includes('Cyberpunk') && (

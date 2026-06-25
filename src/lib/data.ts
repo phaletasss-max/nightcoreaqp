@@ -9,7 +9,7 @@ import {
   DEMO_EVENTS, DEMO_SONGS, DEMO_SURVEY, DEMO_COSTUMES, DEMO_COMMENTS, DEMO_THEMES,
 } from './demo-data';
 import type {
-  EventItem, Song, Survey, Costume, EventComment, Attendee, VoteType, Theme, Profile, AttendanceProof, ProofStatus, ChatMessage, ProfilePhoto
+  EventItem, Song, Survey, Costume, EventComment, Attendee, VoteType, Theme, Profile, AttendanceProof, ProofStatus, ChatMessage, ProfilePhoto, Suggestion, CustomBlock
 } from './types';
 
 const cfg = () => isSupabaseConfigured();
@@ -853,6 +853,59 @@ export async function deleteChatMessage(id: string, room = 'general'): Promise<v
   lsSet(chatKey(room), lsGet<ChatMessage[]>(chatKey(room), []).filter((m) => m.id !== id));
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+//  SUGERENCIAS / DENUNCIAS
+// ════════════════════════════════════════════════════════════════════════════
+
+export async function submitSuggestion(
+  category: 'sugerencia' | 'denuncia',
+  content: string,
+  contact: string | null,
+  userId: string | null,
+): Promise<boolean> {
+  if (cfg()) {
+    const { error } = await supabase.from('suggestions').insert({ category, content, contact, user_id: userId });
+    if (error) { logError('submitSuggestion', error); return false; }
+    return true;
+  }
+  const row: Suggestion = {
+    id: `sug-${Date.now()}`,
+    category, content, contact, user_id: userId, read: false,
+    created_at: new Date().toISOString(),
+  };
+  lsSet('nq_suggestions', [...lsGet<Suggestion[]>('nq_suggestions', []), row]);
+  return true;
+}
+
+export async function getSuggestions(): Promise<Suggestion[]> {
+  if (cfg()) {
+    const { data } = await supabase
+      .from('suggestions')
+      .select('*')
+      .order('created_at', { ascending: false });
+    return (data as Suggestion[]) ?? [];
+  }
+  return [...lsGet<Suggestion[]>('nq_suggestions', [])].reverse();
+}
+
+export async function markSuggestionRead(id: string, read: boolean): Promise<void> {
+  if (cfg()) {
+    await supabase.from('suggestions').update({ read }).eq('id', id);
+    return;
+  }
+  lsSet('nq_suggestions', lsGet<Suggestion[]>('nq_suggestions', []).map((s) =>
+    s.id === id ? { ...s, read } : s,
+  ));
+}
+
+export async function deleteSuggestion(id: string): Promise<void> {
+  if (cfg()) {
+    await supabase.from('suggestions').delete().eq('id', id);
+    return;
+  }
+  lsSet('nq_suggestions', lsGet<Suggestion[]>('nq_suggestions', []).filter((s) => s.id !== id));
+}
+
 // Suscripción en vivo a nuevos mensajes de una sala. Devuelve una función para
 // cancelar. En modo demo usa el evento 'storage' (sincroniza entre pestañas).
 export function subscribeChatMessages(room: string, onInsert: (m: ChatMessage) => void): () => void {
@@ -879,4 +932,93 @@ export function subscribeChatMessages(room: string, onInsert: (m: ChatMessage) =
   };
   window.addEventListener('storage', handler);
   return () => window.removeEventListener('storage', handler);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  BLOQUES DE CONTENIDO PERSONALIZADO
+// ════════════════════════════════════════════════════════════════════════════
+
+function blockKey(section: string) { return `nq_blocks_${section}`; }
+
+export async function getCustomBlocks(section = 'home'): Promise<CustomBlock[]> {
+  if (cfg()) {
+    const { data } = await supabase
+      .from('custom_blocks')
+      .select('*')
+      .eq('section', section)
+      .order('position', { ascending: true });
+    return (data as CustomBlock[]) ?? [];
+  }
+  return [...lsGet<CustomBlock[]>(blockKey(section), [])].sort((a, b) => a.position - b.position);
+}
+
+export async function saveCustomBlock(block: CustomBlock): Promise<CustomBlock | null> {
+  if (cfg()) {
+    const isNew = !block.id || block.id.startsWith('blk-');
+    if (isNew) {
+      const { id: _id, created_at: _ca, ...rest } = block;
+      void _id; void _ca;
+      const { data, error } = await supabase.from('custom_blocks').insert(rest).select().single();
+      if (error) { logError('saveCustomBlock', error); return null; }
+      return data as CustomBlock;
+    }
+    const { error } = await supabase.from('custom_blocks').upsert(block);
+    if (error) { logError('saveCustomBlock', error); return null; }
+    return block;
+  }
+  const key = blockKey(block.section);
+  const all = lsGet<CustomBlock[]>(key, []);
+  const isNew = !block.id || block.id.startsWith('blk-new');
+  const row: CustomBlock = isNew
+    ? { ...block, id: `blk-${Date.now()}`, created_at: new Date().toISOString() }
+    : block;
+  const idx = all.findIndex((b) => b.id === row.id);
+  if (idx >= 0) all[idx] = row; else all.push(row);
+  lsSet(key, all);
+  return row;
+}
+
+export async function deleteCustomBlock(id: string, section = 'home'): Promise<void> {
+  if (cfg()) {
+    await supabase.from('custom_blocks').delete().eq('id', id);
+    return;
+  }
+  const key = blockKey(section);
+  lsSet(key, lsGet<CustomBlock[]>(key, []).filter((b) => b.id !== id));
+}
+
+export async function moveCustomBlock(id: string, dir: 'up' | 'down', section = 'home'): Promise<void> {
+  if (cfg()) {
+    const { data } = await supabase
+      .from('custom_blocks')
+      .select('id, position')
+      .eq('section', section)
+      .order('position', { ascending: true });
+    if (!data) return;
+    const rows = data as { id: string; position: number }[];
+    const idx = rows.findIndex((r) => r.id === id);
+    const swap = dir === 'up' ? idx - 1 : idx + 1;
+    if (idx < 0 || swap < 0 || swap >= rows.length) return;
+    const posA = rows[idx].position;
+    const posB = rows[swap].position;
+    await supabase.from('custom_blocks').update({ position: posB }).eq('id', rows[idx].id);
+    await supabase.from('custom_blocks').update({ position: posA }).eq('id', rows[swap].id);
+    return;
+  }
+  const key = blockKey(section);
+  const all = [...lsGet<CustomBlock[]>(key, [])].sort((a, b) => a.position - b.position);
+  const idx = all.findIndex((b) => b.id === id);
+  const swap = dir === 'up' ? idx - 1 : idx + 1;
+  if (idx < 0 || swap < 0 || swap >= all.length) return;
+  [all[idx].position, all[swap].position] = [all[swap].position, all[idx].position];
+  lsSet(key, all);
+}
+
+export async function toggleCustomBlockVisible(id: string, visible: boolean, section = 'home'): Promise<void> {
+  if (cfg()) {
+    await supabase.from('custom_blocks').update({ visible }).eq('id', id);
+    return;
+  }
+  const key = blockKey(section);
+  lsSet(key, lsGet<CustomBlock[]>(key, []).map((b) => b.id === id ? { ...b, visible } : b));
 }
