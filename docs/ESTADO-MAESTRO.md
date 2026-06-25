@@ -213,9 +213,21 @@ mostrar/ocultar secciones **fijas**. Lo que pides es subir un nivel. Propuesta p
 
 **Implementado (2026-06-25):** presets en `globals.css` (`html[data-theme="..."]`),
 aplicados por `DesignLoader` (`data-theme` + acento inline), selector en Admin → Diseño.
-Verificado en vivo (gótico recolorea, acento pisa al tema). **Siguiente nivel posible:** C
-(bloques/contenedores). *Limitación menor:* algunos glows usan rgba fijo y no cambian con el
-tema; parametrizar después si se quiere.
+
+**Auditoría de cobertura (2026-06-25):** se revisó todo `globals.css` y se parametrizaron con
+`color-mix()` sobre las variables del tema los colores que estaban hardcodeados: **fondo de
+`.card`** (`--card-rgb` por tema → carbón en gótico, ya no púrpura), bordes de acento
+(`.accent-*`), badges de marca (pink/cyan/lime), glows (`.glow-*`, `.text-glow-*`), anillo de
+foco de inputs, scrollbar, hovers de botón, fondos ambientales (`.app-bg`, `.scenecore-bg`),
+`.hero-gradient` y el borde arcoíris animado. **Verificado en vivo** (gótico: `.card` =
+`rgba(18,11,14,.75)`, glow/acento = `#c1121f`; default restaura limpio) + **build de
+producción verde**.
+
+*Excepciones intencionales (NO cambian con el tema, por diseño):* badges de estado
+verde/amarillo/rojo (semántica: confirmado/interés/peligro), el título arcoíris
+(`text-glow-rainbow`) y las estrellitas decorativas del fondo (`scenecore-bg::after`).
+
+**Siguiente nivel posible:** C (bloques/contenedores) o decoraciones temáticas por preset.
 
 ---
 
