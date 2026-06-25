@@ -91,7 +91,7 @@ export default function Hero({ nextEvent, onCta }: { nextEvent?: EventItem; onCt
 
             {/* Próximo evento + countdown */}
             {nextEvent && (
-              <div className="mt-8 card p-5 max-w-lg bg-surface/60 backdrop-blur accent-magenta">
+              <div className="mt-8 card p-5 max-w-lg bg-surface/60 accent-magenta">
                 <div className="flex items-center justify-between gap-4 mb-4">
                   <div>
                     <p className="eyebrow mb-1">Próximo evento</p>

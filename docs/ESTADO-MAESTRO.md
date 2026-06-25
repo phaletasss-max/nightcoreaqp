@@ -227,6 +227,15 @@ producción verde**.
 verde/amarillo/rojo (semántica: confirmado/interés/peligro), el título arcoíris
 (`text-glow-rainbow`) y las estrellitas decorativas del fondo (`scenecore-bg::after`).
 
+**Fix de blur (2026-06-25):** el slider "Glassmorphism Blur" no afectaba a las tarjetas. Causa
+(pre-existente): `.card` usaba `backdrop-filter: blur(var(--glass-blur))` y Lightning CSS
+(Tailwind v4) descartaba la propiedad estándar (Chrome no entiende `-webkit-backdrop-filter`).
+Fix: la variable guarda el valor completo (`--card-backdrop: blur(Npx)`) y `.card` declara solo
+la estándar (Lightning añade el prefijo). Además se quitó la clase Tailwind `backdrop-blur`
+fija de la tarjeta del Hero y del reproductor (pisaban el control). Verificado en el **CSS de
+producción** (`.card` incluye `backdrop-filter`). *Nota:* el dev server de Next emite solo
+`-webkit` (quirk de Turbopack) → el blur se ve en producción, no en `next dev`.
+
 **Siguiente nivel posible:** C (bloques/contenedores) o decoraciones temáticas por preset.
 
 ---

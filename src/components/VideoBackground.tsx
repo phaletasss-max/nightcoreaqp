@@ -167,7 +167,7 @@ export default function VideoBackground() {
 
       {/* Reproductor flotante */}
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-md">
-        <div className="card bg-background/85 backdrop-blur-md p-2.5 flex items-center gap-2"
+        <div className="card bg-background/85 p-2.5 flex items-center gap-2"
           style={{ borderColor: bgEnabled ? `rgba(${scene.accent},0.40)` : 'rgba(255,0,255,0.25)' }}>
 
           {/* Toggle fondo de video */}

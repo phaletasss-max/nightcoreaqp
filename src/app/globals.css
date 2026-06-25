@@ -32,7 +32,8 @@
   --card-rgb: 17, 8, 24;                                 /* RGB del fondo de .card (= --surface) */
   --display-font: var(--font-geist-sans), system-ui, sans-serif;  /* fuente de títulos */
   --card-radius: 16px;
-  --glass-blur: 12px;
+  --glass-blur: 12px;                                    /* (numérico, para el slider del admin) */
+  --card-backdrop: blur(12px);                           /* valor completo: Lightning CSS NO elimina un var() entero */
 
   /* Legacy names (remapped to scenecore) */
   --miku: #39c5bb;
@@ -153,8 +154,10 @@ body {
 /* Glassmorphism con tinte scenecore */
 .card {
   background: rgba(var(--card-rgb), var(--card-opacity));
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
+  /* Solo la estándar: Lightning CSS (Tailwind v4) añade el prefijo -webkit solo. Si se
+     escriben ambas a mano con el mismo valor, las dedupe y deja únicamente la -webkit
+     (Chrome la reporta como backdrop-filter: none → el blur no se aplicaba). */
+  backdrop-filter: var(--card-backdrop, blur(12px));
   border: 1px solid var(--border);
   border-radius: var(--card-radius);
 }

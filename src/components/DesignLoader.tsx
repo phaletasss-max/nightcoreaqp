@@ -65,8 +65,15 @@ function applyDesign(s: Record<string, string>) {
   if (s.design_radius) root.style.setProperty('--card-radius', `${s.design_radius}px`);
   else root.style.removeProperty('--card-radius');
 
-  if (s.design_glass_blur) root.style.setProperty('--glass-blur', `${s.design_glass_blur}px`);
-  else root.style.removeProperty('--glass-blur');
+  // Lightning CSS (Tailwind v4) elimina `blur(var(--x))`, así que la variable guarda el
+  // valor COMPLETO (`blur(Npx)`), que sí sobrevive al compilado.
+  if (s.design_glass_blur) {
+    root.style.setProperty('--glass-blur', `${s.design_glass_blur}px`);
+    root.style.setProperty('--card-backdrop', `blur(${s.design_glass_blur}px)`);
+  } else {
+    root.style.removeProperty('--glass-blur');
+    root.style.removeProperty('--card-backdrop');
+  }
 }
 
 export default function DesignLoader() {
