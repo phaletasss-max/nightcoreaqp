@@ -27,6 +27,43 @@
 
 ---
 
+## 0. Plan de trabajo consolidado (2026-06-25)
+
+> Resumen ejecutivo: lo verificado vs lo pendiente. Detalle en las secciones siguientes.
+> (Para IA que retoma el proyecto, ver también [GUIA-IA.md](./GUIA-IA.md).)
+
+### ✅ Hecho y COMPROBADO (probado funcionando esta sesión)
+- **App de escritorio (Electron, v0.1.7)** — descarga **YouTube e Instagram en MP4** (deno resuelve
+  el reto `nsig`), **TikTok en H.264** (sin `0xc00d5212`), y MP3. Auto-instala yt-dlp/ffmpeg/deno.
+  Instalador NSIS publicado en GitHub Releases, auto-update con log, cookies (navegador + archivo
+  `.txt`), personalización (temas + imagen de fondo). *Verificado en vivo con los logs del usuario.*
+- **Descarga masiva en la web** (`.bat` estilo DJ con URLs reales; el `.bat` se autoelimina al cerrar).
+- **Temas/personalización del sitio** (presets pixel/scenecore/gótico/anime + acento; cobertura de
+  color auditada con `color-mix`; fix de blur). Verificado en preview + build de producción.
+- **Seguridad S1/S2** — credenciales hardcodeadas eliminadas (el repo ya es seguro para hacerlo público).
+- **Bugs cerrados**: panel admin 401 (B1 → sesión real), service worker `/disfraces` (B3), CI
+  typecheck (script añadido), blur de tarjetas, fondo de los temas del desktop (B4).
+- **Web base en producción**: eventos/RSVP, playlist+votos+Spotify, disfraces, encuestas, temáticas,
+  retos/racha, perfiles, asistente IA, PWA, historial.
+
+### 🟡 En proceso (falta un paso, casi nada de código)
+- **Repo → público** (Settings → Danger Zone → Make public): destraba el **auto-update** del desktop
+  (hoy da 404 anónimo) y la descarga pública del `.exe`. **Es el paso #1.**
+- **Promover tu cuenta a `role=admin`** (SQL): para que el gestor de diseño **persista** en prod.
+- **Correr migraciones de Supabase** (ver §6): desbloquean insignias, privacidad, moderación, tags y subidas.
+- **media-service (Render)**: se duerme; YouTube le exige cookies. Plan Arch (IP residencial) sin implementar.
+
+### ⛔ Pendiente (no empezado)
+- **APK móvil** (`mobile-app/` es solo el stub de Expo).
+- **Branding**: tagline definitivo + `docs/BRANDING.md`; SEO/OG images.
+- **Personalización nivel C** (añadir/ordenar contenedores → tabla `custom_blocks`).
+- **Feed personalizado por interés**; **verificación de cuenta** (email/WhatsApp).
+- **Firma de código del `.exe`** (quitar el aviso de SmartScreen) + icono propio.
+- **Limpieza**: docs desincronizados (`ESTADO.md`, `ARCHITECTURE.md`), `console.log` de depuración (S5),
+  bug menor del feed ("Votar" lleva a `/encuestas` que redirige a `/`).
+
+---
+
 ## 1. Visión (01)
 
 Plataforma web/comunidad sin fines de lucro para las fiestas de **nightcore + scenecore** en
@@ -115,7 +152,7 @@ Tailwind v4              Storage · RLS            media-service (Render) = resp
 | Asistente IA (Gemini) | ✅ | `GEMINI_API_KEY` |
 | PWA instalable + offline básico | ✅ | SW arreglado hoy (fallback) |
 | App móvil (Expo) | ⛔ | Solo el stub por defecto |
-| App de escritorio · descargas (Electron) | ✅ | `desktop-app/`: UI + auto-instala yt-dlp/ffmpeg/**deno** (nsig YouTube) + auto-update de yt-dlp + descarga. Releases auto-publicadas (GitHub Actions). Instalador NSIS + **auto-update** (visible + log) + botón ".exe" en la web (aviso SmartScreen). Cookies del navegador opcional + temas + imagen de fondo (0.1.3). Pendiente menor: icono propio (2026-06-25) |
+| App de escritorio · descargas (Electron) | ✅ **comprobado** | `desktop-app/` **v0.1.7**: auto-instala yt-dlp/ffmpeg/**deno** + auto-update de yt-dlp; baja **YouTube/IG MP4** (deno→nsig) y **TikTok H.264**; cookies (navegador + **archivo `.txt`**); temas + imagen de fondo; auto-update (electron-updater, visible + log); instalador NSIS; releases auto-publicadas (GitHub Actions). Falta: repo público (para auto-update), icono propio, firma de código |
 | Convertidor de archivos | ⏸️ | Fuera del repo |
 | Verificación de cuenta (email/WhatsApp) | ⛔ | Investigado en ROADMAP §8 |
 | Feed personalizado por interés | ⛔ | `feed_items` / `feed_seen` no creadas |
@@ -128,14 +165,21 @@ Tailwind v4              Storage · RLS            media-service (Render) = resp
 
 Correr en el **SQL Editor** (orden sugerido). Marcar aquí cuando se corra:
 
-| Script | Crea | Estado |
+| Script | Crea / cambia | Estado |
 |---|---|---|
-| `supabase/schema.sql` | Tablas base + triggers + RLS + `is_staff()` | ✅ corrido |
-| `supabase/fixes.sql` | Políticas bucket `media` + cierre `site_settings` + admin real | ✅ corrido |
-| `supabase/phase-de.sql` | `is_private`, `banned_words`, `event_comments.flagged`, columnas extra de `events` | ⛔ **PENDIENTE** |
-| `supabase/phase-1-attendance.sql` | `attendance_proofs` + RPCs aprobar/rechazar | ⛔ **PENDIENTE** (causa el 404 de hoy) |
-| `supabase/saved-songs.sql` | `saved_songs` (playlist personal) | ❓ verificar |
-| `supabase/phase-f.sql` · `phase-g.sql` · `fix-tags.sql` | (revisar contenido) | ❓ verificar |
+| `supabase/schema.sql` | 19 tablas + triggers + RLS + `is_staff()` / `daily_check_in()` / RPCs | ✅ corrido |
+| `site_settings_setup.sql` (raíz del repo) | tabla `site_settings (key, value)` | ⚠️ **necesaria 1ª** — sin ella el gestor de diseño cae a localStorage |
+| `supabase/fixes.sql` | bucket `media` + cierra la RLS de `site_settings` a staff | ✅ corrido (depende de la tabla anterior) |
+| `supabase/fix-tags.sql` | `songs.tags`, `costumes.tags` + `is_wip` | ⛔ **PENDIENTE** (PGRST204 al sugerir canción/disfraz; redundante si `schema.sql` ya las trae) |
+| `supabase/phase-de.sql` | columnas extra de `events`, `profiles.is_private`, `banned_words`, `event_comments.flagged` | ⛔ **PENDIENTE** (eventos completos, privacidad, moderación) |
+| `supabase/phase-1-attendance.sql` | `attendance_proofs` + RPCs aprobar/rechazar | ⛔ **PENDIENTE** (insignias; causa el 404) |
+| `supabase/phase-f.sql` | `profiles.email` + `bg_url`; redefine `handle_new_user` | ⛔ **PENDIENTE** (panel muestra correos; fondo de perfil) |
+| `supabase/phase-g.sql` | recrea bucket `media` **público (anon)** | ⛔ **PENDIENTE** (subir avatar/flyer/fondos falla sin esto si no hay sesión real) |
+| `supabase/saved-songs.sql` | `saved_songs` (playlist personal) | ✅ absorbida en `schema.sql` |
+
+> **Hallazgo de auditoría:** `scripts/verify-schema.ts` valida `events.is_visible` y columnas
+> `setting_key/setting_value` que **no existen** (la tabla usa `key/value`); ninguna migración crea
+> `events.is_visible`. Ajustar el verificador (o añadir la columna) para que `deploy:check` no falle.
 
 ---
 
@@ -155,10 +199,11 @@ Correr en el **SQL Editor** (orden sugerido). Marcar aquí cuando se corra:
 
 | Pieza | Estado | Nota |
 |---|---|---|
-| Pipeline "Zero Trust" (`pipeline.ts` + `ci-policy.ts` + `deploy-check.sh`) | ✅ | Integrity score, manifest hashing |
+| Pipeline "Zero Trust" (`pipeline.ts` + `ci-policy.ts` + `deploy-check.sh`) | 🟡 | Bien diseñado (integrity score, hashing), pero **ningún workflow lo invoca** (solo a mano con `npm run deploy:check`) y exige servicios vivos (media-service/Supabase) + secretos |
 | E2E Playwright (`e2e/smoke.spec.ts`) | ✅ | |
-| GitHub Actions (`.github/workflows/ci.yml`) | 🐞 | Llama `npm run typecheck` pero **ese script no existe** en `package.json`; el `|| echo` enmascara el fallo → el typecheck no corre (solo lo cubre `next build`) |
-| Scripts de verificación (`scripts/verify-*`) | ✅ | env, rutas, schema, media-service, etc. |
+| GitHub Actions (`.github/workflows/ci.yml`) | ✅ | Script `typecheck` **ya añadido** (2026-06-25), así el `npm run typecheck` del CI sí corre. Sigue siendo verificación superficial (typecheck+lint+build), no el Zero Trust |
+| `.github/workflows/desktop-release.yml` | ✅ | Compila y publica el `.exe` (runner Windows + GITHUB_TOKEN) |
+| Scripts de verificación (`scripts/verify-*`) | ✅ | env, rutas, schema, media-service, etc. (algunos asumen columnas inexistentes, ver §6) |
 
 ---
 
@@ -197,7 +242,16 @@ Correr en el **SQL Editor** (orden sugerido). Marcar aquí cuando se corra:
 
 ### B3 — SW: `Failed to convert value to 'Response'` en `/disfraces`
 - **Causa:** el fallback del service worker podía resolver a `undefined`.
-- **Estado:** ✅ **Arreglado hoy** (`public/sw.js` v2: fallback garantizado + bump de caché).
+- **Estado:** ✅ **Arreglado** (`public/sw.js` v2: fallback garantizado + bump de caché).
+
+### B4 — Temas del desktop no cambiaban el color de fondo — ✅ arreglado
+- **Causa:** los presets `html[data-theme]` definían `--background`, pero el `body` pinta con
+  `var(--bg)` (que nunca se redefinía) → cambiaban superficies/texto/acentos pero **no** el fondo
+  de página. **Fix (v0.1.7):** los presets ahora setean `--bg`. (Hallazgo de la auditoría.)
+
+### B5 — TikTok MP4 daba `0xc00d5212` (HEVC) — ✅ arreglado
+- **Causa:** TikTok venía en HEVC y `--recode-video` no re-encoda un HEVC ya en contenedor mp4.
+- **Fix (v0.1.6):** se selecciona explícitamente un formato H.264 (`vcodec` sin `hev`/`hvc`).
 
 ---
 
@@ -255,13 +309,13 @@ producción** (`.card` incluye `backdrop-filter`). *Nota:* el dev server de Next
 
 ## 13. Próximos pasos priorizados
 
-1. ✅ **Panel (B1)** — hecho en código (sesión real Supabase). Falta tu paso: promover tu cuenta a `role=admin`.
-2. **Correr migraciones** — `phase-1-attendance.sql` y `phase-de.sql` (cierra B2, insignias, privacidad, moderación).
-3. **Endurecer seguridad (S1)** — sacar credenciales del cliente.
-4. **Personalización A+B** — tokens extra + presets de tema (pixel/scenecore/gótico/anime).
-5. **Arreglar CI (typecheck)** — añadir script `typecheck` real.
-6. **Limpiar docs desincronizados** — `ARCHITECTURE.md` y `ESTADO.md` (`/api/download`, flujo de descargas).
-7. **Definir branding** — tagline + `docs/BRANDING.md`.
-8. (Largo plazo) App móvil real, feed personalizado, verificación de cuenta.
+1. **Hacer el repo público** (Settings → Danger Zone) — destraba el auto-update del desktop y la descarga pública del `.exe`. **Tu paso #1.**
+2. **Promover tu cuenta a `role=admin`** (SQL) — para que el gestor de diseño persista.
+3. **Correr migraciones de Supabase** (§6) — `site_settings_setup.sql` + `phase-de` + `phase-1-attendance` + `phase-g` + `phase-f` + `fix-tags`. Cierra insignias, privacidad, moderación, tags y subidas.
+4. ✅ Hecho: panel B1, seguridad S1/S2, personalización A+B, CI typecheck, blur, temas desktop.
+5. **Limpiar docs desincronizados** — `ARCHITECTURE.md` y `ESTADO.md` (mencionan `/api/download`/Cobalt, ya inexistentes).
+6. **Definir branding** — tagline + `docs/BRANDING.md`.
+7. **App de PC**: icono propio + firma de código (quita el aviso SmartScreen).
+8. (Largo plazo) App móvil real (APK), feed personalizado, verificación de cuenta.
 </content>
 </invoke>
