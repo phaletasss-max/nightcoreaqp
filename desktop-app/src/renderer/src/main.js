@@ -110,12 +110,17 @@ window.api.onUpdate((d) => {
       updateBar.className = 'update-bar info'
       updateText.textContent = `Descargando actualización… ${d.percent}%`; break
     case 'ready':
-      updateBar.className = 'update-bar ready'
+      updateBar.classList.remove('hidden'); updateBar.className = 'update-bar ready'
       updateText.textContent = `Actualización ${d.version} lista.`
       updateInstall.classList.remove('hidden'); break
     case 'error':
-      updateBar.classList.add('hidden'); break // sin internet / sin releases: no molestar
+      updateBar.classList.remove('hidden'); updateBar.className = 'update-bar info'
+      updateText.textContent = 'Auto-update: ' + (d.text || 'error')
+      updateInstall.classList.add('hidden'); break
     case 'none':
+      updateBar.classList.remove('hidden'); updateBar.className = 'update-bar info'
+      updateText.textContent = 'Estás en la última versión.'
+      setTimeout(() => updateBar.classList.add('hidden'), 4000); break
     default:
       updateBar.classList.add('hidden'); break
   }

@@ -1,6 +1,7 @@
 // ── Proceso principal de Electron ────────────────────────────────────────────
 import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
 import { join } from 'node:path'
+import { appendFileSync } from 'node:fs'
 import electronUpdater from 'electron-updater'
 import { ensureTools, downloadAll, defaultDownloadDir } from './tools.js'
 
@@ -12,23 +13,33 @@ let win = null
 // Compara la versión instalada con la última publicada; baja el parche completo
 // (renderer = CSS/JS + proceso principal) y lo aplica al reiniciar. Solo corre en
 // la app empaquetada (en `npm run dev` no hay updater).
+// Log del updater a userData/updater.log (para diagnosticar si algo falla).
+function updaterLog(line) {
+  try {
+    appendFileSync(join(app.getPath('userData'), 'updater.log'), `[${new Date().toISOString()}] ${line}\n`)
+  } catch { /* best-effort */ }
+}
+
 function setupUpdater() {
   const send = (data) => win?.webContents.send('update', data)
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = true
 
-  autoUpdater.on('checking-for-update', () => send({ state: 'checking' }))
-  autoUpdater.on('update-available', (info) => send({ state: 'available', version: info.version }))
-  autoUpdater.on('update-not-available', () => send({ state: 'none' }))
+  autoUpdater.on('checking-for-update', () => { updaterLog('checking'); send({ state: 'checking' }) })
+  autoUpdater.on('update-available', (info) => { updaterLog('available ' + info.version); send({ state: 'available', version: info.version }) })
+  autoUpdater.on('update-not-available', (info) => { updaterLog('none (latest=' + (info?.version || '?') + ')'); send({ state: 'none' }) })
   autoUpdater.on('download-progress', (p) => send({ state: 'downloading', percent: Math.round(p.percent) }))
-  autoUpdater.on('update-downloaded', (info) => send({ state: 'ready', version: info.version }))
-  autoUpdater.on('error', (e) => send({ state: 'error', text: e?.message || String(e) }))
+  autoUpdater.on('update-downloaded', (info) => { updaterLog('downloaded ' + info.version); send({ state: 'ready', version: info.version }) })
+  autoUpdater.on('error', (e) => { updaterLog('error ' + (e?.stack || e?.message || e)); send({ state: 'error', text: e?.message || String(e) }) })
+}
 
-  if (app.isPackaged) {
-    autoUpdater.checkForUpdates().catch(() => {})
-    // Re-chequeo cada 30 min por si publican mientras la app está abierta.
-    setInterval(() => autoUpdater.checkForUpdates().catch(() => {}), 30 * 60 * 1000)
-  }
+// Se llama cuando el renderer ya cargó (evita perder los primeros eventos).
+function checkUpdates() {
+  if (!app.isPackaged) { updaterLog('skip (dev, no packaged)'); return }
+  updaterLog('app v' + app.getVersion() + ' → checkForUpdates')
+  autoUpdater.checkForUpdates().catch((e) => updaterLog('checkForUpdates threw ' + (e?.message || e)))
+  // Re-chequeo cada 30 min por si publican mientras la app está abierta.
+  setInterval(() => autoUpdater.checkForUpdates().catch(() => {}), 30 * 60 * 1000)
 }
 
 function createWindow() {
@@ -57,6 +68,9 @@ function createWindow() {
   } else {
     win.loadFile(join(__dirname, '../renderer/index.html'))
   }
+
+  // Buscar actualizaciones SOLO cuando el renderer ya cargó (así recibe los eventos).
+  win.webContents.once('did-finish-load', checkUpdates)
 }
 
 // ── IPC ──────────────────────────────────────────────────────────────────────
@@ -95,8 +109,8 @@ ipcMain.handle('install-update', () => autoUpdater.quitAndInstall())
 
 // ── Ciclo de vida ─────────────────────────────────────────────────────────────
 app.whenReady().then(() => {
-  createWindow()
   setupUpdater()
+  createWindow()
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow() })
 })
 
