@@ -31,6 +31,8 @@
   --card-opacity: 0.75;                                  /* opacidad de los contenedores .card */
   --card-rgb: 17, 8, 24;                                 /* RGB del fondo de .card (= --surface) */
   --display-font: var(--font-geist-sans), system-ui, sans-serif;  /* fuente de títulos */
+  --body-font: var(--font-geist-sans), system-ui, sans-serif;     /* fuente del texto (cuerpo) */
+  --font-scale: 1;                                                /* escala global de tamaño de letra */
   --card-radius: 16px;
   --glass-blur: 12px;                                    /* (numérico, para el slider del admin) */
   --card-backdrop: blur(12px);                           /* valor completo: Lightning CSS NO elimina un var() entero */
@@ -71,10 +73,13 @@
   border-color: var(--border);
 }
 
+/* Tamaño base de letra (admin · --font-scale). % respeta la preferencia del navegador. */
+html { font-size: calc(100% * var(--font-scale, 1)); }
+
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  font-family: var(--body-font);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
@@ -198,12 +203,26 @@ h1 { font-family: var(--display-font); }
 /* ── Presets de fuente de títulos (admin · Fase B) ──────────────────────────
    data-font se setea en <html> por DesignLoader; las fuentes web se cargan
    dinámicamente solo cuando se eligen. */
-[data-font="pixel"]   { --display-font: 'Press Start 2P', monospace; }
-[data-font="rounded"] { --display-font: 'Baloo 2', system-ui, sans-serif; }
-[data-font="mono"]    { --display-font: var(--font-geist-mono), monospace; }
+[data-font="pixel"]    { --display-font: 'Press Start 2P', monospace; }
+[data-font="rounded"]  { --display-font: 'Baloo 2', system-ui, sans-serif; }
+[data-font="mono"]     { --display-font: var(--font-geist-mono), monospace; }
+[data-font="vt323"]    { --display-font: 'VT323', monospace; }
+[data-font="orbitron"] { --display-font: 'Orbitron', system-ui, sans-serif; }
+[data-font="bungee"]   { --display-font: 'Bungee', system-ui, sans-serif; }
+[data-font="rajdhani"] { --display-font: 'Rajdhani', system-ui, sans-serif; }
 /* La fuente pixel es ancha: bajamos el tamaño de títulos para que no rompa el layout */
 [data-font="pixel"] .section-title { font-size: 1.05rem; letter-spacing: 0; }
 [data-font="pixel"] h1 { letter-spacing: 0; line-height: 1.25; }
+
+/* ── Presets de fuente del CUERPO (las "letras") ─────────────────────────────
+   data-bodyfont se setea en <html> por DesignLoader; la web font se carga aparte. */
+[data-bodyfont="rounded"] { --body-font: 'Baloo 2', system-ui, sans-serif; }
+[data-bodyfont="poppins"] { --body-font: 'Poppins', system-ui, sans-serif; }
+[data-bodyfont="nunito"]  { --body-font: 'Nunito', system-ui, sans-serif; }
+[data-bodyfont="comic"]   { --body-font: 'Comic Neue', 'Comic Sans MS', cursive; }
+[data-bodyfont="mono"]    { --body-font: var(--font-geist-mono), monospace; }
+[data-bodyfont="vt323"]   { --body-font: 'VT323', monospace; }
+[data-bodyfont="rajdhani"]{ --body-font: 'Rajdhani', system-ui, sans-serif; }
 
 /* ── Presets de TEMA (admin · personalización) ───────────────────────────────
    data-theme se setea en <html> por DesignLoader. Cada tema redefine la paleta y
@@ -274,6 +293,70 @@ html[data-theme="anime"] {
   --neon-yellow: #ffe59e;
   --electric-blue: #8fb8ff;
 }
+
+/* Y2K — millennium chrome: cromo, lila burbuja, celeste y plata sobre azul noche. */
+html[data-theme="y2k"] {
+  --background: #0b0f1f;
+  --surface: #121833;
+  --surface-2: #1a2240;
+  --card-rgb: 18, 24, 51;
+  --foreground: #eaf2ff;
+  --muted: #a8b6d9;
+  --muted-2: #6f7da6;
+  --border: rgba(120, 200, 255, 0.20);
+  --border-strong: rgba(120, 200, 255, 0.45);
+  --pink: #ff6ad5;
+  --magenta: #c774ff;
+  --cyan: #6fe0ff;
+  --lime: #aef5d0;
+  --purple: #8a6bff;
+  --hot-pink: #ff8ad8;
+  --neon-yellow: #ffe27a;
+  --electric-blue: #6aa8ff;
+}
+
+/* VAPORWAVE — atardecer retro: magenta, cian y violeta sobre malva profundo. */
+html[data-theme="vaporwave"] {
+  --background: #1a0b2e;
+  --surface: #251040;
+  --surface-2: #31164f;
+  --card-rgb: 37, 16, 64;
+  --foreground: #ffe9fb;
+  --muted: #d3a8e0;
+  --muted-2: #9b73b3;
+  --border: rgba(255, 113, 206, 0.22);
+  --border-strong: rgba(255, 113, 206, 0.48);
+  --pink: #ff71ce;
+  --magenta: #ff4fd8;
+  --cyan: #05ffd1;
+  --lime: #b967ff;
+  --purple: #b967ff;
+  --hot-pink: #ff8ed8;
+  --neon-yellow: #fffb96;
+  --electric-blue: #01cdfe;
+}
+
+/* CYBER — terminal cyberpunk: lima ácida, cian eléctrico y amarillo sobre negro azulado. */
+html[data-theme="cyber"] {
+  --background: #04070a;
+  --surface: #0a1016;
+  --surface-2: #0f1820;
+  --card-rgb: 10, 16, 22;
+  --foreground: #d6ffe9;
+  --muted: #79b69a;
+  --muted-2: #477560;
+  --border: rgba(0, 255, 200, 0.18);
+  --border-strong: rgba(0, 255, 200, 0.42);
+  --pink: #ff2e88;
+  --magenta: #ff2ea6;
+  --cyan: #18e0ff;
+  --lime: #4dff9e;
+  --purple: #b14dff;
+  --hot-pink: #ff5fa3;
+  --neon-yellow: #f6ff45;
+  --electric-blue: #2d9bff;
+}
+
 .text-glow-pink { text-shadow: 0 0 18px color-mix(in srgb, var(--magenta) 55%, transparent), 0 0 40px color-mix(in srgb, var(--pink) 30%, transparent); }
 .text-glow-cyan { text-shadow: 0 0 18px color-mix(in srgb, var(--cyan) 50%, transparent), 0 0 40px color-mix(in srgb, var(--cyan) 22%, transparent); }
 .text-glow-lime { text-shadow: 0 0 18px color-mix(in srgb, var(--lime) 50%, transparent); }

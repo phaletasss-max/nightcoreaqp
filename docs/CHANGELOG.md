@@ -4,6 +4,32 @@ Historial real de lo construido. Lo más reciente arriba.
 
 ---
 
+## 2026-06-25 — Diseño totalmente personalizable ("hasta las letras")
+
+Se potenció el gestor de diseño del admin (`/admin → Diseño`) para personalizar **todo** el sitio,
+no solo los títulos. Reusa la cadena `site_settings → DesignLoader → variables CSS`; **sin tablas
+nuevas** (claves nuevas en el store key/value existente).
+
+- ✅ **Fuente del texto (las "letras")** — antes el `body` tenía la fuente **fija**; ahora hay
+  variable `--body-font` y un selector propio (`design_body_font`). Cambia **todo** el cuerpo de
+  texto, no solo los títulos.
+- ✅ **Catálogo de fuentes ampliado** (carga dinámica de Google Fonts) para títulos **y** texto:
+  VT323, Orbitron, Bungee, Rajdhani, Baloo 2, Poppins, Nunito, Comic Neue, + Geist/mono.
+- ✅ **3 packs de tema nuevos** — **Y2K Chrome**, **Vaporwave** y **Cyber** (ya eran 4:
+  Scenecore/Pixel/Gótico/Anime). Cada uno recolorea toda la app vía `html[data-theme]`.
+- ✅ **Colores a medida** — pickers de **fondo**, **superficie** (las tarjetas la siguen, vía
+  `--card-rgb` derivado del hex) y **texto**, que pisan el tema. Vacío = color del tema.
+- ✅ **Tamaño de letra** — slider `design_font_scale` (90%–115%) → `--font-scale` escala el UI.
+- ✅ **Botón "Restablecer diseño"** — limpia todas las claves `design_*` y vuelve al look base.
+- ✅ Vista previa en vivo (ya existía vía `nq-design-updated`); `DesignLoader.applyDesign` extendido
+  a las claves nuevas.
+
+**Verificación:** `tsc --noEmit` + `build` verdes. Probado en preview: la fuente de texto cambia
+todo el cuerpo, los temas/colores/escala se aplican en vivo, y "Restablecer" vuelve a base
+(se corrigió un *stale closure* del reset en el camino). 0 errores de consola.
+
+---
+
 ## 2026-06-25 — Parte social: chat en vivo + perfiles con galería + personalización
 
 > Requiere correr 2 migraciones en el SQL Editor de Supabase para activarse en prod:

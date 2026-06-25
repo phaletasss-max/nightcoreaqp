@@ -41,6 +41,22 @@ const FONT_OPTIONS = [
   { key: 'pixel', label: 'Pixel / Scene' },
   { key: 'rounded', label: 'Redondeada / Happycore' },
   { key: 'mono', label: 'Monoespaciada' },
+  { key: 'vt323', label: 'Terminal (VT323)' },
+  { key: 'orbitron', label: 'Orbitron (cyber)' },
+  { key: 'bungee', label: 'Bungee (Y2K)' },
+  { key: 'rajdhani', label: 'Rajdhani' },
+];
+
+// Fuente del CUERPO (las "letras"). Mantén legibilidad: las pixeladas cansan en texto largo.
+const BODY_FONT_OPTIONS = [
+  { key: 'default', label: 'Geist (limpia)' },
+  { key: 'rounded', label: 'Baloo 2 (redonda)' },
+  { key: 'poppins', label: 'Poppins' },
+  { key: 'nunito', label: 'Nunito' },
+  { key: 'comic', label: 'Comic Neue' },
+  { key: 'rajdhani', label: 'Rajdhani' },
+  { key: 'mono', label: 'Monoespaciada' },
+  { key: 'vt323', label: 'Terminal (VT323)' },
 ];
 
 // Presets de tema visual (paleta + superficies). Las muestras `colors` son solo la
@@ -50,6 +66,9 @@ const THEME_OPTIONS = [
   { key: 'pixel', label: 'Pixel Arcade', hint: 'Combínalo con la fuente Pixel', colors: ['#00ff66', '#00e5ff', '#ff00d4'] },
   { key: 'gothic', label: 'Gótico', hint: 'Carmesí, plata y carbón', colors: ['#c1121f', '#6b8cae', '#c9a227'] },
   { key: 'anime', label: 'Anime Pastel', hint: 'Sakura, lavanda y menta', colors: ['#ff8fc7', '#b69cff', '#9bf6c8'] },
+  { key: 'y2k', label: 'Y2K Chrome', hint: 'Cromo, lila burbuja y celeste', colors: ['#ff6ad5', '#6fe0ff', '#c774ff'] },
+  { key: 'vaporwave', label: 'Vaporwave', hint: 'Magenta, cian y violeta', colors: ['#ff71ce', '#05ffd1', '#b967ff'] },
+  { key: 'cyber', label: 'Cyber', hint: 'Lima ácida y cian eléctrico', colors: ['#4dff9e', '#18e0ff', '#f6ff45'] },
 ];
 
 // Color de acento (token sobre el tema). '' = usar el del tema.
@@ -435,8 +454,22 @@ export default function AdminPage() {
   const cardOpacity = parseFloat(design.design_card_opacity || '0.75');
   const overlay = parseFloat(design.design_overlay || '0');
   const currentFont = design.design_font || 'default';
+  const currentBodyFont = design.design_body_font || 'default';
   const currentTheme = design.design_theme || 'default';
   const currentAccent = design.design_accent || '';
+  const fontScale = parseFloat(design.design_font_scale || '1');
+
+  // Borra todas las claves de diseño (vuelve al look base limpio). Se construye el
+  // objeto completo y se despacha UNA vez (evita pisar el estado en cada vuelta).
+  const resetDesign = async () => {
+    const keys = Object.keys(design).filter((k) => k.startsWith('design_'));
+    if (!keys.length) return;
+    const next = { ...design };
+    keys.forEach((k) => { next[k] = ''; });
+    setDesign(next);
+    for (const k of keys) await updateSiteSetting(k, '');
+    window.dispatchEvent(new CustomEvent('nq-design-updated', { detail: next }));
+  };
 
   return (
     <div className="space-y-8">
@@ -1210,7 +1243,47 @@ export default function AdminPage() {
                   }`}>{f.label}</button>
               ))}
             </div>
-            <p className="text-[11px] text-muted-2">Afecta a los títulos de sección y el hero (el cuerpo de texto se mantiene legible).</p>
+            <p className="text-[11px] text-muted-2">Afecta a los títulos de sección y el hero. La fuente del texto se elige abajo.</p>
+          </div>
+
+          {/* Fuente del cuerpo (las "letras") */}
+          <div className="card p-5 space-y-3">
+            <h3 className="font-bold text-white text-sm flex items-center gap-2"><Type className="h-4 w-4 text-neon-lime" /> Fuente del texto (las letras)</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {BODY_FONT_OPTIONS.map((f) => (
+                <button key={f.key} onClick={() => setDesignKey('design_body_font', f.key)}
+                  className={`px-3 py-2.5 rounded-lg border text-xs font-bold transition-colors ${
+                    currentBodyFont === f.key ? 'border-neon-lime bg-neon-lime/10 text-neon-lime' : 'border-border text-muted hover:text-white'
+                  }`}>{f.label}</button>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-2">Cambia TODO el texto del sitio. Evita las pixeladas para textos largos (cansan la vista).</p>
+          </div>
+
+          {/* Colores a medida (sobre el tema) */}
+          <div className="card p-5 space-y-3">
+            <h3 className="font-bold text-white text-sm flex items-center gap-2"><Palette className="h-4 w-4 text-neon-pink" /> Colores a medida</h3>
+            <p className="text-[11px] text-muted-2">Pisan el color del tema. Déjalos vacíos (botón ✕) para usar la paleta del tema.</p>
+            <div className="grid grid-cols-3 gap-3">
+              {([
+                { key: 'design_color_bg', label: 'Fondo', fallback: '#0a0a0f' },
+                { key: 'design_color_surface', label: 'Superficie / tarjetas', fallback: '#160a20' },
+                { key: 'design_color_text', label: 'Texto', fallback: '#f0e6ff' },
+              ] as const).map((c) => (
+                <div key={c.key} className="space-y-1.5">
+                  <label className="label text-[10px]">{c.label}</label>
+                  <div className="flex items-center gap-1.5">
+                    <input type="color" value={design[c.key] || c.fallback}
+                      onChange={(e) => setDesignKey(c.key, e.target.value)}
+                      className="h-9 w-full rounded-lg bg-transparent border border-border cursor-pointer" />
+                    {design[c.key] && (
+                      <button onClick={() => setDesignKey(c.key, '')} title="Quitar (usar el del tema)"
+                        className="px-2 py-1.5 rounded-lg border border-border text-muted-2 hover:text-white text-xs">✕</button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Opacidades */}
@@ -1249,6 +1322,13 @@ export default function AdminPage() {
                 className="w-full accent-neon-magenta cursor-pointer" />
               <p className="text-[11px] text-muted-2 mt-1">Qué tan borroso se ve el fondo detrás de las tarjetas transparentes.</p>
             </div>
+            <div>
+              <label className="label flex justify-between"><span>Tamaño de letra</span><span className="text-neon-cyan font-mono">{Math.round(fontScale * 100)}%</span></label>
+              <input type="range" min="0.9" max="1.15" step="0.05" value={fontScale}
+                onChange={(e) => setDesignKey('design_font_scale', e.target.value)}
+                className="w-full accent-neon-magenta cursor-pointer" />
+              <p className="text-[11px] text-muted-2 mt-1">Escala todo el texto y la interfaz (90%–115%).</p>
+            </div>
           </div>
 
           {/* Secciones visibles */}
@@ -1271,6 +1351,18 @@ export default function AdminPage() {
                 );
               })}
             </div>
+          </div>
+
+          {/* Restablecer */}
+          <div className="card p-5 flex items-center justify-between gap-3 border-dashed">
+            <div>
+              <h3 className="font-bold text-white text-sm">Restablecer diseño</h3>
+              <p className="text-[11px] text-muted-2 mt-0.5">Vuelve al look base (Scenecore) y borra colores, fuentes y tamaños personalizados.</p>
+            </div>
+            <button onClick={resetDesign}
+              className="px-3 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 text-xs font-bold shrink-0">
+              Restablecer
+            </button>
           </div>
         </div>
       )}

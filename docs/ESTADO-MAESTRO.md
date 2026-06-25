@@ -93,7 +93,7 @@ Detalle: [ROADMAP.md](./ROADMAP.md) · [docs/pt/pt-02-objetivos-y-vision.md](./p
 | Crédito "Organiza Yorch / Los Simpatizantes de JP" | ✅ | En el asistente y docs |
 | Tagline definitivo | ⛔ | Se quitó "Música acelerada, eventos reales"; falta elegir el nuevo |
 | Guía de marca (paleta, logos, uso) | ⛔ | No existe documento; recomendado crear `docs/BRANDING.md` |
-| Presets de tema (pixel / scenecore / gótico / anime) | ✅ | + token de color de acento. Admin → Diseño → Tema visual (2026-06-25) |
+| Presets de tema (7: scenecore / pixel / gótico / anime / y2k / vaporwave / cyber) | ✅ | + acento, **fuente de títulos y de texto**, **colores a medida**, **tamaño** y **reset**. Admin → Diseño (ampliado 2026-06-25) |
 
 ---
 
@@ -271,8 +271,8 @@ mostrar/ocultar secciones **fijas**. Lo que pides es subir un nivel. Propuesta p
 
 | Nivel | Qué da | Estado |
 |---|---|---|
-| **A. Más tokens** | Paleta de acento, opacidad, radio, blur, overlay, fuente como variables en `site_settings` | ✅ Hecho (token de acento añadido 2026-06-25) |
-| **B. Presets de tema** | Dropdown *Scenecore · Pixel · Gótico · Anime* — cada uno setea toda la paleta vía `html[data-theme]` | ✅ Hecho (2026-06-25) |
+| **A. Más tokens** | Acento, opacidad, radio, blur, overlay + **fuente de títulos Y de texto**, **colores a medida** (fondo/superficie/texto), **tamaño de letra** y **reset** como variables en `site_settings` | ✅ Hecho (ampliado 2026-06-25: la fuente del cuerpo, colores granulares, escala y reset) |
+| **B. Presets de tema** | Dropdown *Scenecore · Pixel · Gótico · Anime · **Y2K · Vaporwave · Cyber*** (7) — cada uno setea toda la paleta vía `html[data-theme]` | ✅ Hecho (3 packs nuevos 2026-06-25) |
 | **C. Bloques/contenedores** | Tabla `custom_blocks` (tipo, título, contenido, orden, sección) + render dinámico → el admin añade/ordena contenedores sin tocar código | ⛔ Pendiente (fase aparte) |
 | **D. CSS libre** | Inyectar CSS crudo | ❌ Descartado (footgun + XSS) |
 
