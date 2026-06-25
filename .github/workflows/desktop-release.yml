@@ -37,3 +37,13 @@ jobs:
         run: npm run release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # electron-builder sube la release como BORRADOR; la dejamos publicada y como
+      # "latest" para que el auto-update y el boton de la web la encuentren.
+      - name: Publicar la release (quitar borrador)
+        shell: pwsh
+        run: |
+          $v = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          gh release edit "v$v" --draft=false --latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
