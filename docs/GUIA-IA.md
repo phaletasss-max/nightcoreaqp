@@ -16,6 +16,23 @@ No es una landing de evento: es una app **social-gamificada** alrededor de event
 playlist colaborativa que alimenta al DJ, cosplay, encuestas, retos/rachas, perfiles con puntos,
 y descargas de música **locales** (en la PC del usuario, no en servidor).
 
+### Problema y origen (el *por qué* nació)
+
+Antes, las fiestas de nightcore/scene en Arequipa se organizaban como cualquier evento suelto
+(Facebook/WhatsApp). Eso dejaba **cuatro dolores** que el proyecto ataca:
+
+1. **El DJ perdía horas** cazando y descargando a mano las canciones pedidas → la playlist
+   colaborativa vota el Top-N y el **descargador local** se las deja listas (ver
+   [DESCARGADOR.md](./DESCARGADOR.md)).
+2. **El asistente era pasivo** (solo "asistir") → gamificación: puntos, rachas, insignias, votos.
+3. **No había identidad ni memoria de comunidad** → perfiles, cosplay, chat, temáticas, historial.
+4. **Todo con presupuesto ≈ 0** y sin depender de plataformas que banean herramientas de descarga →
+   tiers gratuitos (Vercel/Supabase/Render) + descargas en la PC del usuario (no server-side).
+
+La apuesta: un **hub vivo** que acompaña el evento **antes** (hype, votación, disfraces), **durante**
+(player, fondos, pedidos al DJ) y **después** (fotos-prueba, insignias, top charts). Detalle de
+visión/objetivos en [pt/pt-02-objetivos-y-vision.md](./pt/pt-02-objetivos-y-vision.md).
+
 **El "para qué" al tocar código:** sirve a una comunidad real; prioriza que **nada se rompa en
 producción** sobre features nuevas. Verifica siempre antes de cerrar.
 

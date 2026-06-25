@@ -4,6 +4,19 @@ Historial real de lo construido. Lo más reciente arriba.
 
 ---
 
+## 2026-06-25 — Doc maestra del descargador + "Problema y origen"
+
+- ✅ **`docs/DESCARGADOR.md`** (nuevo) — fuente única de verdad del sistema de descargas: la idea
+  (local, no server-side, y por qué), las 3 vías (`.bat` web / `.exe` desktop / media-service de
+  respaldo), el motor (`yt-dlp` + **deno** para `nsig` + `ffmpeg`), cookies, TikTok H.264, build y
+  release del `.exe`, y un **checklist para no romper la estructura**.
+- ✅ **GUIA-IA** — añadida la sección **"Problema y origen"** (antes el *por qué* nació el proyecto
+  estaba solo implícito). Enlazada a DESCARGADOR.md y a los objetivos.
+- ✅ **pt-11** marcado como **superado** (describía el descargador vía media-service + APK, ya no
+  vigente); enlace a la doc nueva. `AGENTS.md` apunta a DESCARGADOR.md.
+
+---
+
 ## 2026-06-25 — Diseño totalmente personalizable ("hasta las letras")
 
 Se potenció el gestor de diseño del admin (`/admin → Diseño`) para personalizar **todo** el sitio,

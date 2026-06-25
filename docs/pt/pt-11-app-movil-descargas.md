@@ -1,3 +1,8 @@
+> ⚠️ **SUPERADO / desactualizado.** El descargador ya **no** funciona vía media-service como se
+> describe aquí: las descargas son **locales** (`.bat` de la web + app de escritorio `.exe`). La
+> doc vigente es **[DESCARGADOR.md](../DESCARGADOR.md)**. Esta sección queda solo como referencia
+> histórica del plan APK (la app móvil sigue siendo solo el stub de Expo).
+
 # PT-11: App Móvil (APK) y Descargador Universal
 
 ## 1. Descargador Universal (yt-dlp Nativo)

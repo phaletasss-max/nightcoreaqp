@@ -5,6 +5,7 @@ escritorio Electron + media-service). Sin fines de lucro, en producción.
 
 **Guías:** [docs/GUIA-IA.md](docs/GUIA-IA.md) — objetivo, arquitectura y **reglas para no romper**.
 · [docs/ESTADO-MAESTRO.md](docs/ESTADO-MAESTRO.md) — estado vivo (hecho / en proceso / pendiente).
+· [docs/DESCARGADOR.md](docs/DESCARGADOR.md) — el descargador (.bat web + .exe + media-service) y sus reglas.
 
 ## Reglas críticas (resumen — detalle en docs/GUIA-IA.md)
 

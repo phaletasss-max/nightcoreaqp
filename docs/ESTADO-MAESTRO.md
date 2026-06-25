@@ -322,7 +322,7 @@ producción** (`.card` incluye `backdrop-filter`). *Nota:* el dev server de Next
 2. **Promover tu cuenta a `role=admin`** (SQL) — para que el gestor de diseño persista.
 3. **Correr migraciones de Supabase** (§6) — `site_settings_setup.sql` + `phase-de` + `phase-1-attendance` + `phase-g` + `phase-f` + `fix-tags`. Cierra insignias, privacidad, moderación, tags y subidas.
 4. ✅ Hecho: panel B1, seguridad S1/S2, personalización A+B, CI typecheck, blur, temas desktop.
-5. **Limpiar docs desincronizados** — `ARCHITECTURE.md` y `ESTADO.md` (mencionan `/api/download`/Cobalt, ya inexistentes).
+5. **Limpiar docs desincronizados** — `ARCHITECTURE.md` y `ESTADO.md` (mencionan `/api/download`/Cobalt, ya inexistentes). ✅ Avance 2026-06-25: descargador consolidado en [DESCARGADOR.md](./DESCARGADOR.md) y `pt-11` marcado como superado.
 6. **Definir branding** — tagline + `docs/BRANDING.md`.
 7. **App de PC**: icono propio + firma de código (quita el aviso SmartScreen).
 8. (Largo plazo) App móvil real (APK), feed personalizado, verificación de cuenta.
