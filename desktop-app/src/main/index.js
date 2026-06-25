@@ -81,6 +81,14 @@ ipcMain.handle('pick-folder', async () => {
   return r.canceled ? null : r.filePaths[0]
 })
 
+ipcMain.handle('pick-cookies', async () => {
+  const r = await dialog.showOpenDialog(win, {
+    properties: ['openFile'],
+    filters: [{ name: 'cookies.txt', extensions: ['txt'] }],
+  })
+  return r.canceled ? null : r.filePaths[0]
+})
+
 ipcMain.handle('open-folder', (_e, p) => shell.openPath(p))
 
 ipcMain.handle('download', async (_e, payload) => {

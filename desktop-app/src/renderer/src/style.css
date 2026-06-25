@@ -151,6 +151,7 @@ textarea:focus { outline: none; border-color: var(--magenta); }
   padding: 5px 10px; font-size: 12px; cursor: pointer;
 }
 .btn-ghost:hover { color: var(--fg); border-color: var(--cyan); }
+.btn-ghost.active { color: var(--lime); border-color: var(--lime); }
 
 .folder { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 12px; flex-wrap: wrap; }
 .folder-label { color: var(--muted-2); }

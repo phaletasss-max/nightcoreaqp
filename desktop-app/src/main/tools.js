@@ -148,7 +148,7 @@ function humanize(stderr) {
 }
 
 // Args de yt-dlp según formato/calidad. Descarga a archivo (no a stdout).
-function buildArgs(url, format, quality, dest, ffmpegDir, cookiesBrowser) {
+function buildArgs(url, format, quality, dest, ffmpegDir, cookiesBrowser, cookiesFile) {
   const isTikTok = url.includes('tiktok.com')
   // --restrict-filenames: nombres ASCII sin espacios ni '#'. Evita el bug de Windows que
   // recorta el espacio final del nombre (TikTok: "#foryou .mp4") y rompe ffprobe al
@@ -159,8 +159,10 @@ function buildArgs(url, format, quality, dest, ffmpegDir, cookiesBrowser) {
   const a = ['--no-playlist', '--newline', '--no-warnings', '--restrict-filenames',
     '-o', join(dest, '%(title)s.%(ext)s')]
   if (ffmpegDir) a.unshift('--ffmpeg-location', ffmpegDir)
-  // Cookies del navegador del usuario → pasa la verificación anti-bot de YouTube.
-  if (cookiesBrowser) a.push('--cookies-from-browser', cookiesBrowser)
+  // Cookies para pasar el "sign in" de YouTube (necesario para VIDEO/MP4 gateado).
+  // Un archivo cookies.txt es lo más fiable (sin candados de navegador) y tiene prioridad.
+  if (cookiesFile) a.push('--cookies', cookiesFile)
+  else if (cookiesBrowser) a.push('--cookies-from-browser', cookiesBrowser)
   if (format === 'mp3') {
     a.push('-x', '--audio-format', 'mp3', '--audio-quality', '0')
   } else if (isTikTok) {
@@ -192,20 +194,21 @@ function runYtdlp(bin, args, log) {
 }
 
 // Descarga una lista de URLs a `dest`, en secuencia, reportando logs.
-export async function downloadAll({ urls, format = 'mp3', quality = 'best', dest, cookiesBrowser }, log) {
+export async function downloadAll({ urls, format = 'mp3', quality = 'best', dest, cookiesBrowser, cookiesFile }, log) {
   const list = (urls || []).map((u) => String(u).trim()).filter(Boolean)
   if (!list.length) throw new Error('No hay enlaces para descargar.')
   const target = dest || defaultDownloadDir()
   ensureDir(target)
 
   const { ytdlp, ffmpegDir } = await ensureTools(log)
-  if (cookiesBrowser) log({ type: 'dim', text: `Usando cookies de: ${cookiesBrowser}` })
+  if (cookiesFile) log({ type: 'dim', text: `Usando cookies.txt: ${cookiesFile}` })
+  else if (cookiesBrowser) log({ type: 'dim', text: `Usando cookies de: ${cookiesBrowser}` })
 
   let ok = 0, fail = 0
   for (let i = 0; i < list.length; i++) {
     log({ type: 'head', text: `[${i + 1}/${list.length}] ${list[i]}` })
     try {
-      await runYtdlp(ytdlp, buildArgs(list[i], format, quality, target, ffmpegDir, cookiesBrowser), log)
+      await runYtdlp(ytdlp, buildArgs(list[i], format, quality, target, ffmpegDir, cookiesBrowser, cookiesFile), log)
       ok++; log({ type: 'ok', text: `✓ Descargada (${i + 1}/${list.length})` })
     } catch (e) {
       fail++; log({ type: 'error', text: `✗ Falló: ${e.message}` })

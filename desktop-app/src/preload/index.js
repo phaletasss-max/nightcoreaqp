@@ -4,6 +4,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 contextBridge.exposeInMainWorld('api', {
   defaultFolder: () => ipcRenderer.invoke('default-folder'),
   pickFolder: () => ipcRenderer.invoke('pick-folder'),
+  pickCookies: () => ipcRenderer.invoke('pick-cookies'),
   openFolder: (path) => ipcRenderer.invoke('open-folder', path),
   ensureTools: () => ipcRenderer.invoke('ensure-tools'),
   download: (payload) => ipcRenderer.invoke('download', payload),

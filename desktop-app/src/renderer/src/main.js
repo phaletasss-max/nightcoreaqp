@@ -6,6 +6,7 @@ const els = {
   format: $('format'),
   quality: $('quality'),
   cookies: $('cookies'),
+  cookiesFile: $('cookies-file'),
   download: $('download'),
   folderPath: $('folder-path'),
   changeFolder: $('change-folder'),
@@ -14,7 +15,7 @@ const els = {
   status: $('status'),
 }
 
-let state = { format: 'mp3', quality: 'best', dest: '', cookiesBrowser: '' }
+let state = { format: 'mp3', quality: 'best', dest: '', cookiesBrowser: '', cookiesFile: '' }
 
 function logLine(entry) {
   const div = document.createElement('div')
@@ -44,6 +45,22 @@ els.format.querySelectorAll('.seg-btn').forEach((btn) => {
 
 els.quality.addEventListener('change', () => { state.quality = els.quality.value })
 els.cookies.addEventListener('change', () => { state.cookiesBrowser = els.cookies.value })
+
+// Archivo cookies.txt (lo más fiable para MP4). Clic: elige; si ya hay uno, lo quita.
+els.cookiesFile.addEventListener('click', async () => {
+  if (state.cookiesFile) {
+    state.cookiesFile = ''
+    els.cookiesFile.textContent = '📄 cookies.txt'
+    els.cookiesFile.classList.remove('active')
+    return
+  }
+  const path = await window.api.pickCookies()
+  if (path) {
+    state.cookiesFile = path
+    els.cookiesFile.textContent = '✓ cookies.txt'
+    els.cookiesFile.classList.add('active')
+  }
+})
 
 // Carpeta de destino.
 async function refreshFolder(path) {
@@ -75,6 +92,7 @@ els.download.addEventListener('click', async () => {
     quality: state.quality,
     dest: state.dest,
     cookiesBrowser: state.cookiesBrowser,
+    cookiesFile: state.cookiesFile,
   })
 
   els.download.disabled = false
