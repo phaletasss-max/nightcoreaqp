@@ -52,7 +52,7 @@ Detalle: [ROADMAP.md](./ROADMAP.md) · [docs/pt/pt-02-objetivos-y-vision.md](./p
 | Crédito "Organiza Yorch / Los Simpatizantes de JP" | ✅ | En el asistente y docs |
 | Tagline definitivo | ⛔ | Se quitó "Música acelerada, eventos reales"; falta elegir el nuevo |
 | Guía de marca (paleta, logos, uso) | ⛔ | No existe documento; recomendado crear `docs/BRANDING.md` |
-| Presets de tema (pixel / scenecore / gótico / anime) | ⛔ | Propuesta nueva — ver §11 |
+| Presets de tema (pixel / scenecore / gótico / anime) | ✅ | + token de color de acento. Admin → Diseño → Tema visual (2026-06-25) |
 
 ---
 
@@ -204,15 +204,18 @@ Correr en el **SQL Editor** (orden sugerido). Marcar aquí cuando se corra:
 Hoy el admin puede: cambiar fondo/opacidad por sección, fuente, radio, blur, overlay, y
 mostrar/ocultar secciones **fijas**. Lo que pides es subir un nivel. Propuesta por capas:
 
-| Nivel | Qué da | Esfuerzo | Riesgo |
-|---|---|---|---|
-| **A. Más tokens** | Exponer paleta neón, bordes, sombras como variables en `site_settings` (extiende el patrón actual de `DesignLoader`) | Bajo | Bajo |
-| **B. Presets de tema** | Dropdown: *Pixel · Scenecore · Gótico · Anime* — cada uno setea un paquete de tokens + decoraciones | Medio | Bajo |
-| **C. Bloques/contenedores** | Tabla `custom_blocks` (tipo, título, contenido, orden, sección) + render dinámico → el admin añade/ordena contenedores sin tocar código | Alto | Medio |
-| **D. CSS libre** | Inyectar CSS crudo | — | ❌ No recomendado (footgun + XSS). Mejor B/C |
+| Nivel | Qué da | Estado |
+|---|---|---|
+| **A. Más tokens** | Paleta de acento, opacidad, radio, blur, overlay, fuente como variables en `site_settings` | ✅ Hecho (token de acento añadido 2026-06-25) |
+| **B. Presets de tema** | Dropdown *Scenecore · Pixel · Gótico · Anime* — cada uno setea toda la paleta vía `html[data-theme]` | ✅ Hecho (2026-06-25) |
+| **C. Bloques/contenedores** | Tabla `custom_blocks` (tipo, título, contenido, orden, sección) + render dinámico → el admin añade/ordena contenedores sin tocar código | ⛔ Pendiente (fase aparte) |
+| **D. CSS libre** | Inyectar CSS crudo | ❌ Descartado (footgun + XSS) |
 
-**Recomendación:** A + B primero (rápido, seguro, encaja con la estética que te gusta), C como
-fase aparte. Evitar D. *Requiere B1 resuelto* — si no, nada de esto persiste.
+**Implementado (2026-06-25):** presets en `globals.css` (`html[data-theme="..."]`),
+aplicados por `DesignLoader` (`data-theme` + acento inline), selector en Admin → Diseño.
+Verificado en vivo (gótico recolorea, acento pisa al tema). **Siguiente nivel posible:** C
+(bloques/contenedores). *Limitación menor:* algunos glows usan rgba fijo y no cambian con el
+tema; parametrizar después si se quiere.
 
 ---
 

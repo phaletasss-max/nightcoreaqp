@@ -44,6 +44,21 @@ function applyDesign(s: Record<string, string>) {
     root.removeAttribute('data-font');
   }
 
+  // Tema visual (paleta + superficies) → data-theme en <html>. Los bloques
+  // html[data-theme="..."] de globals.css recolorean toda la app.
+  const theme = s.design_theme || 'default';
+  if (theme && theme !== 'default') root.setAttribute('data-theme', theme);
+  else root.removeAttribute('data-theme');
+
+  // Color de acento (token): tiñe el primario por encima del tema. Vacío = el del tema.
+  if (s.design_accent) {
+    root.style.setProperty('--magenta', s.design_accent);
+    root.style.setProperty('--pink', s.design_accent);
+  } else {
+    root.style.removeProperty('--magenta');
+    root.style.removeProperty('--pink');
+  }
+
   if (s.design_card_opacity) root.style.setProperty('--card-opacity', s.design_card_opacity);
   else root.style.removeProperty('--card-opacity');
 

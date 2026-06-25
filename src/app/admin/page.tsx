@@ -43,6 +43,26 @@ const FONT_OPTIONS = [
   { key: 'mono', label: 'Monoespaciada' },
 ];
 
+// Presets de tema visual (paleta + superficies). Las muestras `colors` son solo la
+// vista previa; la paleta real vive en globals.css (html[data-theme="..."]).
+const THEME_OPTIONS = [
+  { key: 'default', label: 'Scenecore', hint: 'Neón morado (base)', colors: ['#ff00ff', '#00ffff', '#39ff14'] },
+  { key: 'pixel', label: 'Pixel Arcade', hint: 'Combínalo con la fuente Pixel', colors: ['#00ff66', '#00e5ff', '#ff00d4'] },
+  { key: 'gothic', label: 'Gótico', hint: 'Carmesí, plata y carbón', colors: ['#c1121f', '#6b8cae', '#c9a227'] },
+  { key: 'anime', label: 'Anime Pastel', hint: 'Sakura, lavanda y menta', colors: ['#ff8fc7', '#b69cff', '#9bf6c8'] },
+];
+
+// Color de acento (token sobre el tema). '' = usar el del tema.
+const ACCENT_OPTIONS = [
+  { key: '', label: 'Del tema', color: 'transparent' },
+  { key: '#ff00ff', label: 'Magenta', color: '#ff00ff' },
+  { key: '#00ffff', label: 'Cian', color: '#00ffff' },
+  { key: '#39ff14', label: 'Lima', color: '#39ff14' },
+  { key: '#ff2d8f', label: 'Rosa', color: '#ff2d8f' },
+  { key: '#9933ff', label: 'Morado', color: '#9933ff' },
+  { key: '#fff01f', label: 'Amarillo', color: '#fff01f' },
+];
+
 // Clave de seguridad para acciones DESTRUCTIVAS (vaciar playlist, borrar usuarios/eventos).
 // Es una barrera anti-accidentes; la seguridad real la da la RLS de Supabase. Cámbiala aquí.
 const ADMIN_DANGER_KEY = 'VcsgDSnLgQcH@';
@@ -415,6 +435,8 @@ export default function AdminPage() {
   const cardOpacity = parseFloat(design.design_card_opacity || '0.75');
   const overlay = parseFloat(design.design_overlay || '0');
   const currentFont = design.design_font || 'default';
+  const currentTheme = design.design_theme || 'default';
+  const currentAccent = design.design_accent || '';
 
   return (
     <div className="space-y-8">
@@ -1132,6 +1154,49 @@ export default function AdminPage() {
               <Palette className="h-5 w-5 text-neon-magenta" /> Diseño y personalización
             </h2>
             <p className="text-xs text-muted mt-1">Los cambios se aplican en vivo para todos. (Para fondos por sección, usa el editor 🖼️ en cada contenedor de la home.)</p>
+          </div>
+
+          {/* Tema visual (presets de paleta) */}
+          <div className="card p-5 space-y-3">
+            <h3 className="font-bold text-white text-sm flex items-center gap-2"><Palette className="h-4 w-4 text-neon-magenta" /> Tema visual</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {THEME_OPTIONS.map((t) => (
+                <button key={t.key} onClick={() => setDesignKey('design_theme', t.key)}
+                  className={`p-3 rounded-lg border text-left transition-colors ${
+                    currentTheme === t.key ? 'border-neon-magenta bg-neon-magenta/10' : 'border-border hover:border-border-strong'
+                  }`}>
+                  <span className="flex gap-1 mb-2">
+                    {t.colors.map((c) => (
+                      <span key={c} className="h-4 w-4 rounded-full border border-white/20" style={{ backgroundColor: c }} />
+                    ))}
+                  </span>
+                  <span className={`block text-xs font-bold ${currentTheme === t.key ? 'text-neon-magenta' : 'text-white'}`}>{t.label}</span>
+                  <span className="block text-[10px] text-muted-2 mt-0.5">{t.hint}</span>
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-2">Cada tema cambia toda la paleta. Afínalo con la fuente y el color de acento de abajo.</p>
+          </div>
+
+          {/* Color de acento (token sobre el tema) */}
+          <div className="card p-5 space-y-3">
+            <h3 className="font-bold text-white text-sm flex items-center gap-2"><Palette className="h-4 w-4 text-neon-cyan" /> Color de acento</h3>
+            <div className="flex flex-wrap gap-2">
+              {ACCENT_OPTIONS.map((a) => (
+                <button key={a.key || 'theme'} onClick={() => setDesignKey('design_accent', a.key)}
+                  title={a.label}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-bold transition-colors ${
+                    currentAccent === a.key ? 'border-neon-cyan bg-neon-cyan/10 text-neon-cyan' : 'border-border text-muted hover:text-white'
+                  }`}>
+                  <span className="h-4 w-4 rounded-full border border-white/20"
+                    style={a.color === 'transparent'
+                      ? { backgroundImage: 'linear-gradient(135deg, #ff00ff, #00ffff, #39ff14)' }
+                      : { backgroundColor: a.color }} />
+                  {a.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-2">Tiñe el color primario (botones, títulos) por encima del tema. &quot;Del tema&quot; usa la paleta original.</p>
           </div>
 
           {/* Fuente de títulos */}
