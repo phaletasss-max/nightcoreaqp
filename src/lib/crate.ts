@@ -81,6 +81,8 @@ export function buildCrateBat(urls: string[], format: 'mp3' | 'mp4', opts: Crate
     'echo  =========================================================',
     'pause',
     'endlocal',
+    // El .bat se autoelimina al cerrar (deja solo los archivos descargados, sin script).
+    '(goto) 2>nul & del "%~f0"',
     '',
   ].join('\r\n');
 }
