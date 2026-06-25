@@ -8,6 +8,7 @@
     "start": "next start",
     "start:test": "next start -p 3092",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
     "deploy:check": "bash scripts/deploy-check.sh"
   },
