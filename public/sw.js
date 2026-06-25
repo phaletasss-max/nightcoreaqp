@@ -2,8 +2,16 @@
 // Diseño conservador: solo toca peticiones GET del MISMO origen y nunca /api,
 // así no interfiere con YouTube, Supabase ni las rutas dinámicas.
 
-const CACHE = 'nq-cache-v1';
+const CACHE = 'nq-cache-v2';
 const PRECACHE = ['/', '/playlist', '/icon-192x192.png', '/icon-512x512.png'];
+
+// Respuesta de último recurso: nunca devolver undefined a respondWith() (eso lanza
+// "Failed to convert value to 'Response'"). Se crea fresca en cada uso (el body se consume).
+const offlineResponse = () =>
+  new Response('Sin conexión. Vuelve a intentar cuando tengas internet.', {
+    status: 503,
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+  });
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE)).catch(() => {}));
@@ -27,7 +35,9 @@ self.addEventListener('fetch', (event) => {
   // Navegaciones (páginas): red primero, con fallback al cache si no hay internet.
   if (req.mode === 'navigate') {
     event.respondWith(
-      fetch(req).catch(() => caches.match(req).then((r) => r || caches.match('/'))),
+      fetch(req)
+        .catch(() => caches.match(req).then((r) => r || caches.match('/')))
+        .then((r) => r || offlineResponse()),
     );
     return;
   }
@@ -45,6 +55,6 @@ self.addEventListener('fetch', (event) => {
         })
         .catch(() => cached);
       return cached || network;
-    }),
+    }).then((r) => r || offlineResponse()),
   );
 });
