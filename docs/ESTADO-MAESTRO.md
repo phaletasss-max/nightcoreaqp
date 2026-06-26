@@ -62,6 +62,12 @@
     no estaba definido; ahora disponible en todo el sitio).
   - Verificado en preview: home, playlist, admin (móvil+desktop), chat, disfraces, sugerencias.
     TypeScript limpio (`npx tsc --noEmit` sin errores). Sin errores de consola.
+- **Panel DJ + gestión de roles (2026-06-26)** — ver §15:
+  - **Ruta `/dj`** nueva: setlist más votado, marcar tocada, descarga `.bat` del set (MP3/MP4),
+    lista de confirmados. Guard por rol `dj`/`admin` (mismo criterio que `/admin`).
+  - **Navbar**: enlace "DJ" visible solo para staff.
+  - **Admin → Usuarios**: dropdown de rol con spinner + confirmación al promover a admin.
+  - Verificado en preview + `tsc` limpio.
 
 ### 🟡 En proceso (falta un paso, casi nada de código)
 - **Repo → público** (Settings → Danger Zone → Make public): destraba el **auto-update** del desktop
@@ -73,7 +79,7 @@
 ### ⛔ Pendiente (no empezado)
 - **APK móvil** → plan detallado en §16 (Fase 0–3).
 - **Perfil hi5 / estética Web 2.0** → plan en §14 (Fase A sin migraciones, Fase B con guestbook/reactions).
-- **Panel DJ + gestión de roles** → plan en §15 (ruta `/dj`, mejoras UX admin).
+- ~~**Panel DJ + gestión de roles**~~ → ✅ **hecho 2026-06-26** (ruta `/dj` + UX de roles en admin). Ver §15.
 - **Branding**: tagline definitivo + `docs/BRANDING.md`; SEO/OG images.
 - **Feed personalizado por interés**; **verificación de cuenta** (email/WhatsApp).
 - **Firma de código del `.exe`** (quitar el aviso de SmartScreen) + icono propio.
@@ -408,23 +414,27 @@ producción** (`.card` incluye `backdrop-filter`). *Nota:* el dev server de Next
 - Toda escritura de rol pasa por `updateProfileRole` en `data.ts` (ya existe). No
   llames directamente a Supabase desde el componente.
 
-### Fase A — Página `/dj` simplificada ⛔ (no empezado)
+### Fase A — Página `/dj` simplificada ✅ (hecho 2026-06-26)
 
-| Tarea | Detalle |
-|---|---|
-| **A1. Ruta `src/app/dj/page.tsx`** | Guard: si no hay sesión o `role` no es `dj`/`admin`, redirige a `/`. |
-| **A2. Panel de playlist del evento activo** | Lista canciones Top-N del evento en curso: título, artista, votos, botón "Marcar reproducida". Importa `getSongs` + `setSongPlayed` de `data.ts`. |
-| **A3. Descarga `.bat` del set** | Botón "Descargar set (MP3)" y "Descargar set (MP4)" → llama `buildCrateBat` de `crate.ts`. Mismo código que ya existe en `/admin` tab DJ. |
-| **A4. Lista de asistentes confirmados** | `getAttendees` filtrado por `status = 'confirmed'` del evento activo. Solo lectura. |
-| **A5. Link desde el Navbar** | Mostrar enlace `DJ` en el nav solo si `role === 'dj' || role === 'admin'`. Igual que Admin ya está oculto para usuarios sin rol. |
+| Tarea | Estado | Detalle |
+|---|---|---|
+| **A1. Ruta `src/app/dj/page.tsx`** | ✅ | Guard con `useAuth()`: `loading` → spinner; sin rol `dj`/`admin` → tarjeta "solo para DJs" + volver. Mismo criterio que `/admin` (prod: rol real; demo: `isStaff`). |
+| **A2. Panel de playlist del evento activo** | ✅ | Setlist ordenado por votos (tocadas al fondo), botón "marcar tocada" (`setSongPlayed`), botón refrescar. Evento activo = confirmado ?? primero (igual que la home). |
+| **A3. Descarga `.bat` del set** | ✅ | Toggle MP3/MP4 + "Descargar set" → `buildCrateBat` de `crate.ts` con los hosts descargables (YouTube/TikTok/IG). |
+| **A4. Lista de asistentes confirmados** | ✅ | `getAttendees` filtrado por evento activo + `status === 'confirmed'`. Solo lectura, grid con iniciales y código. |
+| **A5. Link desde el Navbar** | ✅ | Enlace `DJ` (icono Disc3) inyectado en `navItems` solo si `role === 'dj' || 'admin'`. Desktop + drawer móvil. |
 
-### Fase B — Mejoras de gestión de roles en Admin ⛔ (no empezado)
+### Fase B — Mejoras de gestión de roles en Admin ✅ (hecho 2026-06-26)
 
-| Tarea | Detalle |
-|---|---|
-| **B1. Búsqueda de usuario en tab Usuarios** | Input de búsqueda que filtra el listado por `username` o `email` en el estado local. Sin llamada extra a BD. |
-| **B2. Dropdown de rol inline** | Reemplazar el texto del rol por un `<select>` con opciones `user / dj / admin`. Al cambiar llama `updateProfileRole`. Muestra spinner mientras guarda. |
-| **B3. Confirmación antes de promover a admin** | Si el nuevo rol es `admin`, pide confirmación (`window.confirm` o modal inline). Evita promoções accidentales. |
+| Tarea | Estado | Detalle |
+|---|---|---|
+| **B1. Búsqueda de usuario en tab Usuarios** | ✅ | `userSearch` filtra por `username`/`email` en estado local + orden (puntos/racha/nombre/rol). *(Ya existía; verificado.)* |
+| **B2. Dropdown de rol inline** | ✅ | `<select>` user/dj/admin → `handleRoleChange` → `updateProfileRole`. Ahora con `savingRoleId` (spinner `Loader2` mientras guarda + `disabled`). |
+| **B3. Confirmación antes de promover a admin** | ✅ | `handleRoleChange`: si el nuevo rol es `admin`, `confirm()` con el nombre del usuario antes de escribir. `try/catch` con aviso si la RLS rechaza. |
+
+### Verificación 2026-06-26
+- `npx tsc --noEmit` limpio. Preview: `/dj` carga (evento activo detectado, setlist/confirmados),
+  Navbar muestra "DJ", tab Usuarios del admin con búsqueda + dropdown de rol. Sin errores de consola.
 
 ### Fase C — Vinculación DJ ↔ Evento (opcional, largo plazo) ⏸️
 

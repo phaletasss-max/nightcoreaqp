@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Music, Calendar, Camera, User, Bell, Download,
-  Flame, Coins, Menu, X, LogIn, LogOut, Sparkles, MessageCircle, Inbox
+  Flame, Coins, Menu, X, LogIn, LogOut, Sparkles, MessageCircle, Inbox, Disc3
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import AuthModal from '@/components/AuthModal';
@@ -20,7 +20,9 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
 
-  // Admin/Consola DJ no va en el nav público: se entra por /admin con rol dj/admin.
+  // El panel admin no va en el nav público: se entra por /admin con rol dj/admin.
+  // El acceso directo "DJ" sí se muestra, pero SOLO a cuentas con rol dj/admin.
+  const isStaff = profile?.role === 'admin' || profile?.role === 'dj';
   const navItems = [
     { name: 'Eventos', href: '/', icon: Calendar },
     { name: 'Playlist', href: '/playlist', icon: Music },
@@ -29,6 +31,7 @@ export default function Navbar() {
     { name: 'Disfraces', href: '/disfraces', icon: Camera },
     { name: 'Historial', href: '/history', icon: Trophy },
     { name: 'Descargas', href: '/perfil/descargas', icon: Download },
+    ...(isStaff ? [{ name: 'DJ', href: '/dj', icon: Disc3 }] : []),
     { name: 'Perfil', href: '/perfil', icon: User },
   ];
 

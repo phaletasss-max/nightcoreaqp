@@ -7,7 +7,22 @@ Versión semántica: MAYOR.MENOR.PATCH (la app web no tiene número de versión 
 
 ## [Unreleased] — Web
 
-### 2026-06-26
+### 2026-06-26 (b)
+
+**Panel DJ + gestión de roles (§15)**
+
+- **Nueva ruta `/dj`** (`src/app/dj/page.tsx`) — panel simplificado para cabina:
+  setlist más votado con "marcar tocada" (`setSongPlayed`), descarga del set como `.bat`
+  local (toggle MP3/MP4 vía `buildCrateBat`), y lista de asistentes confirmados del evento
+  activo. Guard por rol `dj`/`admin` reutilizando `useAuth()` (mismo criterio que `/admin`).
+- **Navbar** (`src/components/Navbar.tsx`) — enlace "DJ" (icono Disc3) visible solo para
+  cuentas con rol `dj`/`admin`, en desktop y en el drawer móvil.
+- **Admin → Usuarios** (`src/app/admin/page.tsx`) — el cambio de rol ahora pasa por
+  `handleRoleChange`: spinner (`savingRoleId`) mientras guarda y `confirm()` antes de
+  promover a administrador. La búsqueda y el dropdown de rol ya existían.
+- `npx tsc --noEmit` limpio; verificado en preview.
+
+### 2026-06-26 (a)
 
 **Limpieza · Responsive · Bugs cerrados**
 

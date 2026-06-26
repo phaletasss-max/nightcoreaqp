@@ -117,6 +117,7 @@ export default function AdminPage() {
   const [djSort, setDjSort] = useState<'votes' | 'title' | 'status'>('votes');
   const [userSearch, setUserSearch] = useState('');
   const [userSort, setUserSort] = useState<'points' | 'streak' | 'name' | 'role'>('points');
+  const [savingRoleId, setSavingRoleId] = useState<string | null>(null);
   const [costumeSearch, setCostumeSearch] = useState('');
   const [commentSearch, setCommentSearch] = useState('');
   const [commentOnlyFlagged, setCommentOnlyFlagged] = useState(false);
@@ -226,6 +227,24 @@ export default function AdminPage() {
   const handleApproveComment = async (id: string) => {
     await approveComment(id);
     setComments((prev) => prev.map((c) => c.id === id ? { ...c, flagged: false } : c));
+  };
+
+  // Cambia el rol de un usuario. Promover a admin pide confirmación (es poderoso:
+  // da acceso total al panel). La escritura pasa por updateProfileRole (RLS).
+  const handleRoleChange = async (p: Profile, newRole: 'user' | 'dj' | 'admin') => {
+    if (newRole === p.role) return;
+    if (newRole === 'admin' && !confirm(`¿Promover a ${p.username || p.email || 'este usuario'} a ADMINISTRADOR?\n\nTendrá control total del panel (eventos, usuarios, diseño).`)) {
+      return;
+    }
+    setSavingRoleId(p.id);
+    try {
+      await updateProfileRole(p.id, newRole);
+      setProfiles((prev) => prev.map((x) => x.id === p.id ? { ...x, role: newRole } : x));
+    } catch {
+      alert('No se pudo cambiar el rol. ¿Tienes permisos de admin?');
+    } finally {
+      setSavingRoleId(null);
+    }
   };
 
   // Guarda un ajuste de diseño y lo aplica en vivo (DesignLoader escucha el evento).
@@ -1018,19 +1037,19 @@ export default function AdminPage() {
                     <td className="py-3 px-2 text-center text-neon-cyan font-bold">{p.points}</td>
                     <td className="py-3 px-2 text-center text-neon-lime font-bold">{p.streak_count}d</td>
                     <td className="py-3 px-2 text-center">
-                      <select
-                        value={p.role}
-                        onChange={async (e) => {
-                          const newRole = e.target.value as 'user' | 'dj' | 'admin';
-                          await updateProfileRole(p.id, newRole);
-                          setProfiles(prev => prev.map(x => x.id === p.id ? { ...x, role: newRole } : x));
-                        }}
-                        className="bg-black border border-border rounded px-2 py-1 text-xs text-white"
-                      >
-                        <option value="user">Usuario</option>
-                        <option value="dj">DJ</option>
-                        <option value="admin">Administrador</option>
-                      </select>
+                      <div className="inline-flex items-center gap-1.5">
+                        <select
+                          value={p.role}
+                          disabled={savingRoleId === p.id}
+                          onChange={(e) => handleRoleChange(p, e.target.value as 'user' | 'dj' | 'admin')}
+                          className="bg-black border border-border rounded px-2 py-1 text-xs text-white disabled:opacity-50"
+                        >
+                          <option value="user">Usuario</option>
+                          <option value="dj">DJ</option>
+                          <option value="admin">Administrador</option>
+                        </select>
+                        {savingRoleId === p.id && <Loader2 className="h-3.5 w-3.5 text-neon-cyan animate-spin" />}
+                      </div>
                     </td>
                     <td className="py-3 px-2 text-right space-x-2">
                       <Link href={`/perfil/${p.id}`} className="px-2 py-1 rounded text-[10px] font-bold border border-border text-muted hover:text-white transition-colors">Ver</Link>
