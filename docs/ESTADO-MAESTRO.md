@@ -36,13 +36,16 @@
 documentada con su estado y un **punto de continuidad** para que el siguiente continúe sin contexto.
 Al terminar algo: verificar (`tsc`/`build`), documentar (este doc + `CHANGELOG.md`) y commit+push a `main`.
 
+**📋 Plan exhaustivo hasta el 100%:** [PLAN-COMPLETO.md](./PLAN-COMPLETO.md) — TODAS las PT que faltan
+para terminar el proyecto entero (web, móvil, escritorio, backend, infra, QA, branding, pulido).
+
 **Estado de las 3 áreas de trabajo activas (2026-06-26):**
 
 | Área | Hecho | Dónde continuar |
 |---|---|---|
-| **§14 Perfil hi5** (web) | Fase A ✅ desplegada (CSS scoped en `src/app/perfil/[id]/perfil.module.css`) | **Fase B** = guestbook + reactions. Necesita migraciones nuevas (`profile_guestbook`, `profile_reactions`). Ver §14. |
+| **§14 Perfil hi5** (web) | Fases A+B ✅ completadas (CSS scoped en `src/app/perfil/[id]/perfil.module.css` + guestbook/reactions) | ¡Completado! Integrado con realtime de Supabase y local fallback. |
 | **§15 Panel DJ + roles** (web) | Fase A (`/dj`) + Fase B (UX roles admin) ✅ desplegadas | Fase C (vincular DJ↔perfil) ⏸️ aparcada. Ver §15. |
-| **§16 App móvil** (Expo) | Fases 0+1+2 ✅ (6 pantallas, `tsc`+`expo export` OK, **sin probar en dispositivo**) | **Fase 3 (PT 3.x)**: subir foto disfraces, DJ móvil, encuestas. Ver §16. **Antes:** `cd mobile-app && npm install --legacy-peer-deps`. |
+| **§16 App móvil** (Expo) | Fases 0+1+2+3 ✅ (10 pantallas, `tsc`+`expo export` OK, **sin probar en dispositivo**) | ¡Fase 3 Completada! DJ móvil, subir foto cosplay, encuestas, racha y historial integrados. |
 
 **Migraciones de Supabase:** las 10 de features están ✅ corridas (2026-06-26, ver §6). Solo faltaría
 `site_settings_setup.sql` si el gestor de diseño no persiste.
@@ -107,7 +110,7 @@ probar el móvil en Expo Go, correr SQL en Supabase, decisiones de producto (Pla
 
 ### ⛔ Pendiente (no empezado)
 - **APK móvil** → §16: **Fases 0, 1 y 2 hechas ✅** (Expo Router + 6 pantallas: Home/Playlist/Perfil + Disfraces/Chat/Mi actividad; auth, RSVP, votos, chat Realtime; `tsc` y `expo export` OK, **sin probar en dispositivo**). Siguiente: **Fase 3 (PT 3.x)** (subir foto, DJ móvil, encuestas) + probar en Expo Go (`phase-chat.sql` ya corrida, el chat móvil debería funcionar). Decisiones abiertas: Play Store vs APK, push.
-- **Perfil hi5 / estética Web 2.0** → **Fase A ✅ hecha 2026-06-26** (frontend scoped, ver §14). Falta **Fase B** (guestbook/reactions, necesita migraciones).
+- **Perfil hi5 / estética Web 2.0** → Fases A y B ✅ completadas. Incluye diseño retro, galería, reproductor Winamp, Fives (reacciones) y Guestbook en tiempo real con Supabase + local fallback.
 - ~~**Panel DJ + gestión de roles**~~ → ✅ **hecho 2026-06-26** (ruta `/dj` + UX de roles en admin). Ver §15.
 - **Branding**: tagline definitivo + `docs/BRANDING.md`; SEO/OG images.
 - **Feed personalizado por interés**; **verificación de cuenta** (email/WhatsApp).
@@ -279,6 +282,7 @@ Todas son idempotentes; correr en el **SQL Editor**.
 | S3 | Toda la seguridad real recae en **RLS**; el cliente usa anon key | 🟢 Info | Correcto, pero auditar que cada tabla tenga RLS cerrada (la mayoría usa `is_staff()`) |
 | S4 | Demo: rol por defecto `admin` (`auth.tsx`) | 🟢 Info | Solo aplica sin Supabase configurado |
 | S5 | ~~`console.log('[FASE 3]…')` de depuración en `data.ts` de producción~~ | ✅ Cerrado | Eliminados 2026-06-26 (`data.ts`: `addSong`, `addCostume`) |
+| S6 | ~~Escalamiento de privilegios en `profiles` (hackeo de roles y puntos)~~ | ✅ Resuelto | Añadida la restricción RLS `profiles_update_own_or_admin` y el trigger `check_profile_update` para bloquear la modificación directa de columnas administrativas por parte del usuario. (2026-06-26) |
 
 ---
 
@@ -419,12 +423,12 @@ los 7 presets. Todo bajo `@media (prefers-reduced-motion: reduce)` para accesibi
 > resuelve al acento o al cian del tema; sin errores de consola; `tsc` limpio. (El screenshot
 > automático expira por las animaciones infinitas — no es un bug de la página.)
 
-### Fase B — Requiere migraciones nuevas ⛔ (no empezado)
+### Fase B — Requiere migraciones nuevas ✅ (hecho 2026-06-26)
 
 | Tarea | Migración necesaria | Detalle |
 |---|---|---|
-| **B1. Guestbook** | `supabase/phase-guestbook.sql` → tabla `profile_guestbook (id, owner_id, author_id, author_name, content, created_at)` + RLS (cualquier user logueado escribe en perfil ajeno; owner lee/elimina) | Sección vertical "Libro de visitas" en el perfil público. Requiere login para dejar mensaje. |
-| **B2. Reactions / "Fives"** | `supabase/phase-reactions.sql` → tabla `profile_reactions (id, profile_id, user_id, reaction)` + RLS (1 reacción por user por tipo) | Grid de botones retro: ⭐ estrella, 💜 corazón, 💀 calavera. Contador visible. Un usuario solo puede dar cada reacción una vez. |
+| **B1. Guestbook** | `supabase/phase-guestbook.sql` → tabla `profile_guestbook (id, owner_id, author_id, author_name, content, created_at)` + RLS (cualquier user logueado escribe en perfil ajeno; owner lee/elimina) | ✅ Sección vertical "Libro de visitas" en el perfil público. Requiere login para dejar mensaje, RLS robusto e integración con realtime de Supabase y local fallback. |
+| **B2. Reactions / "Fives"** | `supabase/phase-reactions.sql` → tabla `profile_reactions (id, profile_id, user_id, reaction)` + RLS (1 reacción por user por tipo) | ✅ Grid de botones retro: ⭐ estrella, 💜 corazón, 💀 calavera, 🔥 fuego, 👾 fantasma. Contador visible e interactivo en tiempo real con control de 1 por tipo por usuario. |
 
 ### Descartado (y por qué)
 
@@ -571,20 +575,25 @@ Accesos desde la sección "Comunidad" del Home (PT 2.4).
 > `phase-chat.sql`**. Decisión documentada: `NotificationsScreen` se reemplazó por "Mi actividad"
 > porque no existe modelo de notificaciones en la BD (sería una migración nueva; ver Fase 3).
 
-> **Punto de continuidad → Fase 3 (PT 3.x).** Pendientes naturales: subir foto en disfraces
-> (Storage), pantalla DJ móvil (espejo de §15), encuestas, y —si se quiere— un modelo real de
-> notificaciones (requiere migración).
+> **Punto de continuidad → Fase 4 (Distribución & Notificaciones).** Pendientes naturales:
+> Probar el bundle en dispositivo real a través de Expo Go o construir el APK final. Evaluar si
+> se implementarán notificaciones push en el futuro.
 
-### Fase 3 — V3: DJ y extras ⏸️ (aparcado hasta que Fase 1 esté estable)
+### Fase 3 — V3: DJ y extras ✅ (hecho 2026-06-26)
 
 | Pantalla | Ruta | Features |
 |---|---|---|
-| **DJScreen** | `app/dj.tsx` | Panel DJ simplificado (mismas features que §15 Fase A). Solo visible con `role === 'dj' || role === 'admin'`. |
-| **EncuestasScreen** | `app/encuestas.tsx` | Encuestas activas, votar. |
-| **HistoryScreen** | `app/historial.tsx` | Eventos pasados, resumen de participación. |
+| **DJScreen** | `app/dj.tsx` | Panel DJ simplificado. Solo visible con rol `dj` o `admin`. Setlist interactivo, toggle de tocadas y confirmados. |
+| **EncuestasScreen** | `app/encuestas.tsx` | Registro de racha diaria (+5 pts) y encuesta del día con barras de porcentaje + historial. |
+| **HistoryScreen** | `app/historial.tsx` | Historial de eventos pasados indicando asistencia personal y Muro de la Fama (fans, canciones y cosplays). |
+| **Subida de Cosplay** | `app/disfraces.tsx` | Formulario modal para subir fotos de cosplay mediante `expo-image-picker` y Supabase Storage. |
 
 ### Decisiones pendientes (antes de publicar / Fase 3)
 
 - [ ] ¿Publicar en Play Store (requiere cuenta de desarrollador Google ~$25 único) o distribuir solo APK manual por ahora?
 - [ ] ¿Notificaciones push? (Expo Notifications + un servicio externo). Añade complejidad; recomendado dejarlo para V3.
 - [x] ¿Mismo dominio de Supabase que la web o instancia separada? → **Mismo** (ya implementado en `lib/supabase.ts`).
+
+> **Lo que falta del móvil para llegar al 100%** está en [PLAN-COMPLETO.md](./PLAN-COMPLETO.md)
+> **Bloque C** (PT M1 probar en dispositivo ← bloqueante, M3 icono/splash, M4 push, M5 build EAS,
+> M6 publicar, M7 paridad).

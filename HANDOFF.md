@@ -8,6 +8,8 @@
 2. [`docs/GUIA-IA.md`](docs/GUIA-IA.md) — objetivo, arquitectura y reglas de no-romper.
 3. [`docs/ESTADO-MAESTRO.md`](docs/ESTADO-MAESTRO.md) → sección **⭐ PARA LA SIGUIENTE IA** (estado
    de cada área + dónde continuar) y [`CHANGELOG.md`](CHANGELOG.md).
+4. [`docs/PLAN-COMPLETO.md`](docs/PLAN-COMPLETO.md) — **TODO lo que falta hasta el 100%**, en partes
+   de trabajo (PT) detalladas por bloque (web, móvil, escritorio, backend, infra, QA, branding, pulido).
 
 ## 2. Cómo se trabaja aquí
 Todo en **partes de trabajo (PT) por fases**. Cada fase queda documentada con su **estado** y un
