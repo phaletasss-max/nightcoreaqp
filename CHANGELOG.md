@@ -7,6 +7,21 @@ Versión semántica: MAYOR.MENOR.PATCH (la app web no tiene número de versión 
 
 ## [Unreleased] — Mobile (Expo)
 
+### 2026-06-26 (c) — App móvil, Fase 2 comunidad (§16)
+
+Pantallas de comunidad como rutas de stack (PT 2.1–2.4):
+
+- **PT 2.1** — `app/disfraces.tsx`: galería de cosplay + voto ❤ binario (optimista, `costume_votes`).
+- **PT 2.2** — `app/chat.tsx`: chat en vivo con Supabase Realtime (`subscribeChat`). Requiere
+  `phase-chat.sql` corrido en Supabase.
+- **PT 2.3** — `app/actividad.tsx`: "Mi actividad" (mis reservas + mis canciones sugeridas).
+  Reemplaza a NotificationsScreen porque no hay tabla de notificaciones en la BD.
+- **PT 2.4** — sección "Comunidad" en el Home con enlaces; `lib/data.ts` ampliado
+  (`getCostumes`, `setCostumeVote`, `getChatMessages`, `sendChatMessage`, `subscribeChat`,
+  `getMySuggestedSongs`).
+- Verificado: `tsc` limpio + `expo export --platform android` sin errores. Pendiente probar en
+  Expo Go (y correr `phase-chat.sql` para el chat). Siguiente: Fase 3 (PT 3.x).
+
 ### 2026-06-26 (b) — App móvil, Fase 1 MVP (§16)
 
 Expo Router + las 3 pantallas core. Organizado en partes de trabajo (PT 1.1–1.6):

@@ -7,6 +7,8 @@ import {
   ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Link } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { isConfigured } from '../../lib/supabase';
 import { getNextEvent, getAttendees, createRsvp } from '../../lib/data';
 import { useAuth } from '../../lib/auth';
@@ -119,6 +121,23 @@ export default function HomeScreen() {
         </>
       )}
 
+      {/* Comunidad — accesos a las pantallas de la Fase 2 */}
+      <Text style={styles.sectionTitle}>Comunidad</Text>
+      <View style={styles.navGrid}>
+        {([
+          { href: '/disfraces', icon: 'shirt', label: 'Disfraces' },
+          { href: '/chat', icon: 'chatbubbles', label: 'Chat' },
+          { href: '/actividad', icon: 'sparkles', label: 'Mi actividad' },
+        ] as const).map((n) => (
+          <Link key={n.href} href={n.href} asChild>
+            <Pressable style={styles.navCard}>
+              <Ionicons name={n.icon} size={22} color={theme.cyan} />
+              <Text style={styles.navLabel}>{n.label}</Text>
+            </Pressable>
+          </Link>
+        ))}
+      </View>
+
       <Text style={styles.footer}>Organiza Yorch · hecho por Los Simpatizantes de JP</Text>
     </ScrollView>
   );
@@ -143,6 +162,9 @@ const styles = StyleSheet.create({
   btnGhostText: { color: theme.muted, fontWeight: '700' },
   btnPrimary: { backgroundColor: theme.magenta },
   btnPrimaryText: { color: '#0a0410', fontWeight: '800' },
+  navGrid: { flexDirection: 'row', gap: space.sm },
+  navCard: { flex: 1, alignItems: 'center', gap: space.xs, backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1, borderRadius: radius.lg, paddingVertical: space.lg },
+  navLabel: { color: theme.text, fontSize: 12, fontWeight: '700' },
   warnCard: { borderColor: 'rgba(255,240,31,0.4)', marginTop: space.lg },
   warnTitle: { color: theme.yellow, fontWeight: '800', marginBottom: space.xs },
   muted: { color: theme.muted, fontSize: 13, lineHeight: 19 },

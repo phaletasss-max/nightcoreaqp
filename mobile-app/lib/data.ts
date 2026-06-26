@@ -8,7 +8,7 @@
 // Mantener alineado con la RLS. Este archivo NO importa nada de `src/`.
 
 import { supabase, isConfigured } from './supabase';
-import type { EventItem, Song, Attendee, Profile, VoteType } from './types';
+import type { EventItem, Song, Attendee, Profile, VoteType, Costume, ChatMessage } from './types';
 
 // ── Eventos ──────────────────────────────────────────────────────────────────
 // Evento "activo": el confirmado, o el más próximo por fecha (igual que la web).
@@ -108,4 +108,103 @@ export async function updateMyProfile(
 ): Promise<void> {
   if (!isConfigured) return;
   await supabase.from('profiles').update(patch).eq('id', id);
+}
+
+// ── Disfraces (cosplay) ────────────────────────────────────────────────────────
+// Voto binario (te gusta / no), espejo de costume_votes en la web. Si hay userId,
+// marca `voted` consultando los votos del usuario.
+export async function getCostumes(userId?: string | null): Promise<Costume[]> {
+  if (!isConfigured) return [];
+  const { data, error } = await supabase
+    .from('costumes')
+    .select('*')
+    .order('votes_count', { ascending: false });
+  if (error || !data) return [];
+  const costumes = data as Costume[];
+
+  if (userId) {
+    const { data: votes } = await supabase
+      .from('costume_votes')
+      .select('costume_id')
+      .eq('user_id', userId);
+    const voted = new Set((votes ?? []).map((v: { costume_id: string }) => v.costume_id));
+    return costumes.map((c) => ({ ...c, voted: voted.has(c.id) }));
+  }
+  return costumes;
+}
+
+export async function setCostumeVote(
+  costumeId: string,
+  voted: boolean,
+  userId: string,
+): Promise<void> {
+  if (!isConfigured) return;
+  if (voted) {
+    await supabase
+      .from('costume_votes')
+      .upsert({ costume_id: costumeId, user_id: userId }, { onConflict: 'costume_id,user_id' });
+  } else {
+    await supabase.from('costume_votes').delete().match({ costume_id: costumeId, user_id: userId });
+  }
+}
+
+// ── Chat de comunidad ───────────────────────────────────────────────────────────
+// Requiere la migración `phase-chat.sql` corrida en Supabase (tabla chat_messages
+// + Realtime habilitado). Sin ella, getChatMessages devuelve [] y el envío falla.
+export async function getChatMessages(room = 'general', limit = 80): Promise<ChatMessage[]> {
+  if (!isConfigured) return [];
+  const { data, error } = await supabase
+    .from('chat_messages')
+    .select('*')
+    .eq('room', room)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return (data as ChatMessage[]).reverse();
+}
+
+export async function sendChatMessage(
+  room: string,
+  content: string,
+  userId: string | null,
+  username: string,
+): Promise<ChatMessage | null> {
+  const text = content.trim();
+  if (!isConfigured || !text) return null;
+  const { data, error } = await supabase
+    .from('chat_messages')
+    .insert({ room, user_id: userId, username, content: text })
+    .select()
+    .single();
+  if (error) return null;
+  return data as ChatMessage;
+}
+
+// Suscripción Realtime a nuevos mensajes de una sala. Devuelve la función de
+// limpieza (mismo patrón que la web). Llamar dentro de un useEffect.
+export function subscribeChat(room: string, onInsert: (m: ChatMessage) => void): () => void {
+  if (!isConfigured) return () => {};
+  const channel = supabase
+    .channel(`chat:${room}`)
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `room=eq.${room}` },
+      (payload) => onInsert(payload.new as ChatMessage),
+    )
+    .subscribe();
+  return () => { supabase.removeChannel(channel); };
+}
+
+// ── Mi actividad ────────────────────────────────────────────────────────────────
+// Canciones que YO sugerí (para la pantalla "Mi actividad"). Las reservas propias
+// se obtienen con getAttendees() + filtro por user_id en la pantalla.
+export async function getMySuggestedSongs(userId: string): Promise<Song[]> {
+  if (!isConfigured) return [];
+  const { data, error } = await supabase
+    .from('songs')
+    .select('*')
+    .eq('suggested_by', userId)
+    .order('votes_count', { ascending: false });
+  if (error || !data) return [];
+  return data as Song[];
 }

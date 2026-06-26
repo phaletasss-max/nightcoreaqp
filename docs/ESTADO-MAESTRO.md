@@ -77,7 +77,7 @@
 - **media-service (Render)**: se duerme; YouTube le exige cookies. Plan Arch (IP residencial) sin implementar.
 
 ### ⛔ Pendiente (no empezado)
-- **APK móvil** → §16: **Fase 0 + Fase 1 hechas ✅** (Expo Router + 3 pantallas Home/Playlist/Perfil + auth + RSVP + voto; `tsc` y `expo export` OK, **sin probar en dispositivo**). Siguiente: **Fase 2 (PT 2.x)** comunidad + probar en Expo Go. Decisiones abiertas: Play Store vs APK, push.
+- **APK móvil** → §16: **Fases 0, 1 y 2 hechas ✅** (Expo Router + 6 pantallas: Home/Playlist/Perfil + Disfraces/Chat/Mi actividad; auth, RSVP, votos, chat Realtime; `tsc` y `expo export` OK, **sin probar en dispositivo**). Siguiente: **Fase 3 (PT 3.x)** (subir foto, DJ móvil, encuestas) + probar en Expo Go + correr `phase-chat.sql`. Decisiones abiertas: Play Store vs APK, push.
 - **Perfil hi5 / estética Web 2.0** → **Fase A ✅ hecha 2026-06-26** (frontend scoped, ver §14). Falta **Fase B** (guestbook/reactions, necesita migraciones).
 - ~~**Panel DJ + gestión de roles**~~ → ✅ **hecho 2026-06-26** (ruta `/dj` + UX de roles en admin). Ver §15.
 - **Branding**: tagline definitivo + `docs/BRANDING.md`; SEO/OG images.
@@ -519,13 +519,26 @@ Implementado con **Expo Router** (file-based) bajo `mobile-app/app/`. Estructura
 > No importar nada de `src/`. Antes de empezar, correr `npm install --legacy-peer-deps` en
 > `mobile-app/` (hay conflictos de peer deps de RN; es el escape estándar).
 
-### Fase 2 — V2: comunidad ⛔ (no empezado)
+### Fase 2 — V2: comunidad ✅ (hecho 2026-06-26)
 
-| Pantalla | Ruta | Features |
+Pantallas como rutas de stack (fuera de `(tabs)`), con cabecera propia + botón atrás.
+Accesos desde la sección "Comunidad" del Home (PT 2.4).
+
+| PT | Estado | Detalle |
 |---|---|---|
-| **CostumesScreen** | `app/disfraces.tsx` | Galería de cosplay, votar, subir foto. |
-| **ChatScreen** | `app/chat.tsx` | Chat en vivo (Supabase Realtime). Requiere `phase-chat.sql` corrido. |
-| **NotificationsScreen** | `app/notificaciones.tsx` | Feed de actividad propia (votos recibidos, likes, menciones). |
+| **PT 2.1 — CostumesScreen** | ✅ | `app/disfraces.tsx`: galería de cosplay por votos + voto binario ❤ (toggle optimista → `costume_votes`). **Subir foto** queda para una PT futura (necesita bucket Storage + image picker). |
+| **PT 2.2 — ChatScreen** | ✅ (código) | `app/chat.tsx`: historial + **Realtime** (`subscribeChat` → `postgres_changes` INSERT) + envío. ⚠️ **Requiere `phase-chat.sql` corrido** en Supabase para funcionar; sin él la lista sale vacía. |
+| **PT 2.3 — Mi actividad** | ✅ | `app/actividad.tsx`: en vez de una `NotificationsScreen` (no hay tabla de notificaciones en la BD), un feed personal: mis reservas (`event_attendees` filtradas) + mis canciones sugeridas (`getMySuggestedSongs`). |
+| **PT 2.4 — Navegación + datos** | ✅ | Sección "Comunidad" en el Home con `Link` a las 3 rutas. `lib/data.ts` ampliado: `getCostumes`, `setCostumeVote`, `getChatMessages`, `sendChatMessage`, `subscribeChat`, `getMySuggestedSongs`. |
+
+> **Verificación (2026-06-26):** `tsc` limpio + `expo export --platform android` bundlea sin
+> errores. **Pendiente probar en runtime** (Expo Go): voto de disfraz, y el chat **tras correr
+> `phase-chat.sql`**. Decisión documentada: `NotificationsScreen` se reemplazó por "Mi actividad"
+> porque no existe modelo de notificaciones en la BD (sería una migración nueva; ver Fase 3).
+
+> **Punto de continuidad → Fase 3 (PT 3.x).** Pendientes naturales: subir foto en disfraces
+> (Storage), pantalla DJ móvil (espejo de §15), encuestas, y —si se quiere— un modelo real de
+> notificaciones (requiere migración).
 
 ### Fase 3 — V3: DJ y extras ⏸️ (aparcado hasta que Fase 1 esté estable)
 
