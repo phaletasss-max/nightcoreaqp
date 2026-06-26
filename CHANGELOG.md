@@ -7,7 +7,25 @@ Versión semántica: MAYOR.MENOR.PATCH (la app web no tiene número de versión 
 
 ## [Unreleased] — Mobile (Expo)
 
-### 2026-06-26 — App móvil, Fase 0 base (§16)
+### 2026-06-26 (b) — App móvil, Fase 1 MVP (§16)
+
+Expo Router + las 3 pantallas core. Organizado en partes de trabajo (PT 1.1–1.6):
+
+- **PT 1.1** — Instalada y configurada Expo Router: `expo-router`, `react-native-safe-area-context`,
+  `react-native-screens`, `expo-linking`, `expo-constants`, `@expo/vector-icons`, `babel-preset-expo`.
+  `package.json main` → `expo-router/entry`; `app.json` con `scheme`, plugin y `typedRoutes`;
+  `babel.config.js`.
+- **PT 1.2** — Navegación: `app/_layout.tsx` (Stack + SafeAreaProvider + AuthProvider) y
+  `app/(tabs)/_layout.tsx` (Tabs Inicio/Playlist/Perfil). Eliminados `index.ts` y `App.tsx`.
+- **PT 1.3** — `lib/auth.tsx` (AuthProvider/useAuth con sesión Supabase) + `lib/data.ts` ampliado
+  (`getAttendees`, `createRsvp`, `setSongVote`, `getProfile`, `updateMyProfile`).
+- **PT 1.4** — `app/(tabs)/index.tsx`: HomeScreen con evento activo + RSVP.
+- **PT 1.5** — `app/(tabs)/playlist.tsx`: PlaylistScreen con voto ▲ optimista.
+- **PT 1.6** — `app/(tabs)/perfil.tsx`: ProfileScreen con login/registro/logout + vista de perfil.
+- Verificado: `npx tsc --noEmit` limpio **y** `npx expo export --platform android` bundlea sin
+  errores. **Pendiente probar en Expo Go/dispositivo** con `.env` real. Siguiente: Fase 2 (PT 2.x).
+
+### 2026-06-26 (a) — App móvil, Fase 0 base (§16)
 
 - **`mobile-app/lib/supabase.ts`** — cliente Supabase para RN: misma instancia que la web
   (anon key vía `EXPO_PUBLIC_*`), sesión persistida con AsyncStorage, auto-refresh por `AppState`.

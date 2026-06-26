@@ -1,0 +1,151 @@
+// ── HomeScreen — próximo evento + RSVP ────────────────────────────────────────
+// Lee el evento activo y permite reservar (interesado/confirmado) si hay sesión.
+// La reserva pasa por createRsvp → tabla event_attendees (misma RLS que la web).
+
+import { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { isConfigured } from '../../lib/supabase';
+import { getNextEvent, getAttendees, createRsvp } from '../../lib/data';
+import { useAuth } from '../../lib/auth';
+import { theme, radius, space } from '../../lib/theme';
+import type { EventItem, RsvpStatus } from '../../lib/types';
+
+export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
+  const { profile, session } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [event, setEvent] = useState<EventItem | null>(null);
+  const [counts, setCounts] = useState({ confirmed: 0, interested: 0 });
+  const [myStatus, setMyStatus] = useState<RsvpStatus | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const ev = await getNextEvent();
+    setEvent(ev);
+    if (ev) {
+      const att = await getAttendees(ev.id);
+      setCounts({
+        confirmed: att.filter((a) => a.status === 'confirmed').length,
+        interested: att.filter((a) => a.status === 'interested').length,
+      });
+      const mine = att.find((a) => a.user_id === session?.user?.id);
+      setMyStatus(mine?.status ?? null);
+    }
+    setLoading(false);
+  }, [session?.user?.id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const rsvp = async (status: RsvpStatus) => {
+    if (!event || !session?.user) return;
+    setSaving(true);
+    const created = await createRsvp({
+      event_id: event.id,
+      user_id: session.user.id,
+      name: profile?.username ?? 'Invitado',
+      email: profile?.email ?? session.user.email ?? '',
+      status,
+    });
+    if (created) {
+      setMyStatus(status);
+      setCounts((c) => ({ ...c, [status]: c[status] + 1 }));
+    }
+    setSaving(false);
+  };
+
+  return (
+    <ScrollView style={styles.safe} contentContainerStyle={[styles.scroll, { paddingTop: insets.top + space.lg }]}>
+      <Text style={styles.brand}>NIGHTCORE<Text style={styles.brandAccent}>AQP</Text></Text>
+      <Text style={styles.subtitle}>El club de nightcore de Arequipa</Text>
+
+      {!isConfigured && (
+        <View style={[styles.card, styles.warnCard]}>
+          <Text style={styles.warnTitle}>Falta configurar Supabase</Text>
+          <Text style={styles.muted}>
+            Crea <Text style={styles.code}>.env</Text> en mobile-app/ con
+            {' '}<Text style={styles.code}>EXPO_PUBLIC_SUPABASE_URL</Text> y
+            {' '}<Text style={styles.code}>EXPO_PUBLIC_SUPABASE_ANON_KEY</Text>.
+          </Text>
+        </View>
+      )}
+
+      {loading ? (
+        <ActivityIndicator color={theme.cyan} style={{ marginTop: space.xl }} />
+      ) : (
+        <>
+          <Text style={styles.sectionTitle}>Próximo evento</Text>
+          {event ? (
+            <View style={[styles.card, styles.eventCard]}>
+              <Text style={styles.eventTitle}>{event.title}</Text>
+              {event.tagline ? <Text style={styles.muted}>{event.tagline}</Text> : null}
+              {event.location ? <Text style={styles.eventMeta}>📍 {event.location}</Text> : null}
+              <Text style={styles.eventMeta}>
+                🎟️ {counts.confirmed} confirmados · {counts.interested} interesados
+              </Text>
+
+              {/* RSVP */}
+              {session?.user ? (
+                myStatus ? (
+                  <View style={styles.statusPill}>
+                    <Text style={styles.statusText}>
+                      {myStatus === 'confirmed' ? '✓ Asistencia confirmada' : '✓ Marcado como interesado'}
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.rsvpRow}>
+                    <Pressable style={[styles.btn, styles.btnGhost]} disabled={saving} onPress={() => rsvp('interested')}>
+                      <Text style={styles.btnGhostText}>Me interesa</Text>
+                    </Pressable>
+                    <Pressable style={[styles.btn, styles.btnPrimary]} disabled={saving} onPress={() => rsvp('confirmed')}>
+                      <Text style={styles.btnPrimaryText}>{saving ? '...' : 'Confirmar'}</Text>
+                    </Pressable>
+                  </View>
+                )
+              ) : (
+                <Text style={[styles.muted, { marginTop: space.md }]}>
+                  Inicia sesión en la pestaña Perfil para reservar.
+                </Text>
+              )}
+            </View>
+          ) : (
+            <Text style={styles.muted}>
+              {isConfigured ? 'No hay eventos en agenda.' : 'Configura Supabase para ver los eventos.'}
+            </Text>
+          )}
+        </>
+      )}
+
+      <Text style={styles.footer}>Organiza Yorch · hecho por Los Simpatizantes de JP</Text>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: theme.bg },
+  scroll: { padding: space.lg, paddingBottom: space.xl * 2 },
+  brand: { color: theme.text, fontSize: 28, fontWeight: '800', letterSpacing: 0.5 },
+  brandAccent: { color: theme.magenta },
+  subtitle: { color: theme.muted, fontSize: 13, marginTop: 2, marginBottom: space.lg },
+  sectionTitle: { color: theme.text, fontSize: 16, fontWeight: '800', marginTop: space.xl, marginBottom: space.sm },
+  card: { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1, borderRadius: radius.lg, padding: space.lg, marginBottom: space.sm },
+  eventCard: { borderColor: 'rgba(0,255,255,0.3)' },
+  eventTitle: { color: theme.text, fontSize: 18, fontWeight: '800' },
+  eventMeta: { color: theme.muted2, fontSize: 12, marginTop: space.xs },
+  statusPill: { alignSelf: 'flex-start', marginTop: space.md, backgroundColor: 'rgba(57,255,20,0.12)', borderColor: 'rgba(57,255,20,0.4)', borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: space.md, paddingVertical: 6 },
+  statusText: { color: theme.lime, fontSize: 12, fontWeight: '800' },
+  rsvpRow: { flexDirection: 'row', gap: space.sm, marginTop: space.md },
+  btn: { flex: 1, paddingVertical: 10, borderRadius: radius.md, alignItems: 'center' },
+  btnGhost: { borderWidth: 1, borderColor: theme.border },
+  btnGhostText: { color: theme.muted, fontWeight: '700' },
+  btnPrimary: { backgroundColor: theme.magenta },
+  btnPrimaryText: { color: '#0a0410', fontWeight: '800' },
+  warnCard: { borderColor: 'rgba(255,240,31,0.4)', marginTop: space.lg },
+  warnTitle: { color: theme.yellow, fontWeight: '800', marginBottom: space.xs },
+  muted: { color: theme.muted, fontSize: 13, lineHeight: 19 },
+  code: { color: theme.cyan, fontFamily: 'monospace', fontSize: 12 },
+  footer: { color: theme.muted2, fontSize: 11, textAlign: 'center', marginTop: space.xl * 1.5 },
+});

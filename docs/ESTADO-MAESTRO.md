@@ -77,7 +77,7 @@
 - **media-service (Render)**: se duerme; YouTube le exige cookies. Plan Arch (IP residencial) sin implementar.
 
 ### ⛔ Pendiente (no empezado)
-- **APK móvil** → §16: **Fase 0 base hecha 🟡** (cliente Supabase + tipos + tema + home, `tsc` ok, sin probar en dispositivo). Falta Fase 1 (router + 3 pantallas).
+- **APK móvil** → §16: **Fase 0 + Fase 1 hechas ✅** (Expo Router + 3 pantallas Home/Playlist/Perfil + auth + RSVP + voto; `tsc` y `expo export` OK, **sin probar en dispositivo**). Siguiente: **Fase 2 (PT 2.x)** comunidad + probar en Expo Go. Decisiones abiertas: Play Store vs APK, push.
 - **Perfil hi5 / estética Web 2.0** → **Fase A ✅ hecha 2026-06-26** (frontend scoped, ver §14). Falta **Fase B** (guestbook/reactions, necesita migraciones).
 - ~~**Panel DJ + gestión de roles**~~ → ✅ **hecho 2026-06-26** (ruta `/dj` + UX de roles en admin). Ver §15.
 - **Branding**: tagline definitivo + `docs/BRANDING.md`; SEO/OG images.
@@ -472,19 +472,19 @@ migración en `events`. Aparcado hasta que haya más de un DJ activo en el siste
   No importar nada de `src/lib/` ni `src/components/` en el mobile — duplicar solo los
   tipos necesarios o extraerlos a un paquete compartido en el futuro.
 
-### Fase 0 — Setup y arquitectura 🟡 (base hecha 2026-06-26; falta auth + router)
+### Fase 0 — Setup y arquitectura ✅ (hecho 2026-06-26)
 
-Hecho en `mobile-app/lib/` (estructura plana, como el resto del scaffold Expo). `npx tsc
---noEmit` limpio en `mobile-app/`. **No se pudo probar en emulador/dispositivo** desde este
-entorno; queda probar con Expo Go (`npm start` en `mobile-app/`) + un `.env` real.
+Base en `mobile-app/lib/` (estructura plana). Completada junto con la Fase 1 (router +
+AuthProvider). `npx tsc --noEmit` limpio y `expo export` (android) OK. **Queda probar en
+Expo Go** (`npm start` en `mobile-app/`) + un `.env` real.
 
 | Tarea | Estado | Detalle |
 |---|---|---|
-| **0A. Dependencias base** | 🟡 | `@supabase/supabase-js` y `@react-native-async-storage/async-storage` **ya estaban** en `package.json`. **Falta** `expo-router`, `react-native-safe-area-context`, `@shopify/flash-list` (se instalan al empezar la Fase 1). |
+| **0A. Dependencias base** | ✅ | `@supabase/supabase-js` + `@react-native-async-storage/async-storage` (ya estaban) + `expo-router`, `react-native-safe-area-context`, `react-native-screens`, `expo-linking`, `expo-constants`, `@expo/vector-icons`, `babel-preset-expo` (instaladas en PT 1.1). `@shopify/flash-list` aún no (FlatList basta por ahora). |
 | **0B. Cliente Supabase para RN** | ✅ | `mobile-app/lib/supabase.ts` — misma instancia que la web (anon key vía `EXPO_PUBLIC_*`), auto-refresh por `AppState`, `isConfigured` (= `cfg()` de la web). |
 | **0C. Tipos del dominio** | ✅ | `mobile-app/lib/types.ts` — copia de `src/lib/types.ts` (sin importar nada de `src/`). |
 | **0D. Tema base oscuro** | ✅ | `mobile-app/lib/theme.ts` — tokens scenecore (magenta/cyan/lime + superficies) + `radius`/`space`. |
-| **0E. Layout raíz con Expo Router** | ⛔ | Aplazado a Fase 1. Por ahora `App.tsx` es **una sola pantalla** (home temática que lee próximo evento + top playlist vía `lib/data.ts`), sin router ni AuthProvider. |
+| **0E. Layout raíz con Expo Router** | ✅ | Hecho en Fase 1 (PT 1.2): `app/_layout.tsx` con `AuthProvider` + `Stack`. El `App.tsx` de una sola pantalla fue reemplazado por las rutas de `app/`. |
 
 > **Desviaciones documentadas (decisión 2026-06-26):**
 > - **AsyncStorage en vez de `expo-secure-store`** para la sesión. Es el patrón estándar de
@@ -496,13 +496,28 @@ entorno; queda probar con Expo Go (`npm start` en `mobile-app/`) + un `.env` rea
 > - Archivos en `mobile-app/lib/` (no `src/lib/`) para seguir la estructura plana del scaffold.
 > - Añadidos `mobile-app/.env.example` y `.env` al `.gitignore`.
 
-### Fase 1 — MVP: las tres pantallas core ⛔ (no empezado)
+### Fase 1 — MVP: las tres pantallas core ✅ (hecho 2026-06-26)
 
-| Pantalla | Ruta Expo Router | Features | Llama a |
-|---|---|---|---|
-| **HomeScreen** | `app/index.tsx` | Evento activo: flyer, fecha, lugar, countdown, botón RSVP, estado de tu reserva. | `getEvents`, `getAttendees`, `saveAttendee` |
-| **PlaylistScreen** | `app/playlist.tsx` | Lista Top-N de canciones votadas. Botón votar ▲/▼. Badge "reproducida". Buscar canción (campo + YouTube search). | `getSongs`, `voteSong`, `suggestSong` |
-| **ProfileScreen** | `app/perfil.tsx` | Ver y editar tu perfil: avatar, username, bio, puntos, racha. Botón login/logout. | `getProfile`, `updateProfile`, `useAuth` |
+Implementado con **Expo Router** (file-based) bajo `mobile-app/app/`. Estructura de PT:
+
+| PT | Estado | Detalle |
+|---|---|---|
+| **PT 1.1 — Instalar + configurar Expo Router** | ✅ | `npx expo install expo-router react-native-safe-area-context react-native-screens expo-linking expo-constants` + `@expo/vector-icons` + `babel-preset-expo`. `package.json main` → `expo-router/entry`; `app.json`: `scheme: "nightcoreaqp"`, plugin `expo-router`, `experiments.typedRoutes`; `babel.config.js` con `babel-preset-expo`. |
+| **PT 1.2 — Navegación** | ✅ | `app/_layout.tsx` (Stack raíz + `SafeAreaProvider` + `AuthProvider`); `app/(tabs)/_layout.tsx` (Tabs: Inicio/Playlist/Perfil con iconos Ionicons). Borrados `index.ts` y `App.tsx` (entry ahora es expo-router). |
+| **PT 1.3 — Auth + datos** | ✅ | `lib/auth.tsx` (`AuthProvider`/`useAuth`: sesión Supabase, signIn/signUp/signOut, carga de profile). `lib/data.ts` ampliado: `getAttendees`, `createRsvp` (tabla `event_attendees`), `setSongVote` (tabla `song_votes`), `getProfile`, `updateMyProfile`. |
+| **PT 1.4 — HomeScreen** | ✅ | `app/(tabs)/index.tsx`: evento activo + conteo confirmados/interesados + RSVP (interesado/confirmar) si hay sesión. |
+| **PT 1.5 — PlaylistScreen** | ✅ | `app/(tabs)/playlist.tsx`: lista por votos, voto ▲ con toggle optimista (requiere sesión). |
+| **PT 1.6 — ProfileScreen** | ✅ | `app/(tabs)/perfil.tsx`: login/registro/logout + vista de perfil (avatar, rango, puntos, racha, rol). |
+
+> **Verificación (2026-06-26):** `npx tsc --noEmit` limpio **y** `npx expo export --platform
+> android` exporta el bundle Hermes sin errores de resolución (todo el grafo de imports compila
+> y la app arranca). **Falta probar el comportamiento en runtime** en Expo Go/dispositivo con un
+> `.env` real (login, RSVP, voto). Tablas/columnas espejadas de la web; la RLS aplica igual.
+
+> **Punto de continuidad para el siguiente chat → Fase 2 (PT 2.x).** Las pantallas nuevas siguen
+> el mismo patrón: archivo en `app/(tabs)/` o `app/`, datos en `lib/data.ts`, sesión vía `useAuth`.
+> No importar nada de `src/`. Antes de empezar, correr `npm install --legacy-peer-deps` en
+> `mobile-app/` (hay conflictos de peer deps de RN; es el escape estándar).
 
 ### Fase 2 — V2: comunidad ⛔ (no empezado)
 
