@@ -1,2 +1,8 @@
 # nightcoreaqp
 NIGHTCORE AREQUIPA, GAAA TUSSI TUSSI VIVA LA MARIMBA
+
+---
+
+👉 **¿Retomas el proyecto (humano o IA)? Empieza por [`HANDOFF.md`](HANDOFF.md)** —
+estado por área, dónde continuar y las reglas para no romper. Estado vivo detallado en
+[`docs/ESTADO-MAESTRO.md`](docs/ESTADO-MAESTRO.md).
