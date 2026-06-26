@@ -5,6 +5,20 @@ Versión semántica: MAYOR.MENOR.PATCH (la app web no tiene número de versión 
 
 ---
 
+## [Unreleased] — Mobile (Expo)
+
+### 2026-06-26 — App móvil, Fase 0 base (§16)
+
+- **`mobile-app/lib/supabase.ts`** — cliente Supabase para RN: misma instancia que la web
+  (anon key vía `EXPO_PUBLIC_*`), sesión persistida con AsyncStorage, auto-refresh por `AppState`.
+- **`mobile-app/lib/types.ts`** — copia de los tipos del dominio (sin importar de `src/`).
+- **`mobile-app/lib/theme.ts`** — tema oscuro scenecore (tokens neón + radius/space).
+- **`mobile-app/lib/data.ts`** — lectores read-only (`getNextEvent`, `getSongs`) contra Supabase.
+- **`mobile-app/App.tsx`** — home temática real (próximo evento + top playlist), reemplaza el stub.
+- `mobile-app/.env.example` + `.env` añadido al `.gitignore`; `userInterfaceStyle` → dark.
+- `npx tsc --noEmit` limpio en `mobile-app/`. **Pendiente probar en Expo Go** (no hay emulador
+  en el entorno de desarrollo actual). Falta Fase 1: `expo-router` + pantallas Home/Playlist/Perfil.
+
 ## [Unreleased] — Web
 
 ### 2026-06-26 (c)

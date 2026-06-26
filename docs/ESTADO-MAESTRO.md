@@ -77,7 +77,7 @@
 - **media-service (Render)**: se duerme; YouTube le exige cookies. Plan Arch (IP residencial) sin implementar.
 
 ### ⛔ Pendiente (no empezado)
-- **APK móvil** → plan detallado en §16 (Fase 0–3).
+- **APK móvil** → §16: **Fase 0 base hecha 🟡** (cliente Supabase + tipos + tema + home, `tsc` ok, sin probar en dispositivo). Falta Fase 1 (router + 3 pantallas).
 - **Perfil hi5 / estética Web 2.0** → **Fase A ✅ hecha 2026-06-26** (frontend scoped, ver §14). Falta **Fase B** (guestbook/reactions, necesita migraciones).
 - ~~**Panel DJ + gestión de roles**~~ → ✅ **hecho 2026-06-26** (ruta `/dj` + UX de roles en admin). Ver §15.
 - **Branding**: tagline definitivo + `docs/BRANDING.md`; SEO/OG images.
@@ -472,15 +472,29 @@ migración en `events`. Aparcado hasta que haya más de un DJ activo en el siste
   No importar nada de `src/lib/` ni `src/components/` en el mobile — duplicar solo los
   tipos necesarios o extraerlos a un paquete compartido en el futuro.
 
-### Fase 0 — Setup y arquitectura ⛔ (no empezado)
+### Fase 0 — Setup y arquitectura 🟡 (base hecha 2026-06-26; falta auth + router)
 
-| Tarea | Detalle |
-|---|---|
-| **0A. Instalar dependencias base** | `@supabase/supabase-js`, `expo-secure-store`, `@shopify/flash-list`, `expo-router`, `react-native-safe-area-context`. |
-| **0B. Cliente Supabase para RN** | `mobile-app/src/lib/supabase.ts` — igual que `src/utils/supabase.ts` pero con `expo-secure-store` como storage de sesión. |
-| **0C. Tipos del dominio** | Copiar `src/lib/types.ts` a `mobile-app/src/lib/types.ts`. Mantener en sync manual hasta que haya paquete compartido. |
-| **0D. Tema base oscuro** | `mobile-app/src/styles/theme.ts` — colores del sistema: `#000`, magenta `#ff00ff`, cyan `#00ffff`, lime `#39ff14`. Mirrors de los tokens de `globals.css`. |
-| **0E. Layout raíz con Expo Router** | `mobile-app/app/_layout.tsx` — `AuthProvider` (misma lógica que `src/lib/auth.tsx`, adaptada a RN), `Stack` navigator raíz. |
+Hecho en `mobile-app/lib/` (estructura plana, como el resto del scaffold Expo). `npx tsc
+--noEmit` limpio en `mobile-app/`. **No se pudo probar en emulador/dispositivo** desde este
+entorno; queda probar con Expo Go (`npm start` en `mobile-app/`) + un `.env` real.
+
+| Tarea | Estado | Detalle |
+|---|---|---|
+| **0A. Dependencias base** | 🟡 | `@supabase/supabase-js` y `@react-native-async-storage/async-storage` **ya estaban** en `package.json`. **Falta** `expo-router`, `react-native-safe-area-context`, `@shopify/flash-list` (se instalan al empezar la Fase 1). |
+| **0B. Cliente Supabase para RN** | ✅ | `mobile-app/lib/supabase.ts` — misma instancia que la web (anon key vía `EXPO_PUBLIC_*`), auto-refresh por `AppState`, `isConfigured` (= `cfg()` de la web). |
+| **0C. Tipos del dominio** | ✅ | `mobile-app/lib/types.ts` — copia de `src/lib/types.ts` (sin importar nada de `src/`). |
+| **0D. Tema base oscuro** | ✅ | `mobile-app/lib/theme.ts` — tokens scenecore (magenta/cyan/lime + superficies) + `radius`/`space`. |
+| **0E. Layout raíz con Expo Router** | ⛔ | Aplazado a Fase 1. Por ahora `App.tsx` es **una sola pantalla** (home temática que lee próximo evento + top playlist vía `lib/data.ts`), sin router ni AuthProvider. |
+
+> **Desviaciones documentadas (decisión 2026-06-26):**
+> - **AsyncStorage en vez de `expo-secure-store`** para la sesión. Es el patrón estándar de
+>   Supabase para RN y evita una dependencia nueva (async-storage ya estaba). El token es un
+>   JWT con la anon key (pública por diseño; la seguridad real la da la RLS). Si se quiere
+>   cifrado en reposo, migrar a `expo-secure-store` es un cambio aislado en `lib/supabase.ts`.
+> - **Sin `expo-router` todavía.** Se difiere a la Fase 1 (cuando entren las 3 pantallas), para
+>   no reestructurar la navegación antes de tener pantallas que navegar.
+> - Archivos en `mobile-app/lib/` (no `src/lib/`) para seguir la estructura plana del scaffold.
+> - Añadidos `mobile-app/.env.example` y `.env` al `.gitignore`.
 
 ### Fase 1 — MVP: las tres pantallas core ⛔ (no empezado)
 
