@@ -78,7 +78,7 @@
 
 ### ⛔ Pendiente (no empezado)
 - **APK móvil** → plan detallado en §16 (Fase 0–3).
-- **Perfil hi5 / estética Web 2.0** → plan en §14 (Fase A sin migraciones, Fase B con guestbook/reactions).
+- **Perfil hi5 / estética Web 2.0** → **Fase A ✅ hecha 2026-06-26** (frontend scoped, ver §14). Falta **Fase B** (guestbook/reactions, necesita migraciones).
 - ~~**Panel DJ + gestión de roles**~~ → ✅ **hecho 2026-06-26** (ruta `/dj` + UX de roles en admin). Ver §15.
 - **Branding**: tagline definitivo + `docs/BRANDING.md`; SEO/OG images.
 - **Feed personalizado por interés**; **verificación de cuenta** (email/WhatsApp).
@@ -368,16 +368,25 @@ producción** (`.card` incluye `backdrop-filter`). *Nota:* el dev server de Next
 - Tailwind v4 gotcha: si aplicas `backdrop-filter` en este módulo, usa variable completa
   (ej. `--perfil-blur: blur(8px)`), no `blur(var(--x))`.
 
-### Fase A — Solo frontend, cero migraciones ⛔ (no empezado)
+### Fase A — Solo frontend, cero migraciones ✅ (hecho 2026-06-26)
 
-| Tarea | Detalle |
-|---|---|
-| **A1. Layout retro del perfil** | Contenedor `max-w-[950px]`, borde neon doble (`box-shadow` + `border`), fondo `rgba(0,0,0,0.80)`. Aplica solo en `/perfil/[id]`. |
-| **A2. Neon glow en nombre/badges** | `text-shadow` agresivo sobre las variables del tema (magenta/cyan). Sin tocar los badges globales. |
-| **A3. Fondo animado CSS** | `background-image` con patrón de cuadrícula CSS puro (sin GIFs pesados). Animación `@keyframes` de desplazamiento lento. |
-| **A4. Skin retro del reproductor** | Un wrapper visual estilo Winamp sobre el `GlobalPlayer`. Solo CSS/layout; la lógica de reproducción no cambia. |
-| **A5. Cursor retro en la página de perfil** | CSS `cursor: url('/cursors/star.cur'), auto` scoped al contenedor del perfil. No global. |
-| **A6. Galería "fotos de perfil" al estilo hi5** | Rediseñar el grid de fotos existente: thumbnails con borde neon, caption, hover con zoom. |
+Implementado en `src/app/perfil/[id]/perfil.module.css` (CSS module scoped) + `page.tsx`.
+**No se tocó** `globals.css` ni `DesignLoader`. El acento del perfil entra por la variable
+inline `--perfil-accent` (de `profile.accent`) con fallback al `--cyan` del tema, así respeta
+los 7 presets. Todo bajo `@media (prefers-reduced-motion: reduce)` para accesibilidad.
+
+| Tarea | Estado | Detalle |
+|---|---|---|
+| **A1. Layout retro del perfil** | ✅ | `.retro` (max-width 950) + `.panel` con borde neón doble (`border` + `box-shadow` doble + inset glow), fondo `rgba(0,0,0,0.80)`, y `.titlebar` estilo ventana ("★ Perfil de X ★"). |
+| **A2. Neon glow en nombre** | ✅ | `.glowName` con `text-shadow` triple animado (`glowPulse`) usando `--pa`. |
+| **A3. Fondo animado CSS** | ✅ | `.retro::before`: cuadrícula doble `linear-gradient` con `color-mix`, animada con `@keyframes retroGrid` (sin GIFs). |
+| **A4. Skin retro del reproductor** | ✅ | `.player` decorativo "now spinning": disco `conic-gradient` girando (`.disc`) + marquesina (`.marquee`). **No** reimplementa audio (el real lo maneja `GlobalPlayer`); es adorno visual. |
+| **A5. Cursor retro** | ✅ | `.retro` con `cursor: url(SVG estrella)` dentro de `@media (pointer: fine)` → solo desktop, no rompe táctil. |
+| **A6. Galería estilo hi5** | ✅ | `.gallery` (3/4 cols) + `.thumb` con borde neón, `box-shadow`, hover con zoom+rotación y caption en `title`. |
+
+> Verificado en preview: `color-mix`/`conic-gradient` compilan bien con Lightning CSS; `--pa`
+> resuelve al acento o al cian del tema; sin errores de consola; `tsc` limpio. (El screenshot
+> automático expira por las animaciones infinitas — no es un bug de la página.)
 
 ### Fase B — Requiere migraciones nuevas ⛔ (no empezado)
 

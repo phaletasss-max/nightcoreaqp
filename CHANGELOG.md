@@ -7,6 +7,20 @@ Versión semántica: MAYOR.MENOR.PATCH (la app web no tiene número de versión 
 
 ## [Unreleased] — Web
 
+### 2026-06-26 (c)
+
+**Perfil hi5 — estética Web 2.0 scenecore, Fase A (§14)**
+
+- **Nuevo `src/app/perfil/[id]/perfil.module.css`** — skin retro scoped SOLO a la página de
+  perfil público. No toca `globals.css` ni el diseño global. Reutiliza los tokens del tema
+  (`--magenta`/`--cyan`/`--lime`); el acento por perfil entra por `--perfil-accent`.
+- `src/app/perfil/[id]/page.tsx` — aplica el skin: contenedor `.retro` con fondo de cuadrícula
+  neón animada (A3), paneles con borde neón doble y barra de título (A1), nombre con glow
+  pulsante (A2), caja decorativa "now spinning" con disco giratorio + marquesina (A4), galería
+  estilo hi5 con thumbnails neón y hover-zoom (A6), y cursor de estrella en desktop (A5).
+- Todas las animaciones respetan `@media (prefers-reduced-motion: reduce)`.
+- `npx tsc --noEmit` limpio; verificado en preview (Lightning CSS compila `color-mix`/`conic-gradient`).
+
 ### 2026-06-26 (b)
 
 **Panel DJ + gestión de roles (§15)**

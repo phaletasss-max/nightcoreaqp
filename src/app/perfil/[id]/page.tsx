@@ -11,6 +11,7 @@ import { User, Flame, Coins, Camera, MessageSquare, Heart, Medal, Lock, ArrowLef
 import { getProfileById, getUserActivity, getProfilePhotos } from '@/lib/data';
 import type { UserActivity } from '@/lib/data';
 import type { Profile, ProfilePhoto } from '@/lib/types';
+import styles from './perfil.module.css';
 
 function rankFor(points: number) {
   if (points >= 200) return { title: 'Hypebeast de Oro', cls: 'badge-yellow' };
@@ -62,68 +63,79 @@ export default function PublicProfilePage() {
   const hasSocials = !!(profile.tiktok_url || profile.instagram_url);
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div
+      className={`${styles.retro} space-y-6`}
+      style={accent ? ({ ['--perfil-accent']: accent } as React.CSSProperties) : undefined}
+    >
       <Link href="/" className="text-muted hover:text-white text-sm inline-flex items-center gap-1"><ArrowLeft className="h-4 w-4" /> Volver</Link>
 
-      {/* Cabecera */}
-      <div
-        className="card p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left"
-        style={accent ? { borderColor: `color-mix(in srgb, ${accent} 50%, transparent)` } : undefined}
-      >
-        <div
-          className="h-20 w-20 rounded-full bg-neon-pink/15 border border-neon-pink/30 flex items-center justify-center overflow-hidden shrink-0"
-          style={accent ? { borderColor: `color-mix(in srgb, ${accent} 60%, transparent)`, backgroundColor: `color-mix(in srgb, ${accent} 14%, transparent)` } : undefined}
-        >
-          {profile.avatar_url
+      {/* Cabecera retro hi5 */}
+      <div className={styles.panel}>
+        <div className={styles.titlebar}>★ Perfil de {profile.username} ★</div>
+        <div className="p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
+          <div
+            className="h-20 w-20 rounded-full bg-neon-pink/15 border border-neon-pink/30 flex items-center justify-center overflow-hidden shrink-0"
+            style={accent ? { borderColor: `color-mix(in srgb, ${accent} 60%, transparent)`, backgroundColor: `color-mix(in srgb, ${accent} 14%, transparent)` } : undefined}
+          >
+            {profile.avatar_url
 
-            ? <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
-            : <User className="h-9 w-9 text-neon-pink" />}
-        </div>
-        <div className="flex-1">
-          <h1 className="text-2xl font-extrabold text-white" style={accent ? { color: accent } : undefined}>{profile.username}</h1>
-          <div className="flex items-center justify-center sm:justify-start gap-2 mt-2 flex-wrap">
-            <span className={`badge ${rank.cls}`}>{rank.title}</span>
-            <span className="badge badge-cyan"><Coins className="h-3.5 w-3.5" /> {profile.points} pts</span>
-            <span className="badge badge-pink"><Flame className="h-3.5 w-3.5" /> {profile.streak_count}d</span>
-            {isPrivate && <span className="badge badge-yellow"><Lock className="h-3.5 w-3.5" /> Privado</span>}
+              ? <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
+              : <User className="h-9 w-9 text-neon-pink" />}
           </div>
-
-          {profile.bio && <p className="text-sm text-muted mt-3 whitespace-pre-wrap">{profile.bio}</p>}
-
-          {hasSocials && (
-            <div className="flex items-center justify-center sm:justify-start gap-2 mt-3 flex-wrap">
-              {profile.tiktok_url && (
-                <a href={profile.tiktok_url} target="_blank" rel="noopener noreferrer" className="badge badge-pink hover:opacity-80">
-                  <Music2 className="h-3.5 w-3.5" /> TikTok <ExternalLink className="h-3 w-3" />
-                </a>
-              )}
-              {profile.instagram_url && (
-                <a href={profile.instagram_url} target="_blank" rel="noopener noreferrer" className="badge badge-cyan hover:opacity-80">
-                  <AtSign className="h-3.5 w-3.5" /> Instagram <ExternalLink className="h-3 w-3" />
-                </a>
-              )}
+          <div className="flex-1 w-full">
+            <h1 className={`text-2xl font-extrabold ${styles.glowName}`}>{profile.username}</h1>
+            <div className="flex items-center justify-center sm:justify-start gap-2 mt-2 flex-wrap">
+              <span className={`badge ${rank.cls}`}>{rank.title}</span>
+              <span className="badge badge-cyan"><Coins className="h-3.5 w-3.5" /> {profile.points} pts</span>
+              <span className="badge badge-pink"><Flame className="h-3.5 w-3.5" /> {profile.streak_count}d</span>
+              {isPrivate && <span className="badge badge-yellow"><Lock className="h-3.5 w-3.5" /> Privado</span>}
             </div>
-          )}
+
+            {profile.bio && <p className="text-sm text-muted mt-3 whitespace-pre-wrap">{profile.bio}</p>}
+
+            {hasSocials && (
+              <div className="flex items-center justify-center sm:justify-start gap-2 mt-3 flex-wrap">
+                {profile.tiktok_url && (
+                  <a href={profile.tiktok_url} target="_blank" rel="noopener noreferrer" className="badge badge-pink hover:opacity-80">
+                    <Music2 className="h-3.5 w-3.5" /> TikTok <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+                {profile.instagram_url && (
+                  <a href={profile.instagram_url} target="_blank" rel="noopener noreferrer" className="badge badge-cyan hover:opacity-80">
+                    <AtSign className="h-3.5 w-3.5" /> Instagram <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+              </div>
+            )}
+
+            {/* A4 — skin retro "now spinning" (adorno; el audio real lo maneja el reproductor global) */}
+            <div className={`${styles.player} mt-4`}>
+              <div className={styles.disc} aria-hidden />
+              <div className={styles.marquee}>
+                <span>♪ {profile.username} en NIGHTCORE AQP — sube tu música a la playlist y mantén tu racha 🔥 ♪</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {isPrivate ? (
-        <div className="card p-10 text-center space-y-2">
+        <div className={`${styles.panel} p-10 text-center space-y-2`}>
           <Lock className="h-8 w-8 text-muted-2 mx-auto" />
           <p className="text-sm text-muted font-bold">Este perfil es privado</p>
           <p className="text-xs text-muted-2">{profile.username} eligió ocultar su actividad y comentarios.</p>
         </div>
       ) : (
         <>
-          {/* Galería de fotos */}
+          {/* Galería de fotos (A6 — estilo hi5) */}
           {photos.length > 0 && (
-            <div className="card p-6 space-y-3">
+            <div className={`${styles.panel} p-6 space-y-3`}>
               <h2 className="section-title text-base flex items-center gap-2"><Camera className="h-5 w-5 text-neon-cyan" /> Galería</h2>
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+              <div className={styles.gallery}>
                 {photos.map((ph) => (
-                  <a key={ph.id} href={ph.url} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-lg overflow-hidden border border-border hover:opacity-90 transition-opacity">
+                  <a key={ph.id} href={ph.url} target="_blank" rel="noopener noreferrer" className={styles.thumb} title={ph.caption ?? undefined}>
                     { }
-                    <img src={ph.url} alt={ph.caption ?? 'foto'} className="w-full h-full object-cover" />
+                    <img src={ph.url} alt={ph.caption ?? 'foto'} />
                   </a>
                 ))}
               </div>
@@ -147,7 +159,7 @@ export default function PublicProfilePage() {
 
           {/* Insignias */}
           {activity.attended.length > 0 && (
-            <div className="card p-6 space-y-3">
+            <div className={`${styles.panel} p-6 space-y-3`}>
               <h2 className="section-title text-base flex items-center gap-2"><Medal className="h-5 w-5 text-yellow-400" /> Insignias de asistencia</h2>
               <div className="flex flex-wrap gap-2">
                 {activity.attended.map((a) => (
@@ -161,7 +173,7 @@ export default function PublicProfilePage() {
 
           {/* Disfraces */}
           {activity.costumes.length > 0 && (
-            <div className="card p-6 space-y-3">
+            <div className={`${styles.panel} p-6 space-y-3`}>
               <h2 className="section-title text-base flex items-center gap-2"><Camera className="h-5 w-5 text-neon-cyan" /> Disfraces</h2>
               <div className="flex gap-3 overflow-x-auto pb-1">
                 {activity.costumes.map((c) => (
@@ -174,7 +186,7 @@ export default function PublicProfilePage() {
 
           {/* Comentarios recientes */}
           {activity.comments.length > 0 && (
-            <div className="card p-6 space-y-3">
+            <div className={`${styles.panel} p-6 space-y-3`}>
               <h2 className="section-title text-base flex items-center gap-2"><MessageSquare className="h-5 w-5 text-neon-pink" /> Comentarios recientes</h2>
               <div className="space-y-2">
                 {activity.comments.slice(0, 6).map((c) => (
@@ -185,7 +197,7 @@ export default function PublicProfilePage() {
           )}
 
           {activity.costumes.length === 0 && activity.comments.length === 0 && activity.attended.length === 0 && (
-            <div className="card p-10 text-center text-muted-2 text-sm">Este usuario aún no tiene actividad pública.</div>
+            <div className={`${styles.panel} p-10 text-center text-muted-2 text-sm`}>Este usuario aún no tiene actividad pública.</div>
           )}
         </>
       )}
