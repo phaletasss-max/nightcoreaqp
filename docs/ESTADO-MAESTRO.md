@@ -27,6 +27,35 @@
 
 ---
 
+## ⭐ PARA LA SIGUIENTE IA — empieza aquí (handoff 2026-06-26)
+
+> Si retomas este proyecto, **lee primero** [AGENTS.md](../AGENTS.md) + [GUIA-IA.md](./GUIA-IA.md)
+> (reglas para no romper: capa de datos dual, RLS, Tailwind v4, no secretos). Luego esto.
+
+**Cómo trabajamos aquí:** todo va en **partes de trabajo (PT) por fases**. Cada fase se deja
+documentada con su estado y un **punto de continuidad** para que el siguiente continúe sin contexto.
+Al terminar algo: verificar (`tsc`/`build`), documentar (este doc + `CHANGELOG.md`) y commit+push a `main`.
+
+**Estado de las 3 áreas de trabajo activas (2026-06-26):**
+
+| Área | Hecho | Dónde continuar |
+|---|---|---|
+| **§14 Perfil hi5** (web) | Fase A ✅ desplegada (CSS scoped en `src/app/perfil/[id]/perfil.module.css`) | **Fase B** = guestbook + reactions. Necesita migraciones nuevas (`profile_guestbook`, `profile_reactions`). Ver §14. |
+| **§15 Panel DJ + roles** (web) | Fase A (`/dj`) + Fase B (UX roles admin) ✅ desplegadas | Fase C (vincular DJ↔perfil) ⏸️ aparcada. Ver §15. |
+| **§16 App móvil** (Expo) | Fases 0+1+2 ✅ (6 pantallas, `tsc`+`expo export` OK, **sin probar en dispositivo**) | **Fase 3 (PT 3.x)**: subir foto disfraces, DJ móvil, encuestas. Ver §16. **Antes:** `cd mobile-app && npm install --legacy-peer-deps`. |
+
+**Migraciones de Supabase:** las 10 de features están ✅ corridas (2026-06-26, ver §6). Solo faltaría
+`site_settings_setup.sql` si el gestor de diseño no persiste.
+
+**Acciones que solo puede hacer el dueño (no la IA):** hacer el repo público (auto-update desktop),
+probar el móvil en Expo Go, correr SQL en Supabase, decisiones de producto (Play Store vs APK, push).
+
+**Reglas de oro que NO se rompen:** (1) descargas siempre locales (`.bat`/Electron, nunca server-side);
+(2) seguridad = RLS, no el cliente; (3) capa de datos dual `if(cfg())` en `src/lib/data.ts`;
+(4) el móvil NO importa de `src/`; (5) push a `main` = deploy a producción → no commitees secretos.
+
+---
+
 ## 0. Plan de trabajo consolidado (2026-06-26)
 
 > Resumen ejecutivo: lo verificado vs lo pendiente. Detalle en las secciones siguientes.
@@ -350,7 +379,7 @@ producción** (`.card` incluye `backdrop-filter`). *Nota:* el dev server de Next
 5. **Limpiar docs desincronizados** — `ARCHITECTURE.md` y `ESTADO.md` (mencionan `/api/download`/Cobalt, ya inexistentes). ✅ Avance 2026-06-25: descargador consolidado en [DESCARGADOR.md](./DESCARGADOR.md) y `pt-11` marcado como superado.
 6. **Definir branding** — tagline + `docs/BRANDING.md`.
 7. **App de PC**: icono propio + firma de código (quita el aviso SmartScreen).
-8. **Nuevas áreas planificadas (2026-06-26)** — ver §14 (perfil hi5), §15 (panel DJ + roles), §16 (app móvil). No empezar hasta tener las migraciones del paso 3 corridas.
+8. **Áreas de trabajo (2026-06-26)** — avance: **§14** perfil hi5 Fase A ✅ (falta Fase B con migraciones), **§15** panel DJ + roles ✅, **§16** app móvil Fases 0/1/2 ✅ (falta probar en dispositivo + Fase 3). Detalle y puntos de continuidad en la sección **⭐ PARA LA SIGUIENTE IA** (arriba) y en §14/§15/§16.
 
 ---
 
@@ -457,10 +486,14 @@ migración en `events`. Aparcado hasta que haya más de un DJ activo en el siste
 
 ## 16. Plan: App móvil (Expo — MVP)
 
-> Contexto: `mobile-app/` es solo el stub por defecto de Expo v56. El backend (Supabase)
-> ya está listo. La app móvil reutiliza las mismas tablas y la misma RLS que la web.
+> Contexto: `mobile-app/` ya tiene **Fases 0+1+2 implementadas** (Expo Router + 6 pantallas;
+> ver tablas de PT abajo). El backend (Supabase) reutiliza las mismas tablas y RLS que la web.
 > **AGENTS.md del mobile**: leer docs de Expo v56 en https://docs.expo.dev/versions/v56.0.0/
 > antes de escribir código. No asumir que es la misma API que versiones anteriores.
+>
+> **Para continuar (Fase 3):** `cd mobile-app && npm install --legacy-peer-deps`, crear `.env`
+> (ver `.env.example`), `npm start` → Expo Go. Verificar con `npx tsc --noEmit` y
+> `npx expo export --platform android` (no hay emulador en el entorno de la IA).
 
 ### Reglas de no-romper para esta área
 - **No hay descargas en el servidor móvil.** La regla de oro del proyecto aplica igual:
@@ -550,10 +583,8 @@ Accesos desde la sección "Comunidad" del Home (PT 2.4).
 | **EncuestasScreen** | `app/encuestas.tsx` | Encuestas activas, votar. |
 | **HistoryScreen** | `app/historial.tsx` | Eventos pasados, resumen de participación. |
 
-### Decisiones pendientes antes de empezar Fase 1
+### Decisiones pendientes (antes de publicar / Fase 3)
 
 - [ ] ¿Publicar en Play Store (requiere cuenta de desarrollador Google ~$25 único) o distribuir solo APK manual por ahora?
-- [ ] ¿Notificaciones push? (Expo Notifications + un servicio externo). Añade complejidad; recomendado dejarlo para V2.
-- [ ] ¿Mismo dominio de Supabase que la web (recomendado) o instancia separada? → Mismo, por eficiencia.
-</content>
-</invoke>
+- [ ] ¿Notificaciones push? (Expo Notifications + un servicio externo). Añade complejidad; recomendado dejarlo para V3.
+- [x] ¿Mismo dominio de Supabase que la web o instancia separada? → **Mismo** (ya implementado en `lib/supabase.ts`).

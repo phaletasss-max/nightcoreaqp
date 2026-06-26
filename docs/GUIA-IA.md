@@ -146,7 +146,10 @@ Detalle: [ARCHITECTURE.md](./ARCHITECTURE.md).
 - ✅ **Comprobado:** web en prod (eventos, playlist, disfraces, temas/personalización, descarga
   masiva); **app de escritorio** descargando YouTube/Instagram (deno) y TikTok en H.264, con
   auto-update e instalador.
-- 🟡 **En proceso:** repo → público (para que el auto-update del desktop funcione), correr
-  migraciones pendientes de Supabase.
-- ⛔ **Pendiente:** APK móvil, icono propio del `.exe`, firma de código.
-</content>
+- 🟡 **En proceso:** repo → público (para que el auto-update del desktop funcione). App móvil
+  Expo con Fases 0/1/2 en código (falta probar en dispositivo).
+- ✅ **Migraciones de Supabase corridas** (2026-06-26) — chat, perfil, buzón, bloques, etc.
+- ⛔ **Pendiente:** publicar APK móvil, icono propio del `.exe`, firma de código.
+
+> Estado vivo y detallado + **puntos de continuidad por fase** en
+> [ESTADO-MAESTRO.md](./ESTADO-MAESTRO.md) (sección **⭐ PARA LA SIGUIENTE IA**).
