@@ -546,18 +546,18 @@ export default function AdminPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between border-b border-border pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-4">
         <div>
           <h1 className="section-title flex items-center gap-2"><ShieldAlert className="h-6 w-6 text-neon-pink" /> Panel admin / DJ</h1>
           <p className="text-sm text-muted mt-1">Métricas, consola de playlist, encuestas y eventos.</p>
         </div>
-        <span className="badge badge-red"><Radio className="h-3.5 w-3.5 animate-soft-pulse" /> Live</span>
+        <span className="badge badge-red self-start sm:self-auto"><Radio className="h-3.5 w-3.5 animate-soft-pulse" /> Live</span>
       </div>
 
-      <div className="flex flex-wrap gap-1 border-b border-border">
+      <div className="flex overflow-x-auto scrollbar-hide gap-1 border-b border-border -mx-1 px-1 pb-px">
         {tabs.map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)}
-            className={`px-4 py-2.5 text-sm font-bold border-b-2 -mb-px transition-colors flex items-center gap-1.5 ${
+            className={`whitespace-nowrap px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 -mb-px transition-colors flex items-center gap-1.5 shrink-0 ${
               tab === t.id ? 'border-neon-pink text-neon-pink' : 'border-transparent text-muted hover:text-white'
             }`}>
             {t.label}

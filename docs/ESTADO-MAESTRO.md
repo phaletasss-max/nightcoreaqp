@@ -4,7 +4,7 @@
 > seguridad y marketing — cada cosa con su **estado real en código**.
 > Es el documento "padre"; los de `docs/` y `docs/pt/` son el detalle.
 
-**Última actualización:** 2026-06-25
+**Última actualización:** 2026-06-26
 **Edición vigente:** Nightcore Arequipa 3 · **Organiza:** Yorch · **Hecho por:** Los Simpatizantes de JP
 **Producción:** https://nightcoreaqp-five.vercel.app (Vercel) · Media-service en Render (`nightcore-media`)
 
@@ -27,7 +27,7 @@
 
 ---
 
-## 0. Plan de trabajo consolidado (2026-06-25)
+## 0. Plan de trabajo consolidado (2026-06-26)
 
 > Resumen ejecutivo: lo verificado vs lo pendiente. Detalle en las secciones siguientes.
 > (Para IA que retoma el proyecto, ver también [GUIA-IA.md](./GUIA-IA.md).)
@@ -49,6 +49,19 @@
   + filtro de groserías + moderación staff), **perfiles con galería de fotos + bio + links**, y
   **color de acento por perfil**. Código verificado (tsc/build verdes, chat probado en preview);
   **falta correr** `phase-chat.sql` y `phase-profile-extras.sql` en Supabase para activar en prod.
+- **Limpieza y responsive (2026-06-26)**:
+  - **S5 cerrado** — `console.log('[FASE 3]…')` eliminados de `src/lib/data.ts` (5 líneas).
+  - **Bug "Votar" cerrado** — `LiveFeed.tsx`: la encuesta ahora vota inline (opciones + barras de %)
+    en lugar de redirigir a `/encuestas` → `/`. Usa `voteSurvey` de `data.ts`.
+  - **Admin tabs responsive** — `src/app/admin/page.tsx`: tabs pasan de `flex-wrap` (se apilaban
+    en móvil) a `overflow-x-auto scrollbar-hide flex-nowrap` → scroll horizontal en móvil, fila
+    única en desktop. Header ahora es `flex-col sm:flex-row`.
+  - **Playlist song card** — `src/app/playlist/page.tsx`: botón "Copiar" oculto en móvil
+    (`hidden sm:flex`) para dar espacio a los botones esenciales (Play, Guardar, YouTube).
+  - **`.scrollbar-hide` global** — añadido a `globals.css` (se usaba en tags de playlist pero
+    no estaba definido; ahora disponible en todo el sitio).
+  - Verificado en preview: home, playlist, admin (móvil+desktop), chat, disfraces, sugerencias.
+    TypeScript limpio (`npx tsc --noEmit` sin errores). Sin errores de consola.
 
 ### 🟡 En proceso (falta un paso, casi nada de código)
 - **Repo → público** (Settings → Danger Zone → Make public): destraba el **auto-update** del desktop
@@ -58,13 +71,13 @@
 - **media-service (Render)**: se duerme; YouTube le exige cookies. Plan Arch (IP residencial) sin implementar.
 
 ### ⛔ Pendiente (no empezado)
-- **APK móvil** (`mobile-app/` es solo el stub de Expo).
+- **APK móvil** → plan detallado en §16 (Fase 0–3).
+- **Perfil hi5 / estética Web 2.0** → plan en §14 (Fase A sin migraciones, Fase B con guestbook/reactions).
+- **Panel DJ + gestión de roles** → plan en §15 (ruta `/dj`, mejoras UX admin).
 - **Branding**: tagline definitivo + `docs/BRANDING.md`; SEO/OG images.
-- **Personalización nivel C** (añadir/ordenar contenedores → tabla `custom_blocks`).
 - **Feed personalizado por interés**; **verificación de cuenta** (email/WhatsApp).
 - **Firma de código del `.exe`** (quitar el aviso de SmartScreen) + icono propio.
-- **Limpieza**: docs desincronizados (`ESTADO.md`, `ARCHITECTURE.md`), `console.log` de depuración (S5),
-  bug menor del feed ("Votar" lleva a `/encuestas` que redirige a `/`).
+- **Limpieza**: docs desincronizados (`ESTADO.md`, `ARCHITECTURE.md`). *(S5 console.logs y bug "Votar" del feed — ✅ cerrados el 2026-06-26)*
 
 ---
 
@@ -228,7 +241,7 @@ Correr en el **SQL Editor** (orden sugerido). Marcar aquí cuando se corra:
 | S2 | ~~Admin de emergencia + allowlist de correos~~ | ✅ Resuelto | Bypass de emergencia y `ADMIN_EMAILS` eliminados; `isStaff` = rol real en BD (2026-06-25) |
 | S3 | Toda la seguridad real recae en **RLS**; el cliente usa anon key | 🟢 Info | Correcto, pero auditar que cada tabla tenga RLS cerrada (la mayoría usa `is_staff()`) |
 | S4 | Demo: rol por defecto `admin` (`auth.tsx`) | 🟢 Info | Solo aplica sin Supabase configurado |
-| S5 | `console.log('[FASE 3]…')` de depuración en `data.ts` de producción | 🟢 Bajo | Limpiar |
+| S5 | ~~`console.log('[FASE 3]…')` de depuración en `data.ts` de producción~~ | ✅ Cerrado | Eliminados 2026-06-26 (`data.ts`: `addSong`, `addCostume`) |
 
 ---
 
@@ -329,6 +342,155 @@ producción** (`.card` incluye `backdrop-filter`). *Nota:* el dev server de Next
 5. **Limpiar docs desincronizados** — `ARCHITECTURE.md` y `ESTADO.md` (mencionan `/api/download`/Cobalt, ya inexistentes). ✅ Avance 2026-06-25: descargador consolidado en [DESCARGADOR.md](./DESCARGADOR.md) y `pt-11` marcado como superado.
 6. **Definir branding** — tagline + `docs/BRANDING.md`.
 7. **App de PC**: icono propio + firma de código (quita el aviso SmartScreen).
-8. (Largo plazo) App móvil real (APK), feed personalizado, verificación de cuenta.
+8. **Nuevas áreas planificadas (2026-06-26)** — ver §14 (perfil hi5), §15 (panel DJ + roles), §16 (app móvil). No empezar hasta tener las migraciones del paso 3 corridas.
+
+---
+
+## 14. Plan: Perfil hi5 — Estética Web 2.0 scenecore
+
+> Contexto: la propuesta es llevar el perfil público (`/perfil/[id]`) a una estética
+> inspirada en hi5/MySpace 2006-2008 — neon, pixel, guestbook, reactions retro — SIN
+> modificar el diseño global del sitio. Todo lo de esta sección está **scoped a esa ruta**.
+
+### Reglas de no-romper para esta área
+- Los cambios de estilo van exclusivamente a `src/app/perfil/[id]/page.tsx` y un archivo
+  CSS scoped (ej. `perfil.module.css`). **No tocar `globals.css` ni `DesignLoader`.**
+- Las variables de color reutilizan los tokens ya definidos (`--magenta`, `--neon-cyan`,
+  `--neon-lime`). No colores hardcodeados nuevos salvo en el CSS del módulo de perfil.
+- El reproductor retro es un **skin visual** del `GlobalPlayer` ya existente, no un
+  componente de audio nuevo. Reusa `PlayerContext`.
+- Tailwind v4 gotcha: si aplicas `backdrop-filter` en este módulo, usa variable completa
+  (ej. `--perfil-blur: blur(8px)`), no `blur(var(--x))`.
+
+### Fase A — Solo frontend, cero migraciones ⛔ (no empezado)
+
+| Tarea | Detalle |
+|---|---|
+| **A1. Layout retro del perfil** | Contenedor `max-w-[950px]`, borde neon doble (`box-shadow` + `border`), fondo `rgba(0,0,0,0.80)`. Aplica solo en `/perfil/[id]`. |
+| **A2. Neon glow en nombre/badges** | `text-shadow` agresivo sobre las variables del tema (magenta/cyan). Sin tocar los badges globales. |
+| **A3. Fondo animado CSS** | `background-image` con patrón de cuadrícula CSS puro (sin GIFs pesados). Animación `@keyframes` de desplazamiento lento. |
+| **A4. Skin retro del reproductor** | Un wrapper visual estilo Winamp sobre el `GlobalPlayer`. Solo CSS/layout; la lógica de reproducción no cambia. |
+| **A5. Cursor retro en la página de perfil** | CSS `cursor: url('/cursors/star.cur'), auto` scoped al contenedor del perfil. No global. |
+| **A6. Galería "fotos de perfil" al estilo hi5** | Rediseñar el grid de fotos existente: thumbnails con borde neon, caption, hover con zoom. |
+
+### Fase B — Requiere migraciones nuevas ⛔ (no empezado)
+
+| Tarea | Migración necesaria | Detalle |
+|---|---|---|
+| **B1. Guestbook** | `supabase/phase-guestbook.sql` → tabla `profile_guestbook (id, owner_id, author_id, author_name, content, created_at)` + RLS (cualquier user logueado escribe en perfil ajeno; owner lee/elimina) | Sección vertical "Libro de visitas" en el perfil público. Requiere login para dejar mensaje. |
+| **B2. Reactions / "Fives"** | `supabase/phase-reactions.sql` → tabla `profile_reactions (id, profile_id, user_id, reaction)` + RLS (1 reacción por user por tipo) | Grid de botones retro: ⭐ estrella, 💜 corazón, 💀 calavera. Contador visible. Un usuario solo puede dar cada reacción una vez. |
+
+### Descartado (y por qué)
+
+| Elemento | Razón |
+|---|---|
+| GIFs de fondo repetitivos | Rendimiento. Usar CSS animado es equivalente visualmente. |
+| Fuentes 11–13px tipo Tahoma como default | Rompe accesibilidad. Los temas "Pixel" y "Vaporwave" ya dan esa estética a quien la activa. |
+| Autoplay de audio | Todos los browsers modernos lo bloquean. Botón de activación destacado en su lugar. |
+| Filtros destructivos en imágenes (grayscale global) | Destruiría las fotos de cosplay. Solo aplicar como hover-effect opcional. |
+| Cursor personalizado global | Invasivo y no funciona en móvil. Scoped al perfil, solo desktop. |
+| CSS libre inyectable | Footgun + XSS. Ya descartado en §11. |
+
+---
+
+## 15. Plan: Panel DJ + Gestión de roles
+
+> Contexto: el rol `dj` ya existe en BD (`UserRole = 'user' | 'dj' | 'admin'`) y en la
+> función `is_staff()` de la RLS. Lo que falta es (a) una pantalla propia para el DJ
+> y (b) mejor UX para que el admin asigne roles.
+
+### Reglas de no-romper para esta área
+- El panel `/dj` protege por `role === 'dj' || role === 'admin'`, usando el mismo
+  `useAuth()` + `isStaff` que ya usa `/admin`. No crear un sistema de auth paralelo.
+- La lógica de descarga del `.bat` se importa de `src/lib/crate.ts` sin duplicar.
+- El tab `users` del admin actual sigue funcionando. Las mejoras son UX (dropdown,
+  búsqueda), no restructurar el estado ni las llamadas a `data.ts`.
+- Toda escritura de rol pasa por `updateProfileRole` en `data.ts` (ya existe). No
+  llames directamente a Supabase desde el componente.
+
+### Fase A — Página `/dj` simplificada ⛔ (no empezado)
+
+| Tarea | Detalle |
+|---|---|
+| **A1. Ruta `src/app/dj/page.tsx`** | Guard: si no hay sesión o `role` no es `dj`/`admin`, redirige a `/`. |
+| **A2. Panel de playlist del evento activo** | Lista canciones Top-N del evento en curso: título, artista, votos, botón "Marcar reproducida". Importa `getSongs` + `setSongPlayed` de `data.ts`. |
+| **A3. Descarga `.bat` del set** | Botón "Descargar set (MP3)" y "Descargar set (MP4)" → llama `buildCrateBat` de `crate.ts`. Mismo código que ya existe en `/admin` tab DJ. |
+| **A4. Lista de asistentes confirmados** | `getAttendees` filtrado por `status = 'confirmed'` del evento activo. Solo lectura. |
+| **A5. Link desde el Navbar** | Mostrar enlace `DJ` en el nav solo si `role === 'dj' || role === 'admin'`. Igual que Admin ya está oculto para usuarios sin rol. |
+
+### Fase B — Mejoras de gestión de roles en Admin ⛔ (no empezado)
+
+| Tarea | Detalle |
+|---|---|
+| **B1. Búsqueda de usuario en tab Usuarios** | Input de búsqueda que filtra el listado por `username` o `email` en el estado local. Sin llamada extra a BD. |
+| **B2. Dropdown de rol inline** | Reemplazar el texto del rol por un `<select>` con opciones `user / dj / admin`. Al cambiar llama `updateProfileRole`. Muestra spinner mientras guarda. |
+| **B3. Confirmación antes de promover a admin** | Si el nuevo rol es `admin`, pide confirmación (`window.confirm` o modal inline). Evita promoções accidentales. |
+
+### Fase C — Vinculación DJ ↔ Evento (opcional, largo plazo) ⏸️
+
+`EventItem.djs` ya es un array `{name, tel, color, bg_url}`. Se podría añadir `profile_id`
+para vincular a un perfil real y mostrar el avatar del DJ en la página del evento. Requiere
+migración en `events`. Aparcado hasta que haya más de un DJ activo en el sistema.
+
+---
+
+## 16. Plan: App móvil (Expo — MVP)
+
+> Contexto: `mobile-app/` es solo el stub por defecto de Expo v56. El backend (Supabase)
+> ya está listo. La app móvil reutiliza las mismas tablas y la misma RLS que la web.
+> **AGENTS.md del mobile**: leer docs de Expo v56 en https://docs.expo.dev/versions/v56.0.0/
+> antes de escribir código. No asumir que es la misma API que versiones anteriores.
+
+### Reglas de no-romper para esta área
+- **No hay descargas en el servidor móvil.** La regla de oro del proyecto aplica igual:
+  yt-dlp corre en la PC/app de escritorio, no en el teléfono ni en Vercel.
+- Usar `@supabase/supabase-js` directamente (el mismo cliente que la web). Las tablas,
+  RLS y funciones son idénticas — no crear endpoints nuevos solo para el móvil.
+- Guardar la sesión con `expo-secure-store` (no `AsyncStorage` en texto plano).
+- Usar **Expo Router** (file-based routing, ya en v56) para la estructura de navegación.
+  No React Navigation manual.
+- El build de `mobile-app/` es completamente independiente del de `src/` (Next.js).
+  No importar nada de `src/lib/` ni `src/components/` en el mobile — duplicar solo los
+  tipos necesarios o extraerlos a un paquete compartido en el futuro.
+
+### Fase 0 — Setup y arquitectura ⛔ (no empezado)
+
+| Tarea | Detalle |
+|---|---|
+| **0A. Instalar dependencias base** | `@supabase/supabase-js`, `expo-secure-store`, `@shopify/flash-list`, `expo-router`, `react-native-safe-area-context`. |
+| **0B. Cliente Supabase para RN** | `mobile-app/src/lib/supabase.ts` — igual que `src/utils/supabase.ts` pero con `expo-secure-store` como storage de sesión. |
+| **0C. Tipos del dominio** | Copiar `src/lib/types.ts` a `mobile-app/src/lib/types.ts`. Mantener en sync manual hasta que haya paquete compartido. |
+| **0D. Tema base oscuro** | `mobile-app/src/styles/theme.ts` — colores del sistema: `#000`, magenta `#ff00ff`, cyan `#00ffff`, lime `#39ff14`. Mirrors de los tokens de `globals.css`. |
+| **0E. Layout raíz con Expo Router** | `mobile-app/app/_layout.tsx` — `AuthProvider` (misma lógica que `src/lib/auth.tsx`, adaptada a RN), `Stack` navigator raíz. |
+
+### Fase 1 — MVP: las tres pantallas core ⛔ (no empezado)
+
+| Pantalla | Ruta Expo Router | Features | Llama a |
+|---|---|---|---|
+| **HomeScreen** | `app/index.tsx` | Evento activo: flyer, fecha, lugar, countdown, botón RSVP, estado de tu reserva. | `getEvents`, `getAttendees`, `saveAttendee` |
+| **PlaylistScreen** | `app/playlist.tsx` | Lista Top-N de canciones votadas. Botón votar ▲/▼. Badge "reproducida". Buscar canción (campo + YouTube search). | `getSongs`, `voteSong`, `suggestSong` |
+| **ProfileScreen** | `app/perfil.tsx` | Ver y editar tu perfil: avatar, username, bio, puntos, racha. Botón login/logout. | `getProfile`, `updateProfile`, `useAuth` |
+
+### Fase 2 — V2: comunidad ⛔ (no empezado)
+
+| Pantalla | Ruta | Features |
+|---|---|---|
+| **CostumesScreen** | `app/disfraces.tsx` | Galería de cosplay, votar, subir foto. |
+| **ChatScreen** | `app/chat.tsx` | Chat en vivo (Supabase Realtime). Requiere `phase-chat.sql` corrido. |
+| **NotificationsScreen** | `app/notificaciones.tsx` | Feed de actividad propia (votos recibidos, likes, menciones). |
+
+### Fase 3 — V3: DJ y extras ⏸️ (aparcado hasta que Fase 1 esté estable)
+
+| Pantalla | Ruta | Features |
+|---|---|---|
+| **DJScreen** | `app/dj.tsx` | Panel DJ simplificado (mismas features que §15 Fase A). Solo visible con `role === 'dj' || role === 'admin'`. |
+| **EncuestasScreen** | `app/encuestas.tsx` | Encuestas activas, votar. |
+| **HistoryScreen** | `app/historial.tsx` | Eventos pasados, resumen de participación. |
+
+### Decisiones pendientes antes de empezar Fase 1
+
+- [ ] ¿Publicar en Play Store (requiere cuenta de desarrollador Google ~$25 único) o distribuir solo APK manual por ahora?
+- [ ] ¿Notificaciones push? (Expo Notifications + un servicio externo). Añade complejidad; recomendado dejarlo para V2.
+- [ ] ¿Mismo dominio de Supabase que la web (recomendado) o instancia separada? → Mismo, por eficiencia.
 </content>
 </invoke>

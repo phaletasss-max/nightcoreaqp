@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { Sparkles, MessageSquare, Flame, CheckSquare, Crown, ArrowRight, User } from 'lucide-react';
-import { getComments, getActiveSurvey, getProfiles, getCostumes } from '@/lib/data';
+import { getComments, getActiveSurvey, getProfiles, getCostumes, voteSurvey } from '@/lib/data';
 import type { EventComment, Survey, Profile, Costume } from '@/lib/types';
+import { useAuth } from '@/lib/auth';
 import Link from 'next/link';
 
 type FeedItem = 
@@ -13,8 +14,10 @@ type FeedItem =
   | { type: 'costume'; data: Costume; date: number };
 
 export default function LiveFeed({ eventId }: { eventId: string }) {
+  const { profile } = useAuth();
   const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [votedOption, setVotedOption] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadFeed() {
@@ -94,9 +97,40 @@ export default function LiveFeed({ eventId }: { eventId: string }) {
                   <CheckSquare className="h-4 w-4" /> Encuesta Destacada
                 </div>
                 <h4 className="text-white font-bold mb-3">{survey.question}</h4>
-                <Link href="/encuestas" className="btn btn-primary text-xs w-full justify-center">
-                  Votar ahora <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
+                <div className="space-y-2">
+                  {survey.options.map((opt) => {
+                    const total = survey.options.reduce((s, o) => s + o.votes_count, 0);
+                    const pct = total > 0 ? Math.round((opt.votes_count / total) * 100) : 0;
+                    const isVoted = votedOption === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        onClick={async () => {
+                          if (votedOption) return;
+                          setVotedOption(opt.id);
+                          await voteSurvey(survey.id, opt.id, profile?.id ?? null);
+                          setItems((prev) => prev.map((it) => {
+                            if (it.type !== 'poll') return it;
+                            return { ...it, data: { ...it.data, options: it.data.options.map((o) => o.id === opt.id ? { ...o, votes_count: o.votes_count + 1 } : o) } };
+                          }));
+                        }}
+                        disabled={!!votedOption}
+                        className={`w-full text-left px-3 py-2 rounded-lg border text-xs font-bold transition-colors relative overflow-hidden ${isVoted ? 'border-neon-cyan bg-neon-cyan/20 text-neon-cyan' : 'border-border text-muted hover:border-neon-cyan/50 hover:text-white'} ${votedOption ? 'cursor-default' : 'cursor-pointer'}`}
+                      >
+                        {votedOption && (
+                          <span className="absolute inset-y-0 left-0 bg-neon-cyan/10 transition-all" style={{ width: `${pct}%` }} />
+                        )}
+                        <span className="relative flex justify-between items-center">
+                          <span>{opt.text}</span>
+                          {votedOption && <span className="text-neon-cyan">{pct}%</span>}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {!votedOption && !profile && (
+                  <p className="text-[10px] text-muted-2 mt-2 text-center">Inicia sesión para que tu voto se guarde</p>
+                )}
               </div>
             );
           }

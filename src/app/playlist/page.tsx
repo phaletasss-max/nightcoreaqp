@@ -613,7 +613,7 @@ export default function PlaylistPage() {
                       <ExternalLink className="h-4 w-4" />
                     </a>
                     <button onClick={() => handleCopy(song)} title="Copiar enlace"
-                      className="h-9 w-9 rounded-lg border border-border text-muted hover:text-white flex items-center justify-center transition-colors">
+                      className="hidden sm:flex h-9 w-9 rounded-lg border border-border text-muted hover:text-white items-center justify-center transition-colors">
                       {copiedId === song.id ? <CheckCircle2 className="h-4 w-4 text-green-400" /> : <Link2 className="h-4 w-4" />}
                     </button>
                     {/* Botón de instrucciones de descarga local */}

@@ -498,6 +498,8 @@ html[data-theme="cyber"] {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--magenta) 22%, transparent); border-radius: 999px; }
 ::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--magenta) 40%, transparent); }
+.scrollbar-hide { scrollbar-width: none; -ms-overflow-style: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
 
 /* ── Animaciones ────────────────────────────────────────────────────────────*/
 @keyframes fadeIn {
