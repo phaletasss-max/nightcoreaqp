@@ -48,7 +48,7 @@
 - **Parte social nueva (2026-06-25)**: **chat de comunidad en vivo** (`/chat`, Supabase Realtime
   + filtro de groserías + moderación staff), **perfiles con galería de fotos + bio + links**, y
   **color de acento por perfil**. Código verificado (tsc/build verdes, chat probado en preview);
-  **falta correr** `phase-chat.sql` y `phase-profile-extras.sql` en Supabase para activar en prod.
+  **migraciones corridas el 2026-06-26** (`phase-chat.sql` + `phase-profile-extras.sql`) → activas en prod.
 - **Limpieza y responsive (2026-06-26)**:
   - **S5 cerrado** — `console.log('[FASE 3]…')` eliminados de `src/lib/data.ts` (5 líneas).
   - **Bug "Votar" cerrado** — `LiveFeed.tsx`: la encuesta ahora vota inline (opciones + barras de %)
@@ -73,11 +73,11 @@
 - **Repo → público** (Settings → Danger Zone → Make public): destraba el **auto-update** del desktop
   (hoy da 404 anónimo) y la descarga pública del `.exe`. **Es el paso #1.**
 - **Promover tu cuenta a `role=admin`** (SQL): para que el gestor de diseño **persista** en prod.
-- **Correr migraciones de Supabase** (ver §6): desbloquean insignias, privacidad, moderación, tags y subidas.
+- ~~**Correr migraciones de Supabase**~~ → ✅ **hechas el 2026-06-26** (10 scripts; ver §6). Solo faltaría `site_settings_setup.sql` (no estaba en los 4 grupos) si el gestor de diseño no persiste.
 - **media-service (Render)**: se duerme; YouTube le exige cookies. Plan Arch (IP residencial) sin implementar.
 
 ### ⛔ Pendiente (no empezado)
-- **APK móvil** → §16: **Fases 0, 1 y 2 hechas ✅** (Expo Router + 6 pantallas: Home/Playlist/Perfil + Disfraces/Chat/Mi actividad; auth, RSVP, votos, chat Realtime; `tsc` y `expo export` OK, **sin probar en dispositivo**). Siguiente: **Fase 3 (PT 3.x)** (subir foto, DJ móvil, encuestas) + probar en Expo Go + correr `phase-chat.sql`. Decisiones abiertas: Play Store vs APK, push.
+- **APK móvil** → §16: **Fases 0, 1 y 2 hechas ✅** (Expo Router + 6 pantallas: Home/Playlist/Perfil + Disfraces/Chat/Mi actividad; auth, RSVP, votos, chat Realtime; `tsc` y `expo export` OK, **sin probar en dispositivo**). Siguiente: **Fase 3 (PT 3.x)** (subir foto, DJ móvil, encuestas) + probar en Expo Go (`phase-chat.sql` ya corrida, el chat móvil debería funcionar). Decisiones abiertas: Play Store vs APK, push.
 - **Perfil hi5 / estética Web 2.0** → **Fase A ✅ hecha 2026-06-26** (frontend scoped, ver §14). Falta **Fase B** (guestbook/reactions, necesita migraciones).
 - ~~**Panel DJ + gestión de roles**~~ → ✅ **hecho 2026-06-26** (ruta `/dj` + UX de roles en admin). Ver §15.
 - **Branding**: tagline definitivo + `docs/BRANDING.md`; SEO/OG images.
@@ -170,16 +170,16 @@ Tailwind v4              Storage · RLS            media-service (Render) = resp
 | Temáticas sugeridas (ranking por clicks) | ✅ | |
 | Retos diarios / racha | ✅ | |
 | Perfil + actividad | ✅ | |
-| **Chat de comunidad en vivo** (`/chat`) | ✅ **nuevo** (2026-06-25) | Supabase Realtime; login para escribir; filtro `banned_words`; reportar + ocultar/eliminar staff. **Correr `phase-chat.sql`** en prod |
-| **Buzón de sugerencias/denuncias** (`/sugerencias`) | ✅ **nuevo** (2026-06-25) | Formulario 100% anónimo (sin login). Dos categorías: sugerencia/denuncia. Solo el staff lee en Admin → Buzón. **Correr `phase-sugerencias.sql`** en prod |
-| **Perfil: galería de fotos + bio + links** | ✅ **nuevo** (2026-06-25) | `profile_photos` + bio + TikTok/IG; galería gated por privacidad. **Correr `phase-profile-extras.sql`** |
+| **Chat de comunidad en vivo** (`/chat`) | ✅ (migración corrida 2026-06-26) | Supabase Realtime; login para escribir; filtro `banned_words`; reportar + ocultar/eliminar staff. `phase-chat.sql` ✅ |
+| **Buzón de sugerencias/denuncias** (`/sugerencias`) | ✅ (migración corrida 2026-06-26) | Formulario 100% anónimo (sin login). Dos categorías: sugerencia/denuncia. Solo el staff lee en Admin → Buzón. `phase-sugerencias.sql` ✅ |
+| **Perfil: galería de fotos + bio + links** | ✅ (migración corrida 2026-06-26) | `profile_photos` + bio + TikTok/IG; galería gated por privacidad. `phase-profile-extras.sql` ✅ |
 | **Perfil: color de acento (personalización)** | ✅ **nuevo** (2026-06-25) | `profiles.accent` aplicado con `color-mix` en perfil propio + público |
-| Perfil privado (toggle) | 🟡 | **Falta `phase-de.sql`** (`is_private`) |
-| Moderación por palabras | 🟡 | **Falta `phase-de.sql`** (`banned_words`, `flagged`) |
+| Perfil privado (toggle) | ✅ (corrida 2026-06-26) | `phase-de.sql` ✅ (`is_private`) |
+| Moderación por palabras | ✅ (corrida 2026-06-26) | `phase-de.sql` ✅ (`banned_words`, `flagged`) |
 | Gestor de diseño en vivo (admin) | 🟡 | Código arreglado (§10 B1); falta promover tu cuenta a `role=admin` para que persista |
 | Asistente IA (Gemini) | ✅ | `GEMINI_API_KEY` |
 | PWA instalable + offline básico | ✅ | SW arreglado hoy (fallback) |
-| App móvil (Expo) | ⛔ | Solo el stub por defecto |
+| App móvil (Expo) | 🟡 (Fases 0/1/2 en código) | 6 pantallas con Expo Router (Home/Playlist/Perfil/Disfraces/Chat/Mi actividad); `tsc` + `expo export` OK. **Falta probar en Expo Go** + decidir Play Store vs APK. Ver §16 |
 | App de escritorio · descargas (Electron) | ✅ **comprobado** | `desktop-app/` **v0.1.7**: auto-instala yt-dlp/ffmpeg/**deno** + auto-update de yt-dlp; baja **YouTube/IG MP4** (deno→nsig) y **TikTok H.264**; cookies (navegador + **archivo `.txt`**); temas + imagen de fondo; auto-update (electron-updater, visible + log); instalador NSIS; releases auto-publicadas (GitHub Actions). Falta: repo público (para auto-update), icono propio, firma de código |
 | Convertidor de archivos | ⏸️ | Fuera del repo |
 | Verificación de cuenta (email/WhatsApp) | ⛔ | Investigado en ROADMAP §8 |
@@ -189,25 +189,27 @@ Tailwind v4              Storage · RLS            media-service (Render) = resp
 
 ---
 
-## 6. Base de datos · migraciones pendientes en Supabase
+## 6. Base de datos · migraciones en Supabase
 
-Correr en el **SQL Editor** (orden sugerido). Marcar aquí cuando se corra:
+**Estado 2026-06-26: las 10 migraciones de features están ✅ corridas.** Solo quedaría
+`site_settings_setup.sql` (no estaba en los 4 grupos) si el gestor de diseño no persiste.
+Todas son idempotentes; correr en el **SQL Editor**.
 
 | Script | Crea / cambia | Estado |
 |---|---|---|
 | `supabase/schema.sql` | 19 tablas + triggers + RLS + `is_staff()` / `daily_check_in()` / RPCs | ✅ corrido |
-| `site_settings_setup.sql` (raíz del repo) | tabla `site_settings (key, value)` | ⚠️ **necesaria 1ª** — sin ella el gestor de diseño cae a localStorage |
+| `site_settings_setup.sql` (raíz del repo) | tabla `site_settings (key, value)` | ⚠️ **ÚNICA QUE FALTARÍA** — no estaba en los 4 grupos del 2026-06-26. Sin ella el gestor de diseño (Admin → Diseño) cae a localStorage y no persiste en prod. Correr si el diseño no se guarda |
 | `supabase/fixes.sql` | bucket `media` + cierra la RLS de `site_settings` a staff | ✅ corrido (depende de la tabla anterior) |
-| `supabase/fix-tags.sql` | `songs.tags`, `costumes.tags` + `is_wip` | ⛔ **PENDIENTE** (PGRST204 al sugerir canción/disfraz; redundante si `schema.sql` ya las trae) |
-| `supabase/phase-de.sql` | columnas extra de `events`, `profiles.is_private`, `banned_words`, `event_comments.flagged` | ⛔ **PENDIENTE** (eventos completos, privacidad, moderación) |
-| `supabase/phase-1-attendance.sql` | `attendance_proofs` + RPCs aprobar/rechazar | ⛔ **PENDIENTE** (insignias; causa el 404) |
-| `supabase/phase-f.sql` | `profiles.email` + `bg_url`; redefine `handle_new_user` | ⛔ **PENDIENTE** (panel muestra correos; fondo de perfil) |
-| `supabase/phase-g.sql` | recrea bucket `media` **público (anon)** | ⛔ **PENDIENTE** (subir avatar/flyer/fondos falla sin esto si no hay sesión real) |
-| `supabase/saved-songs.sql` | `saved_songs` (playlist personal) | ✅ absorbida en `schema.sql` |
-| `supabase/phase-chat.sql` | `chat_rooms`, `chat_messages`, `chat_reports` + RLS + Realtime | ⛔ **PENDIENTE** (activa el chat `/chat`; sin ella el chat sale vacío pero no rompe) |
-| `supabase/phase-profile-extras.sql` | `profiles.bio/tiktok_url/instagram_url/accent/bg_url` + `profile_photos` + RLS | ⛔ **PENDIENTE** (activa galería, bio, links y acento del perfil) |
-| `supabase/phase-sugerencias.sql` | tabla `suggestions` + RLS (insert anon, read/update/delete staff) | ⛔ **PENDIENTE** (sin ella el buzón usa localStorage; no pierde envíos pero no persiste en BD) |
-| `supabase/phase-bloques.sql` | tabla `custom_blocks` + RLS (público lee visibles, staff gestiona todo) | ⛔ **PENDIENTE** (sin ella los bloques usan localStorage) |
+| `supabase/fix-tags.sql` | `songs.tags`, `costumes.tags` + `is_wip` | ✅ **corrido (2026-06-26)** |
+| `supabase/phase-de.sql` | columnas extra de `events`, `profiles.is_private`, `banned_words`, `event_comments.flagged` | ✅ **corrido (2026-06-26)** (eventos completos, privacidad, moderación) |
+| `supabase/phase-1-attendance.sql` | `attendance_proofs` + RPCs aprobar/rechazar | ✅ **corrido (2026-06-26)** (insignias; cierra el 404) |
+| `supabase/phase-f.sql` | `profiles.email` + `bg_url`; redefine `handle_new_user` | ✅ **corrido (2026-06-26)** (panel muestra correos; fondo de perfil) |
+| `supabase/phase-g.sql` | recrea bucket `media` **público (anon)** | ✅ **corrido (2026-06-26)** (subir avatar/flyer/fondos) |
+| `supabase/saved-songs.sql` | `saved_songs` (playlist personal) | ✅ absorbida en `schema.sql` (+ corrida 2026-06-26) |
+| `supabase/phase-chat.sql` | `chat_rooms`, `chat_messages`, `chat_reports` + RLS + Realtime | ✅ **corrido (2026-06-26)** (activa chat `/chat` web **y móvil**) |
+| `supabase/phase-profile-extras.sql` | `profiles.bio/tiktok_url/instagram_url/accent/bg_url` + `profile_photos` + RLS | ✅ **corrido (2026-06-26)** (galería, bio, links, acento — base del perfil hi5) |
+| `supabase/phase-sugerencias.sql` | tabla `suggestions` + RLS (insert anon, read/update/delete staff) | ✅ **corrido (2026-06-26)** (buzón persiste en BD) |
+| `supabase/phase-bloques.sql` | tabla `custom_blocks` + RLS (público lee visibles, staff gestiona todo) | ✅ **corrido (2026-06-26)** (cierra el 404 de `custom_blocks`; bloques del admin en BD) |
 
 > **Hallazgo de auditoría:** `scripts/verify-schema.ts` valida `events.is_visible` y columnas
 > `setting_key/setting_value` que **no existen** (la tabla usa `key/value`); ninguna migración crea
@@ -296,7 +298,7 @@ mostrar/ocultar secciones **fijas**. Lo que pides es subir un nivel. Propuesta p
 |---|---|---|
 | **A. Más tokens** | Acento, opacidad, radio, blur, overlay + **fuente de títulos Y de texto**, **colores a medida** (fondo/superficie/texto), **tamaño de letra** y **reset** como variables en `site_settings` | ✅ Hecho (ampliado 2026-06-25: la fuente del cuerpo, colores granulares, escala y reset) |
 | **B. Presets de tema** | Dropdown *Scenecore · Pixel · Gótico · Anime · **Y2K · Vaporwave · Cyber*** (7) — cada uno setea toda la paleta vía `html[data-theme]` | ✅ Hecho (3 packs nuevos 2026-06-25) |
-| **C. Bloques/contenedores** | Tabla `custom_blocks` (tipo, título, contenido, orden, sección) + render dinámico → el admin añade/ordena contenedores sin tocar código | ✅ Hecho (2026-06-25) — Admin → Bloques: 5 tipos (anuncio/texto/enlace/imagen/video), orden ↑↓, toggle visible, editar inline. **Correr `phase-bloques.sql`** |
+| **C. Bloques/contenedores** | Tabla `custom_blocks` (tipo, título, contenido, orden, sección) + render dinámico → el admin añade/ordena contenedores sin tocar código | ✅ Hecho (2026-06-25) — Admin → Bloques: 5 tipos (anuncio/texto/enlace/imagen/video), orden ↑↓, toggle visible, editar inline. `phase-bloques.sql` ✅ corrida 2026-06-26 |
 | **D. CSS libre** | Inyectar CSS crudo | ❌ Descartado (footgun + XSS) |
 
 **Implementado (2026-06-25):** presets en `globals.css` (`html[data-theme="..."]`),
@@ -343,7 +345,7 @@ producción** (`.card` incluye `backdrop-filter`). *Nota:* el dev server de Next
 
 1. **Hacer el repo público** (Settings → Danger Zone) — destraba el auto-update del desktop y la descarga pública del `.exe`. **Tu paso #1.**
 2. **Promover tu cuenta a `role=admin`** (SQL) — para que el gestor de diseño persista.
-3. **Correr migraciones de Supabase** (§6) — `site_settings_setup.sql` + `phase-de` + `phase-1-attendance` + `phase-g` + `phase-f` + `fix-tags`. Cierra insignias, privacidad, moderación, tags y subidas.
+3. ✅ **Migraciones de Supabase corridas (2026-06-26)** — 10 scripts (§6): `phase-g/de/f/profile-extras/bloques/chat/sugerencias/1-attendance/fix-tags/saved-songs`. Cierra insignias, privacidad, moderación, tags, subidas, chat, perfil, buzón y bloques. *(Solo faltaría `site_settings_setup.sql` si el gestor de diseño no persiste.)*
 4. ✅ Hecho: panel B1, seguridad S1/S2, personalización A+B, CI typecheck, blur, temas desktop.
 5. **Limpiar docs desincronizados** — `ARCHITECTURE.md` y `ESTADO.md` (mencionan `/api/download`/Cobalt, ya inexistentes). ✅ Avance 2026-06-25: descargador consolidado en [DESCARGADOR.md](./DESCARGADOR.md) y `pt-11` marcado como superado.
 6. **Definir branding** — tagline + `docs/BRANDING.md`.
