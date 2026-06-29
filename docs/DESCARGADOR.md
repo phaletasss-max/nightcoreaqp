@@ -60,6 +60,7 @@ A `userData/bin` (NO en Archivos de Programa → sin permisos de admin), una sol
   si no, **navegador** (`--cookies-from-browser`). Firefox no necesita cerrarse; Chrome/Edge sí.
 - Con **deno** instalado, normalmente **no** hacen falta cookies para audio ni para la mayoría de
   videos. `humanize()` traduce los errores típicos a consejos.
+- **Soporte de Plataformas:** Además de YouTube y TikTok, `yt-dlp` tiene soporte nativo total para descargar MP3 y MP4 (video) de **Facebook (Watch/Videos)**, **Instagram (Reels/Posts)** y **Twitter/X**. No requieren configuración extra; el motor las detecta y descarga automáticamente.
 
 ---
 
