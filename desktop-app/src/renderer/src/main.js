@@ -17,7 +17,34 @@ const els = {
 
 let state = { format: 'mp3', quality: 'best', dest: '', cookiesBrowser: '', cookiesFile: '' }
 
+let isUserMode = localStorage.getItem('pz_user_mode') !== 'false'
+const modeToggleBtn = $('mode-toggle')
+function updateModeBtn() {
+  modeToggleBtn.textContent = isUserMode ? '👤 Modo Usuario' : '🛠 Modo Developer'
+}
+modeToggleBtn.addEventListener('click', () => {
+  isUserMode = !isUserMode
+  localStorage.setItem('pz_user_mode', isUserMode)
+  updateModeBtn()
+})
+updateModeBtn()
+
 function logLine(entry) {
+  if (isUserMode) {
+    const txt = entry.text.toLowerCase()
+    if (txt.includes('yt-dlp') || txt.includes('ffmpeg') || txt.includes('ffprobe') || txt.includes('deno')) {
+      if (txt.includes('descargando') || txt.includes('verificando') || txt.includes('instalado') || txt.includes('instalando') || txt.includes('actualizando')) {
+        if (!els.log.lastChild || !els.log.lastChild.textContent.includes('Instalando componentes')) {
+          entry.text = 'Instalando componentes...'
+        } else {
+          return
+        }
+      }
+    }
+    if (txt.includes('unable to extract') || txt.includes('extracting') || txt.includes('downloading webpage') || txt.includes('nsig') || txt.includes('verifying') || txt.includes('got ')) {
+      return
+    }
+  }
   const div = document.createElement('div')
   div.className = `ln ln-${entry.type || 'line'}`
   div.textContent = entry.text
@@ -119,23 +146,26 @@ const updateInstall = $('update-install')
 window.api.onUpdate((d) => {
   switch (d.state) {
     case 'checking':
+      if (isUserMode) return
       updateBar.classList.remove('hidden'); updateBar.className = 'update-bar info'
       updateText.textContent = 'Buscando actualizaciones…'; break
     case 'available':
-      updateBar.className = 'update-bar info'
+      updateBar.classList.remove('hidden'); updateBar.className = 'update-bar info'
       updateText.textContent = `Nueva versión ${d.version} encontrada. Descargando…`; break
     case 'downloading':
-      updateBar.className = 'update-bar info'
+      updateBar.classList.remove('hidden'); updateBar.className = 'update-bar info'
       updateText.textContent = `Descargando actualización… ${d.percent}%`; break
     case 'ready':
       updateBar.classList.remove('hidden'); updateBar.className = 'update-bar ready'
       updateText.textContent = `Actualización ${d.version} lista.`
       updateInstall.classList.remove('hidden'); break
     case 'error':
+      if (isUserMode) return
       updateBar.classList.remove('hidden'); updateBar.className = 'update-bar info'
       updateText.textContent = 'Auto-update: ' + (d.text || 'error')
       updateInstall.classList.add('hidden'); break
     case 'none':
+      if (isUserMode) return
       updateBar.classList.remove('hidden'); updateBar.className = 'update-bar info'
       updateText.textContent = 'Estás en la última versión.'
       setTimeout(() => updateBar.classList.add('hidden'), 4000); break

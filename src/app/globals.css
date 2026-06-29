@@ -65,7 +65,7 @@
   --color-fernan-green: var(--fernan);
   --color-undertale-yellow: var(--undertale);
 
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--body-font);
   --font-mono: var(--font-geist-mono);
 }
 

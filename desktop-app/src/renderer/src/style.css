@@ -44,6 +44,8 @@ body {
   background: linear-gradient(180deg, var(--surface), transparent);
 }
 
+.topbar-actions { display: flex; gap: 8px; align-items: center; }
+
 /* Panel de personalización */
 .personalize {
   display: flex; flex-wrap: wrap; gap: 16px; align-items: center;

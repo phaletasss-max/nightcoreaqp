@@ -1454,7 +1454,7 @@ export default function AdminPage() {
           {/* Color de acento (token sobre el tema) */}
           <div className="card p-5 space-y-3">
             <h3 className="font-bold text-white text-sm flex items-center gap-2"><Palette className="h-4 w-4 text-neon-cyan" /> Color de acento</h3>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 items-center">
               {ACCENT_OPTIONS.map((a) => (
                 <button key={a.key || 'theme'} onClick={() => setDesignKey('design_accent', a.key)}
                   title={a.label}
@@ -1468,6 +1468,15 @@ export default function AdminPage() {
                   {a.label}
                 </button>
               ))}
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border">
+                <span className="text-xs font-bold text-muted">A medida:</span>
+                <input
+                  type="color"
+                  value={currentAccent.startsWith('#') && !ACCENT_OPTIONS.some(o => o.key === currentAccent) ? currentAccent : '#ffffff'}
+                  onChange={(e) => setDesignKey('design_accent', e.target.value)}
+                  className="h-6 w-8 rounded bg-transparent border-0 cursor-pointer p-0"
+                />
+              </div>
             </div>
             <p className="text-[11px] text-muted-2">Tiñe el color primario (botones, títulos) por encima del tema. &quot;Del tema&quot; usa la paleta original.</p>
           </div>
