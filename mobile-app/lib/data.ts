@@ -8,7 +8,7 @@
 // Mantener alineado con la RLS. Este archivo NO importa nada de `src/`.
 
 import { supabase, isConfigured } from './supabase';
-import type { EventItem, Song, Attendee, Profile, VoteType, Costume, ChatMessage } from './types';
+import type { EventItem, Song, Attendee, Profile, VoteType, Costume, ChatMessage, Survey, SurveyOption } from './types';
 
 // ── Eventos ──────────────────────────────────────────────────────────────────
 // Evento "activo": el confirmado, o el más próximo por fecha (igual que la web).
@@ -21,6 +21,16 @@ export async function getNextEvent(): Promise<EventItem | null> {
   if (error || !data) return null;
   const events = data as EventItem[];
   return events.find((e) => e.status === 'confirmed') ?? events[0] ?? null;
+}
+
+export async function getEvents(): Promise<EventItem[]> {
+  if (!isConfigured) return [];
+  const { data, error } = await supabase
+    .from('events')
+    .select('*')
+    .order('date', { ascending: true });
+  if (error || !data) return [];
+  return data as EventItem[];
 }
 
 // ── Asistencia (RSVP) ─────────────────────────────────────────────────────────
@@ -93,6 +103,21 @@ export async function setSongVote(
   }
 }
 
+export async function setSongPlayed(songId: string, played: boolean): Promise<void> {
+  if (!isConfigured) return;
+  await supabase.from('songs').update({ played }).eq('id', songId);
+}
+
+export async function getProfiles(): Promise<Profile[]> {
+  if (!isConfigured) return [];
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .order('points', { ascending: false });
+  if (error || !data) return [];
+  return data as Profile[];
+}
+
 // ── Perfil ─────────────────────────────────────────────────────────────────────
 export async function getProfile(id: string): Promise<Profile | null> {
   if (!isConfigured) return null;
@@ -146,6 +171,28 @@ export async function setCostumeVote(
   } else {
     await supabase.from('costume_votes').delete().match({ costume_id: costumeId, user_id: userId });
   }
+}
+
+export async function addCostume(
+  charName: string,
+  anime: string,
+  photoUrl: string,
+  userId: string,
+): Promise<Costume | null> {
+  if (!isConfigured) return null;
+  const { data, error } = await supabase
+    .from('costumes')
+    .insert({
+      char_name: charName,
+      anime,
+      photo_url: photoUrl,
+      user_id: userId,
+      votes_count: 0,
+    })
+    .select()
+    .single();
+  if (error || !data) return null;
+  return data as Costume;
 }
 
 // ── Chat de comunidad ───────────────────────────────────────────────────────────
@@ -207,4 +254,76 @@ export async function getMySuggestedSongs(userId: string): Promise<Song[]> {
     .order('votes_count', { ascending: false });
   if (error || !data) return [];
   return data as Song[];
+}
+
+// ── Encuestas (Surveys) ──────────────────────────────────────────────────────────
+// Obtiene la encuesta activa y, si userId está provisto, verifica cuál opción votó.
+export async function getActiveSurvey(userId?: string | null): Promise<(Survey & { votedOptionId?: string }) | null> {
+  if (!isConfigured) return null;
+  const { data: survey, error } = await supabase
+    .from('surveys')
+    .select('*')
+    .eq('active', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+  if (error || !survey) return null;
+
+  const { data: options } = await supabase
+    .from('survey_options')
+    .select('*')
+    .eq('survey_id', survey.id)
+    .order('position');
+
+  const result: Survey & { votedOptionId?: string } = {
+    ...(survey as Survey),
+    options: (options as SurveyOption[]) ?? [],
+  };
+
+  if (userId) {
+    const { data: response } = await supabase
+      .from('survey_responses')
+      .select('option_id')
+      .eq('survey_id', survey.id)
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (response) {
+      result.votedOptionId = response.option_id;
+    }
+  }
+  return result;
+}
+
+// Vota una opción de encuesta. Genera una respuesta única (survey_id, user_id).
+export async function voteSurvey(surveyId: string, optionId: string, userId: string): Promise<void> {
+  if (!isConfigured) return;
+  await supabase
+    .from('survey_responses')
+    .upsert({ survey_id: surveyId, option_id: optionId, user_id: userId }, { onConflict: 'survey_id,user_id' });
+}
+
+// ── Check-in diario (Rachas) ────────────────────────────────────────────────────
+export async function dailyCheckIn(): Promise<{ ok: boolean; streak: number | null }> {
+  if (!isConfigured) return { ok: false, streak: null };
+  const { data, error } = await supabase.rpc('daily_check_in');
+  return { ok: !error, streak: (data as number) ?? null };
+}
+
+// Obtiene encuestas pasadas inactivas para mostrar en el historial.
+export async function getPastSurveys(): Promise<Survey[]> {
+  if (!isConfigured) return [];
+  const { data: surveys, error } = await supabase
+    .from('surveys')
+    .select('*, survey_options(*)')
+    .eq('active', false)
+    .order('created_at', { ascending: false })
+    .limit(6);
+  if (error || !surveys) return [];
+
+  return (surveys as any[]).map((s) => ({
+    id: s.id,
+    question: s.question,
+    active: s.active,
+    options: (s.survey_options as SurveyOption[]) ?? [],
+  }));
 }

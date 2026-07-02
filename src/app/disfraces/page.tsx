@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  Camera, Sparkles, Heart, MessageSquare, Send, UploadCloud, User, Award,
+  Camera, Sparkles, Heart, MessageSquare, Send, UploadCloud, User, Award, Loader2,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
-import { getCostumes, addCostume, setCostumeVote, getEvents } from '@/lib/data';
+import { getCostumes, addCostume, setCostumeVote, getEvents, uploadMediaFile, addCostumeComment } from '@/lib/data';
 import type { Costume, EventItem } from '@/lib/types';
+import AuthModal from '@/components/AuthModal';
 
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const PLACEHOLDER_IMG = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80';
 
 export default function DisfracesPage() {
   const { profile, addPoints } = useAuth();
@@ -20,6 +21,9 @@ export default function DisfracesPage() {
   const [anime, setAnime] = useState('');
   const [description, setDescription] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [eventId, setEventId] = useState('');
   const [isWip, setIsWip] = useState(false);
   const [openComment, setOpenComment] = useState<string | null>(null);
@@ -29,46 +33,96 @@ export default function DisfracesPage() {
     getCostumes().then(setEntries);
     getEvents().then((evs) => {
       setEvents(evs);
-      // Solo se puede subir a eventos futuros o que terminaron hace ≤ 1 semana.
-      const cutoff = Date.now() - WEEK_MS;
-      setSelectableEvents(evs.filter((ev) => new Date(ev.date).getTime() >= cutoff));
+      // Deja que todos los eventos salgan ahí para poder dividirlos
+      setSelectableEvents(evs);
     });
   }, []);
 
   const eventName = (id: string | null) => events.find((ev) => ev.id === id)?.title ?? null;
 
   const handleVote = async (id: string) => {
+    if (!profile) {
+      setShowAuthModal(true);
+      return;
+    }
     let nowVoted = false;
     setEntries((prev) => prev.map((e) => {
       if (e.id !== id) return e;
       nowVoted = !e.voted;
       return { ...e, voted: nowVoted, votes_count: e.votes_count + (nowVoted ? 1 : -1) };
     }));
-    await setCostumeVote(id, nowVoted, profile?.id ?? null);
+    await setCostumeVote(id, nowVoted, profile.id);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!profile) {
+      setShowAuthModal(true);
+      return;
+    }
     if (!charName || !anime || !description) return;
-    const finalPhoto = photoUrl || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80';
-    const row = await addCostume({ char_name: charName, anime, photo_url: finalPhoto, description, is_wip: isWip }, profile?.id ?? null, eventId || null);
-    setEntries((prev) => [row, ...prev]);
-    setCharName(''); setAnime(''); setDescription(''); setPhotoUrl(''); setEventId(''); setIsWip(false); setShowForm(false);
-    addPoints(10);
+    setUploading(true);
+    try {
+      let finalPhoto = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80';
+      if (photoFile) {
+        const uploadedUrl = await uploadMediaFile(photoFile);
+        if (uploadedUrl) {
+          finalPhoto = uploadedUrl;
+        } else {
+          alert('No se pudo subir la foto a Supabase, se usará una por defecto.');
+        }
+      }
+      const row = await addCostume({ char_name: charName, anime, photo_url: finalPhoto, description, is_wip: isWip }, profile.id, eventId || null);
+      setEntries((prev) => [row, ...prev]);
+      setCharName(''); setAnime(''); setDescription(''); setPhotoUrl(''); setPhotoFile(null); setEventId(''); setIsWip(false); setShowForm(false);
+      addPoints(10);
+    } catch (err) {
+      console.error(err);
+      alert('Hubo un error al registrar el disfraz.');
+    } finally {
+      setUploading(false);
+    }
   };
 
-  const addLocalComment = (id: string) => {
-    if (!commentText.trim()) return;
+  const addLocalComment = async (id: string) => {
+    if (!profile) {
+      setShowAuthModal(true);
+      return;
+    }
+    const content = commentText.trim();
+    if (!content) return;
+    
+    const authorName = profile.username || 'Tú';
+    const authorId = profile.id;
+    const tempId = `cc-temp-${Date.now()}`;
+    const newCommentObj = { id: tempId, costume_id: id, username: authorName, content, created_at: new Date().toISOString() };
+    
     setEntries((prev) => prev.map((e) => e.id !== id ? e : {
       ...e,
-      comments: [...(e.comments ?? []), { id: `cc-${Date.now()}`, costume_id: id, username: profile?.username ?? 'Tú', content: commentText, created_at: new Date().toISOString() }],
+      comments: [...(e.comments ?? []), newCommentObj],
     }));
     setCommentText('');
+    
+    try {
+      const savedComment = await addCostumeComment(id, authorId, authorName, content);
+      setEntries((prev) => prev.map((e) => e.id !== id ? e : {
+        ...e,
+        comments: (e.comments ?? []).map((c) => c.id === tempId ? savedComment : c),
+      }));
+    } catch (err) {
+      console.error(err);
+      setEntries((prev) => prev.map((e) => e.id !== id ? e : {
+        ...e,
+        comments: (e.comments ?? []).filter((c) => c.id !== tempId),
+      }));
+      alert('No se pudo enviar el comentario.');
+    }
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setPhotoFile(file);
       setPhotoUrl(URL.createObjectURL(file));
     }
   };
@@ -82,7 +136,13 @@ export default function DisfracesPage() {
           </h1>
           <p className="text-sm text-muted mt-1">Sube tu cosplay del evento. El más votado gana pases VIP gratis.</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)} className="btn btn-cyan">
+        <button onClick={() => {
+          if (!profile) {
+            setShowAuthModal(true);
+          } else {
+            setShowForm(!showForm);
+          }
+        }} className="btn btn-cyan">
           <UploadCloud className="h-4 w-4" /> Subir disfraz
         </button>
       </div>
@@ -104,7 +164,7 @@ export default function DisfracesPage() {
                 onChange={handlePhotoUpload} 
                 required 
               />
-              <p className="text-[11px] text-muted-2 mt-1">En producción esto subirá la imagen a Supabase Storage.</p>
+              <p className="text-[11px] text-muted-2 mt-1">Se subirá a Supabase Storage al publicar.</p>
             </div>
             <div>
               <label className="label">¿De qué evento es la foto?</label>
@@ -114,7 +174,7 @@ export default function DisfracesPage() {
                   <option key={ev.id} value={ev.id}>{ev.title}</option>
                 ))}
               </select>
-              <p className="text-[11px] text-muted-2 mt-1">Solo aparecen eventos vigentes o que terminaron hace ≤ 1 semana.</p>
+              <p className="text-[11px] text-muted-2 mt-1">Selecciona el evento al que corresponde la foto.</p>
             </div>
             <div className="flex items-center gap-2 mt-2">
               <input type="checkbox" id="isWip" checked={isWip} onChange={(e) => setIsWip(e.target.checked)} className="rounded border-border bg-black/40 text-neon-cyan focus:ring-neon-cyan/50" />
@@ -126,7 +186,13 @@ export default function DisfracesPage() {
             </div>
             <div className="flex justify-end gap-3">
               <button type="button" onClick={() => setShowForm(false)} className="btn btn-ghost">Cancelar</button>
-              <button type="submit" className="btn btn-cyan">Publicar</button>
+              <button type="submit" disabled={uploading} className="btn btn-cyan flex items-center gap-1.5">
+                {uploading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Subiendo...
+                  </>
+                ) : 'Publicar'}
+              </button>
             </div>
           </form>
           
@@ -148,8 +214,7 @@ export default function DisfracesPage() {
         {entries.map((entry) => (
           <div key={entry.id} className="card card-hover overflow-hidden flex flex-col">
             <div className="relative aspect-[4/5] bg-black overflow-hidden">
-              { }
-              <img src={entry.photo_url} alt={entry.char_name} className="w-full h-full object-cover" />
+              <img src={entry.photo_url?.startsWith('blob:') ? PLACEHOLDER_IMG : entry.photo_url} alt={entry.char_name} className="w-full h-full object-cover" />
               <div className="absolute top-3 left-3 badge badge-cyan bg-black/70 backdrop-blur">
                 <Award className="h-3.5 w-3.5" /> {entry.char_name}
               </div>
@@ -203,17 +268,34 @@ export default function DisfracesPage() {
                       </div>
                     ))}
                   </div>
-                  <div className="flex gap-2">
-                    <input className="input text-xs py-1.5" value={commentText} onChange={(e) => setCommentText(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') addLocalComment(entry.id); }} placeholder="Comenta…" />
-                    <button onClick={() => addLocalComment(entry.id)} className="btn btn-cyan px-2.5 py-1.5"><Send className="h-3.5 w-3.5" /></button>
-                  </div>
+                  {profile ? (
+                    <div className="flex gap-2">
+                      <input className="input text-xs py-1.5" value={commentText} onChange={(e) => setCommentText(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') addLocalComment(entry.id); }} placeholder="Comenta…" />
+                      <button onClick={() => addLocalComment(entry.id)} className="btn btn-cyan px-2.5 py-1.5"><Send className="h-3.5 w-3.5" /></button>
+                    </div>
+                  ) : (
+                    <div className="text-center py-2 bg-white/[0.02] border border-dashed border-border rounded-lg">
+                      <p className="text-[11px] text-muted">
+                        Debes{' '}
+                        <button
+                          type="button"
+                          onClick={() => setShowAuthModal(true)}
+                          className="text-neon-cyan font-bold hover:underline"
+                        >
+                          iniciar sesión
+                        </button>{' '}
+                        para comentar.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           </div>
         ))}
       </div>
+      <AuthModal open={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </div>
   );
 }

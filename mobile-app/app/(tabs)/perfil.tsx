@@ -7,6 +7,7 @@ import {
   ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Link } from 'expo-router';
 import { isConfigured } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
 import { theme, radius, space } from '../../lib/theme';
@@ -82,6 +83,14 @@ export default function ProfileScreen() {
 
           {profile?.bio ? <Text style={[styles.muted, { marginTop: space.md }]}>{profile.bio}</Text> : null}
         </View>
+
+        {(profile?.role === 'admin' || profile?.role === 'dj') && (
+          <Link href="/dj" asChild>
+            <Pressable style={[styles.btn, styles.btnPrimary, { marginBottom: space.sm }]}>
+              <Text style={styles.btnPrimaryText}>Ir al Panel DJ</Text>
+            </Pressable>
+          </Link>
+        )}
 
         <Pressable style={[styles.btn, styles.btnGhost]} onPress={() => signOut()}>
           <Text style={styles.btnGhostText}>Cerrar sesión</Text>

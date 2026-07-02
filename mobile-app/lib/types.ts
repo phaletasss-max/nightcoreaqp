@@ -131,3 +131,22 @@ export interface ChatMessage {
   hidden?: boolean;
   created_at: string;
 }
+
+export interface ProfileGuestbook {
+  id: string;
+  owner_id: string;
+  author_id: string | null;
+  author_name: string;
+  content: string;
+  created_at: string;
+  author?: { avatar_url: string | null; username: string } | null;
+}
+
+export interface ProfileReaction {
+  id: string;
+  profile_id: string;
+  user_id: string;
+  reaction: string;
+  created_at: string;
+}
+

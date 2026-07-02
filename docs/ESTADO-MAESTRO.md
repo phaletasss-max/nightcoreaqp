@@ -4,7 +4,7 @@
 > seguridad y marketing — cada cosa con su **estado real en código**.
 > Es el documento "padre"; los de `docs/` y `docs/pt/` son el detalle.
 
-**Última actualización:** 2026-06-26
+**Última actualización:** 2026-07-02
 **Edición vigente:** Nightcore Arequipa 3 · **Organiza:** Yorch · **Hecho por:** Los Simpatizantes de JP
 **Producción:** https://nightcoreaqp-five.vercel.app (Vercel) · Media-service en Render (`nightcore-media`)
 
@@ -197,7 +197,7 @@ Tailwind v4              Storage · RLS            media-service (Render) = resp
 | Descargas MP3/MP4 (.bat local) — DJ | 🔒 | |
 | Descarga masiva para usuarios (estilo DJ) | ✅ | Playlist: barra "Descargar a tu PC" (MP3/MP4) + botón por canción → `.bat` con URLs reales. Reemplaza la descarga por unidad confusa (2026-06-25) |
 | Búsqueda de respaldo (media-service) | 🟡 | Render + cookies YouTube |
-| Disfraces (cosplay) + votos + comentarios | ✅ | |
+| Disfraces (cosplay) + votos + comentarios | 🔒 | Sube fotos a Supabase Storage, selector muestra todos los eventos, y comentarios persistidos en BD |
 | Encuestas | ✅ | |
 | Temáticas sugeridas (ranking por clicks) | ✅ | |
 | Retos diarios / racha | ✅ | |
@@ -242,6 +242,7 @@ Todas son idempotentes; correr en el **SQL Editor**.
 | `supabase/phase-profile-extras.sql` | `profiles.bio/tiktok_url/instagram_url/accent/bg_url` + `profile_photos` + RLS | ✅ **corrido (2026-06-26)** (galería, bio, links, acento — base del perfil hi5) |
 | `supabase/phase-sugerencias.sql` | tabla `suggestions` + RLS (insert anon, read/update/delete staff) | ✅ **corrido (2026-06-26)** (buzón persiste en BD) |
 | `supabase/phase-bloques.sql` | tabla `custom_blocks` + RLS (público lee visibles, staff gestiona todo) | ✅ **corrido (2026-06-26)** (cierra el 404 de `custom_blocks`; bloques del admin en BD) |
+| `supabase/phase-security-hardening.sql` | corrige search_path mutable, revoca ejecución a anon de triggers definer, RPC add_points | ✅ **corrido (2026-07-02)** (resuelve linter warnings de Supabase y Bug de puntos) |
 
 > **Hallazgo de auditoría:** `scripts/verify-schema.ts` valida `events.is_visible` y columnas
 > `setting_key/setting_value` que **no existen** (la tabla usa `key/value`); ninguna migración crea
@@ -281,8 +282,9 @@ Todas son idempotentes; correr en el **SQL Editor**.
 | S2 | ~~Admin de emergencia + allowlist de correos~~ | ✅ Resuelto | Bypass de emergencia y `ADMIN_EMAILS` eliminados; `isStaff` = rol real en BD (2026-06-25) |
 | S3 | Toda la seguridad real recae en **RLS**; el cliente usa anon key | 🟢 Info | Correcto, pero auditar que cada tabla tenga RLS cerrada (la mayoría usa `is_staff()`) |
 | S4 | Demo: rol por defecto `admin` (`auth.tsx`) | 🟢 Info | Solo aplica sin Supabase configurado |
-| S5 | ~~`console.log('[FASE 3]…')` de depuración en `data.ts` de producción~~ | ✅ Cerrado | Eliminados 2026-06-26 (`data.ts`: `addSong`, `addCostume`) |
 | S6 | ~~Escalamiento de privilegios en `profiles` (hackeo de roles y puntos)~~ | ✅ Resuelto | Añadida la restricción RLS `profiles_update_own_or_admin` y el trigger `check_profile_update` para bloquear la modificación directa de columnas administrativas por parte del usuario. (2026-06-26) |
+| S7 | Linter warnings de Supabase (search_path, exec por anon) | ✅ Resuelto | Creada y ejecutada la migración `phase-security-hardening.sql` que añade `set search_path` y revoca permisos a anon. (2026-07-02) |
+| S8 | Pérdida de puntos por RLS/trigger en update directo | ✅ Resuelto | Implementado el RPC `add_points()` y modificada la llamada en `auth.tsx` para persistencia robusta. (2026-07-02) |
 
 ---
 
@@ -319,6 +321,11 @@ Todas son idempotentes; correr en el **SQL Editor**.
 ### B5 — TikTok MP4 daba `0xc00d5212` (HEVC) — ✅ arreglado
 - **Causa:** TikTok venía en HEVC y `--recode-video` no re-encoda un HEVC ya en contenedor mp4.
 - **Fix (v0.1.6):** se selecciona explícitamente un formato H.264 (`vcodec` sin `hev`/`hvc`).
+
+### B6 — React #418 Hydration Mismatch en `/disfraces` — ✅ arreglado
+- **Causa:** Expresión JSX vacía `{ }` que rompía el DOM al hidratar en el navegador.
+- **Fix:** Eliminada la expresión y añadido control de fallback para imágenes con blob URLs.
+
 
 ---
 

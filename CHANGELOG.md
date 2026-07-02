@@ -7,6 +7,23 @@ Versión semántica: MAYOR.MENOR.PATCH (la app web no tiene número de versión 
 
 ## [Unreleased] — Mobile (Expo)
 
+### 2026-06-26 (e) — Auditoría de Seguridad & Parche de Base de Datos
+- **Seguridad en la Base de Datos (`supabase/schema.sql` y `fixes.sql`)**: 
+  - Corregida vulnerabilidad crítica de escalamiento de privilegios en la tabla de perfiles (`profiles`). Se añade la función trigger `check_profile_update` y el trigger `trg_check_profile_update` para bloquear cambios no autorizados en columnas de administración (`role`, `points`, `streak_count`) desde la API del cliente (PostgREST / SDK de Supabase).
+  - Actualizada la política RLS `profiles_update_own` a `profiles_update_own_or_admin` para permitir que los administradores editen perfiles ajenos (necesario para el funcionamiento del panel de administración), evitando que el RLS rechace las promociones de rol.
+  - Verificado que todas las 20+ tablas poseen RLS activo, las variables de entorno están debidamente protegidas en plantillas de ejemplo, y no existen llaves administrativas (`service_role`) hardcodeadas en el código cliente.
+
+### 2026-06-26 (d) — App móvil, Fase 3 DJ y Retos/Encuestas (§16)
+
+Completadas las pantallas de la Fase 3 y la integración de fotos de cosplay:
+
+- **PT 3.1 — Retos y Encuestas (`app/encuestas.tsx`)**: Check-in diario (racha de días y +5 pts) con lógica de comparación de fechas, encuesta activa con visualización de resultados y barras de porcentaje (voto inline), e historial de encuestas con ganadores.
+- **PT 3.2 — Panel DJ móvil (`app/dj.tsx`)**: Guard de acceso para roles `dj` y `admin`. Listado de setlist en tiempo real ordenado por votos con capacidad de marcar canciones como tocadas, estadísticas de cola de reproducción, y listado de asistentes confirmados con códigos VIP.
+- **PT 3.3 — Subida de Fotos de Cosplay (`app/disfraces.tsx`)**: Integración de `expo-image-picker` y Supabase Storage (bucket `media`) para permitir a los usuarios subir fotos de cosplay desde su galería directamente en el móvil, registrando el cosplay en la base de datos y otorgando puntos.
+- **PT 3.4 — Muro de la Fama y Historial (`app/historial.tsx`)**: Listado de eventos pasados indicando si el usuario asistió ("Asistí"), y visualización móvil del Muro de la Fama (ranking de Top Fans, Himnos musicales y Hall del Cosplay).
+- **Navegación e Integración**: Añadidos accesos directos en el Grid de la pantalla de Inicio (`index.tsx`) con un layout responsivo de 2 columnas, y botón de acceso al Panel DJ en el Perfil (`perfil.tsx`).
+- **Verificado**: `npx tsc --noEmit` sin errores y `npx expo export --platform android` bundla correctamente todo el árbol de rutas y dependencias.
+
 ### 2026-06-26 (c) — App móvil, Fase 2 comunidad (§16)
 
 Pantallas de comunidad como rutas de stack (PT 2.1–2.4):
@@ -53,6 +70,32 @@ Expo Router + las 3 pantallas core. Organizado en partes de trabajo (PT 1.1–1.
   en el entorno de desarrollo actual). Falta Fase 1: `expo-router` + pantallas Home/Playlist/Perfil.
 
 ## [Unreleased] — Web
+
+### 2026-07-02
+- **Pasarela de Disfraces**:
+  - Removida la restricción temporal del selector de eventos en `/disfraces` para permitir listar todos los eventos del sistema.
+  - Implementada la subida de imágenes a Supabase Storage (bucket `media`) mediante `uploadMediaFile` al registrar un disfraz en lugar de usar URLs locales temporales.
+  - Añadida persistencia de comentarios de disfraces en la base de datos a través de la nueva función `addCostumeComment` en `src/lib/data.ts` y su mapeo en `getCostumes`.
+  - Integrada la validación de inicio de sesión con `AuthModal` al votar, registrar un disfraz o escribir comentarios.
+  - **Corrección de Error Crítico (React #418 Hydration Mismatch)**: Removida la expresión vacía `{ }` que causaba el fallo de hidratación en React en la vista de tarjetas de disfraces.
+  - **Fallback de URL**: Añadido placeholder para disfraces con URLs locales `blob:` corruptas previas a la integración de Storage.
+  - **Alineación de Tipos**: Añadido el campo `user_id` a la interfaz `CostumeComment` en `types.ts` para equipararlo con la tabla de Supabase.
+- **Seguridad y Parche de Puntos (Bug 2 & Supabase Linter)**:
+  - **Persistencia de Puntos**: Creada e integrada la función RPC `add_points(p_delta)` en Supabase (`security definer` con search_path e intervalo de delta restringido) para evitar que el trigger `check_profile_update` bloquee las llamadas legítimas de sumas de puntos en el cliente.
+  - **Mitigación de Vulnerabilidades de Linter**: Creado `supabase/phase-security-hardening.sql` para añadir `search_path = public` a todas las funciones triggers de votos (`recompute_song_votes`, `recompute_costume_votes`, `recompute_survey_votes`) y revocar permisos de ejecución a la cuenta `anon` en funciones de administración (`handle_new_user`, `approve_attendance_proof`, `reject_attendance_proof`, `daily_check_in`).
+
+
+### 2026-06-26 (d)
+
+**Perfil hi5 — Libro de visitas & Reacciones (Fase B — §14)**
+
+- **Creadas migraciones de Base de Datos**: `supabase/phase-guestbook.sql` y `supabase/phase-reactions.sql` con políticas de RLS e índices de rendimiento.
+- **Implementados endpoints en la capa de datos dual** (`src/lib/data.ts`): Añadidas funciones CRUD y de suscripción en tiempo real con Supabase Realtime (`getProfileGuestbook`, `addGuestbookEntry`, `deleteGuestbookEntry`, `subscribeProfileGuestbook`, `getProfileReactions`, `toggleProfileReaction`, `subscribeProfileReactions`) y sus respectivas alternativas locales en `localStorage`.
+- **Integrados componentes interactivos en el Perfil Público**:
+  - **Fives (Reacciones)**: Botones interactivos con contadores en tiempo real (⭐ estrella, 💜 corazón, 💀 calavera, 🔥 fuego, 👾 fantasma). Control del estado activo y limitación de 1 reacción por tipo por usuario.
+  - **Guestbook (Libro de visitas)**: Muro de firma para usuarios autenticados con avatares, RLS y borrado autorizado por dueño del perfil, autor del mensaje o staff.
+  - **Modal de Auth**: Integrado `AuthModal` al interactuar sin sesión.
+- Verificado y compilado con `npx tsc --noEmit` limpio.
 
 ### 2026-06-26 (c)
 

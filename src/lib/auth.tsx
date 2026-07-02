@@ -226,8 +226,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!configured) saveDemoProfile(next);
       return next;
     });
+    // Usa el RPC add_points (security definer) que pasa por encima del trigger
+    // check_profile_update, el cual bloquea cambios directos a `points`.
     if (configured && profile) {
-      supabase.from('profiles').update({ points: profile.points + delta }).eq('id', profile.id).then(() => {});
+      supabase.rpc('add_points', { p_delta: delta }).then(() => {});
     }
   };
 

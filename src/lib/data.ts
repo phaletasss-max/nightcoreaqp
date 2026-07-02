@@ -9,7 +9,7 @@ import {
   DEMO_EVENTS, DEMO_SONGS, DEMO_SURVEY, DEMO_COSTUMES, DEMO_COMMENTS, DEMO_THEMES,
 } from './demo-data';
 import type {
-  EventItem, Song, Survey, Costume, EventComment, Attendee, VoteType, Theme, Profile, AttendanceProof, ProofStatus, ChatMessage, ProfilePhoto, Suggestion, CustomBlock
+  EventItem, Song, Survey, Costume, CostumeComment, EventComment, Attendee, VoteType, Theme, Profile, AttendanceProof, ProofStatus, ChatMessage, ProfilePhoto, Suggestion, CustomBlock, ProfileGuestbook, ProfileReaction
 } from './types';
 
 const cfg = () => isSupabaseConfigured();
@@ -543,7 +543,13 @@ export async function launchSurvey(question: string, options: string[]): Promise
 export async function getCostumes(): Promise<Costume[]> {
   if (cfg()) {
     const { data } = await supabase.from('costumes').select('*, costume_comments(*)').order('votes_count', { ascending: false });
-    return (data as Costume[]) ?? [];
+    if (data) {
+      return (data as any[]).map((c) => ({
+        ...c,
+        comments: c.costume_comments ?? []
+      })) as Costume[];
+    }
+    return [];
   }
   return lsGet('nq_costumes', DEMO_COSTUMES);
 }
@@ -554,11 +560,34 @@ export async function addCostume(input: Pick<Costume, 'char_name' | 'anime' | 'p
   if (cfg()) {
     const { data, error } = await supabase.from('costumes').insert({ user_id: userId, event_id: eventId, char_name: input.char_name, anime: input.anime, photo_url: input.photo_url, description: input.description, tags: row.tags, is_wip: row.is_wip }).select().single();
     if (error) logError('addCostume.insert', error, { userId });
-    return (data as Costume) ?? row;
+    if (data) {
+      return {
+        ...(data as Costume),
+        comments: []
+      };
+    }
+    return row;
   }
   const all = lsGet('nq_costumes', DEMO_COSTUMES);
   all.unshift(row);
   lsSet('nq_costumes', all);
+  return row;
+}
+
+export async function addCostumeComment(costumeId: string, userId: string | null, username: string, content: string): Promise<CostumeComment> {
+  const row: CostumeComment = { id: `cc-${Date.now()}`, costume_id: costumeId, username, content, created_at: new Date().toISOString() };
+  if (cfg()) {
+    const { data, error } = await supabase.from('costume_comments').insert({ costume_id: costumeId, user_id: userId, username, content }).select().single();
+    if (error) logError('addCostumeComment', error);
+    return (data as CostumeComment) ?? row;
+  }
+  const all = lsGet<Costume[]>('nq_costumes', DEMO_COSTUMES);
+  const idx = all.findIndex((c) => c.id === costumeId);
+  if (idx >= 0) {
+    if (!all[idx].comments) all[idx].comments = [];
+    all[idx].comments!.push(row);
+    lsSet('nq_costumes', all);
+  }
   return row;
 }
 
@@ -1009,3 +1038,185 @@ export async function toggleCustomBlockVisible(id: string, visible: boolean, sec
   const key = blockKey(section);
   lsSet(key, lsGet<CustomBlock[]>(key, []).map((b) => b.id === id ? { ...b, visible } : b));
 }
+
+// ── GUESTBOOK (Fase 14-B) ────────────────────────────────────────────────────
+const guestbookKey = (ownerId: string) => `nq_profile_guestbook_${ownerId}`;
+
+export async function getProfileGuestbook(ownerId: string): Promise<ProfileGuestbook[]> {
+  if (cfg()) {
+    const { data, error } = await supabase
+      .from('profile_guestbook')
+      .select('*, author:profiles!author_id(avatar_url, username)')
+      .eq('owner_id', ownerId)
+      .order('created_at', { ascending: false });
+    if (error) { logError('getProfileGuestbook', error, { ownerId }); return []; }
+    return (data as ProfileGuestbook[]) ?? [];
+  }
+  return lsGet<ProfileGuestbook[]>(guestbookKey(ownerId), []);
+}
+
+export async function addGuestbookEntry(
+  ownerId: string,
+  authorId: string | null,
+  authorName: string,
+  content: string
+): Promise<ProfileGuestbook | null> {
+  const text = content.trim();
+  if (!text) return null;
+  
+  // For local/demo, we can try to fetch the author's avatar from local profiles list
+  let authorAvatar: string | null = null;
+  if (!cfg() && authorId) {
+    const profiles = lsGet<Profile[]>('nq_profiles', []);
+    const ap = profiles.find(p => p.id === authorId);
+    if (ap) authorAvatar = ap.avatar_url;
+  }
+
+  const row: ProfileGuestbook = {
+    id: `gb-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    owner_id: ownerId,
+    author_id: authorId,
+    author_name: authorName,
+    content: text,
+    created_at: new Date().toISOString(),
+    author: authorId ? { username: authorName, avatar_url: authorAvatar } : null
+  };
+
+  // Local first
+  const all = lsGet<ProfileGuestbook[]>(guestbookKey(ownerId), []);
+  all.unshift(row);
+  lsSet(guestbookKey(ownerId), all);
+
+  if (cfg()) {
+    const { data, error } = await supabase
+      .from('profile_guestbook')
+      .insert({
+        owner_id: ownerId,
+        author_id: authorId,
+        author_name: authorName,
+        content: text,
+      })
+      .select('*, author:profiles!author_id(avatar_url, username)')
+      .single();
+    if (error) {
+      logError('addGuestbookEntry', error, { ownerId, authorId });
+      return row;
+    }
+    return data as ProfileGuestbook;
+  }
+  return row;
+}
+
+export async function deleteGuestbookEntry(id: string, ownerId: string): Promise<void> {
+  if (cfg()) {
+    const { error } = await supabase.from('profile_guestbook').delete().eq('id', id);
+    if (error) logError('deleteGuestbookEntry', error, { id });
+    return;
+  }
+  lsSet(
+    guestbookKey(ownerId),
+    lsGet<ProfileGuestbook[]>(guestbookKey(ownerId), []).filter((g) => g.id !== id)
+  );
+}
+
+export function subscribeProfileGuestbook(ownerId: string, onInsert: (m: ProfileGuestbook) => void): () => void {
+  if (cfg()) {
+    const channel = supabase
+      .channel(`guestbook:${ownerId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'profile_guestbook', filter: `owner_id=eq.${ownerId}` },
+        (payload) => onInsert(payload.new as ProfileGuestbook),
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }
+  if (typeof window === 'undefined') return () => {};
+  const handler = (e: StorageEvent) => {
+    if (e.key !== guestbookKey(ownerId) || !e.newValue) return;
+    try {
+      const list = JSON.parse(e.newValue) as ProfileGuestbook[];
+      const last = list[0];
+      if (last) onInsert(last);
+    } catch { /* ignore */ }
+  };
+  window.addEventListener('storage', handler);
+  return () => window.removeEventListener('storage', handler);
+}
+
+// ── REACCIONES / FIVES (Fase 14-B) ───────────────────────────────────────────
+const reactionsKey = (profileId: string) => `nq_profile_reactions_${profileId}`;
+
+export async function getProfileReactions(profileId: string): Promise<ProfileReaction[]> {
+  if (cfg()) {
+    const { data, error } = await supabase
+      .from('profile_reactions')
+      .select('*')
+      .eq('profile_id', profileId);
+    if (error) { logError('getProfileReactions', error, { profileId }); return []; }
+    return (data as ProfileReaction[]) ?? [];
+  }
+  return lsGet<ProfileReaction[]>(reactionsKey(profileId), []);
+}
+
+export async function toggleProfileReaction(
+  profileId: string,
+  userId: string,
+  reaction: string,
+  active: boolean
+): Promise<void> {
+  if (cfg()) {
+    if (active) {
+      const { error } = await supabase
+        .from('profile_reactions')
+        .upsert({ profile_id: profileId, user_id: userId, reaction }, { onConflict: 'profile_id,user_id,reaction' });
+      if (error) logError('toggleProfileReaction.upsert', error, { profileId, userId, reaction });
+    } else {
+      const { error } = await supabase
+        .from('profile_reactions')
+        .delete()
+        .match({ profile_id: profileId, user_id: userId, reaction });
+      if (error) logError('toggleProfileReaction.delete', error, { profileId, userId, reaction });
+    }
+    return;
+  }
+  const all = lsGet<ProfileReaction[]>(reactionsKey(profileId), []);
+  if (active) {
+    if (!all.some(r => r.user_id === userId && r.reaction === reaction)) {
+      all.push({
+        id: `react-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        profile_id: profileId,
+        user_id: userId,
+        reaction,
+        created_at: new Date().toISOString()
+      });
+    }
+  } else {
+    lsSet(reactionsKey(profileId), all.filter(r => !(r.user_id === userId && r.reaction === reaction)));
+    return;
+  }
+  lsSet(reactionsKey(profileId), all);
+}
+
+export function subscribeProfileReactions(profileId: string, onChange: () => void): () => void {
+  if (cfg()) {
+    const channel = supabase
+      .channel(`reactions:${profileId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profile_reactions', filter: `profile_id=eq.${profileId}` },
+        () => onChange(),
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }
+  if (typeof window === 'undefined') return () => {};
+  const handler = (e: StorageEvent) => {
+    if (e.key === reactionsKey(profileId)) {
+      onChange();
+    }
+  };
+  window.addEventListener('storage', handler);
+  return () => window.removeEventListener('storage', handler);
+}
+

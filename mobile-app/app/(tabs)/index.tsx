@@ -121,18 +121,20 @@ export default function HomeScreen() {
         </>
       )}
 
-      {/* Comunidad — accesos a las pantallas de la Fase 2 */}
+      {/* Comunidad — accesos a las pantallas */}
       <Text style={styles.sectionTitle}>Comunidad</Text>
       <View style={styles.navGrid}>
         {([
           { href: '/disfraces', icon: 'shirt', label: 'Disfraces' },
           { href: '/chat', icon: 'chatbubbles', label: 'Chat' },
+          { href: '/encuestas', icon: 'checkbox-outline', label: 'Retos/Votos' },
+          { href: '/historial', icon: 'trophy-outline', label: 'Historial' },
           { href: '/actividad', icon: 'sparkles', label: 'Mi actividad' },
         ] as const).map((n) => (
           <Link key={n.href} href={n.href} asChild>
             <Pressable style={styles.navCard}>
               <Ionicons name={n.icon} size={22} color={theme.cyan} />
-              <Text style={styles.navLabel}>{n.label}</Text>
+              <Text style={styles.navLabel} numberOfLines={1}>{n.label}</Text>
             </Pressable>
           </Link>
         ))}
@@ -162,8 +164,8 @@ const styles = StyleSheet.create({
   btnGhostText: { color: theme.muted, fontWeight: '700' },
   btnPrimary: { backgroundColor: theme.magenta },
   btnPrimaryText: { color: '#0a0410', fontWeight: '800' },
-  navGrid: { flexDirection: 'row', gap: space.sm },
-  navCard: { flex: 1, alignItems: 'center', gap: space.xs, backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1, borderRadius: radius.lg, paddingVertical: space.lg },
+  navGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  navCard: { width: '45%', flexGrow: 1, minWidth: 140, alignItems: 'center', gap: space.xs, backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1, borderRadius: radius.lg, paddingVertical: space.md },
   navLabel: { color: theme.text, fontSize: 12, fontWeight: '700' },
   warnCard: { borderColor: 'rgba(255,240,31,0.4)', marginTop: space.lg },
   warnTitle: { color: theme.yellow, fontWeight: '800', marginBottom: space.xs },

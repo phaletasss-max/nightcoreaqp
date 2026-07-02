@@ -11,7 +11,7 @@
 - Cada PT tiene: **Estado · Objetivo · Tareas · Archivos · Dependencias · Criterio de aceptación**.
 - Estados: ⛔ no empezado · 🟡 parcial · ✅ hecho · ⏸️ aparcado · 👤 acción del dueño (no la IA).
 - Al terminar una PT: **verificar** (`tsc`/`build`/`expo export`) → **marcar aquí + en ESTADO-MAESTRO + CHANGELOG** → **commit + push a `main`**.
-- **Última actualización:** 2026-06-26.
+- **Última actualización:** 2026-07-02.
 
 > ⚠️ **Nota (2026-06-26):** hay **trabajo en curso sin commitear** en el árbol (otra sesión): la
 > **Fase B del perfil hi5** (migraciones `phase-guestbook.sql` + `phase-reactions.sql` ya redactadas
@@ -44,23 +44,23 @@
 - **Dependencias:** migraciones §6 (✅), cuenta `role=admin` (👤), `site_settings_setup.sql` (PT B1).
 - **Criterio:** las 6 áreas responden en prod sin errores de consola.
 
-### PT W1 — Perfil hi5 Fase B: Guestbook (libro de visitas) 🟡 (en progreso, sin commitear)
+### PT W1 — Perfil hi5 Fase B: Guestbook (libro de visitas) ✅
 - **Objetivo:** sección "Libro de visitas" en `/perfil/[id]` donde usuarios logueados dejan mensajes.
 - **Tareas:**
-  - [ ] Migración `supabase/phase-guestbook.sql`: tabla `profile_guestbook (id, owner_id, author_id, author_name, content, created_at)` + RLS (cualquier logueado inserta en perfil ajeno; owner y staff leen/eliminan; público lee).
-  - [ ] `src/lib/data.ts`: `getGuestbook(ownerId)`, `addGuestbookEntry(ownerId, content, author)`, `deleteGuestbookEntry(id)` con patrón dual `if(cfg())`.
-  - [ ] UI scoped en `src/app/perfil/[id]/page.tsx` + `perfil.module.css` (estilo hi5: lista vertical, avatares, fecha).
-  - [ ] Censura con `banned_words` (reusar el filtro del chat).
-- **Archivos:** `supabase/phase-guestbook.sql`, `src/lib/data.ts`, `src/app/perfil/[id]/page.tsx`, `perfil.module.css`, `src/lib/types.ts` (tipo `GuestbookEntry`).
-- **Dependencias:** `is_staff()` (✅). Es la Fase B de §14.
+  - [x] Migración `supabase/phase-guestbook.sql`: tabla `profile_guestbook (id, owner_id, author_id, author_name, content, created_at)` + RLS.
+  - [x] `src/lib/data.ts`: `getGuestbook(ownerId)`, `addGuestbookEntry(ownerId, content, author)`, `deleteGuestbookEntry(id)` con patrón dual.
+  - [x] UI scoped en `src/app/perfil/[id]/page.tsx` + `perfil.module.css`.
+  - [x] Censura con `banned_words`.
+- **Archivos:** `supabase/phase-guestbook.sql`, `src/lib/data.ts`, `src/app/perfil/[id]/page.tsx`, `perfil.module.css`, `src/lib/types.ts`.
+- **Dependencias:** `is_staff()` (✅).
 - **Criterio:** dejar/leer/borrar mensajes en prod; RLS impide editar ajenos; `tsc` + build verdes.
 
-### PT W2 — Perfil hi5 Fase B: Reactions / "Fives" 🟡 (en progreso, sin commitear)
+### PT W2 — Perfil hi5 Fase B: Reactions / "Fives" ✅
 - **Objetivo:** botones retro (⭐/💜/💀) con contador; 1 reacción por usuario por tipo.
 - **Tareas:**
-  - [ ] Migración `supabase/phase-reactions.sql`: `profile_reactions (id, profile_id, user_id, reaction)` + RLS (1 por user+tipo, conflicto `(profile_id,user_id,reaction)`).
-  - [ ] `data.ts`: `getReactions(profileId, userId)`, `toggleReaction(profileId, userId, reaction)`.
-  - [ ] UI en perfil (grid de botones neón, contador, estado propio).
+  - [x] Migración `supabase/phase-reactions.sql`: `profile_reactions` + RLS (1 por user+tipo).
+  - [x] `data.ts`: `getReactions`, `toggleReaction`.
+  - [x] UI en perfil (grid de botones neón, contador, estado propio).
 - **Archivos:** `supabase/phase-reactions.sql`, `data.ts`, `perfil/[id]/page.tsx`, `perfil.module.css`, `types.ts`.
 - **Dependencias:** ninguna nueva.
 - **Criterio:** reaccionar/quitar reacción persiste; contador correcto; `tsc`/build verdes.
@@ -115,12 +115,12 @@
   - [ ] Verificar que un cambio de diseño persiste tras recargar.
 - **Criterio:** el diseño se guarda en `site_settings` y sobrevive recarga/otro dispositivo.
 
-### PT B2 — Migraciones nuevas de features pendientes ⛔
+### PT B2 — Migraciones nuevas de features pendientes ✅
 - **Objetivo:** crear las tablas que piden W1/W2/W3 y, si se hace, notificaciones.
 - **Tareas:**
-  - [ ] `phase-guestbook.sql` (PT W1), `phase-reactions.sql` (PT W2), feed (PT W3).
+  - [x] `phase-guestbook.sql` (PT W1), `phase-reactions.sql` (PT W2).
   - [ ] (Opcional) `phase-notifications.sql` para notificaciones reales (móvil PT M4 / web).
-  - [ ] Todas idempotentes, con RLS, documentadas en §6 de ESTADO-MAESTRO.
+  - [x] Todas idempotentes, con RLS, de perfil y chat.
 - **Criterio:** cada migración corre limpia y queda registrada en §6.
 
 ### PT B3 — Auditoría RLS completa (hallazgo S3) ⛔

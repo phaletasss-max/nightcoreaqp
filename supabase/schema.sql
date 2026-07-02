@@ -245,6 +245,48 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function handle_new_user();
 
+-- Trigger de seguridad para evitar que los usuarios alteren su propio rol o puntos directamente
+create or replace function check_profile_update()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  caller_role user_role;
+begin
+  -- Obtener el rol del usuario autenticado que realiza la llamada
+  select role into caller_role from public.profiles where id = auth.uid();
+
+  -- 1. Si no es un administrador, impedir cambios en el rol
+  if new.role is distinct from old.role then
+    if caller_role is distinct from 'admin' then
+      new.role := old.role; -- Restaurar el rol anterior
+    end if;
+  end if;
+
+  -- 2. Impedir que usuarios comunes cambien sus puntos o racha directamente desde la API (ej: PostgREST)
+  if new.points is distinct from old.points then
+    if current_setting('role', true) in ('authenticated', 'anon') and (caller_role is distinct from 'admin' or caller_role is null) then
+      new.points := old.points;
+    end if;
+  end if;
+
+  if new.streak_count is distinct from old.streak_count then
+    if current_setting('role', true) in ('authenticated', 'anon') and (caller_role is distinct from 'admin' or caller_role is null) then
+      new.streak_count := old.streak_count;
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_check_profile_update on public.profiles;
+create trigger trg_check_profile_update
+  before update on public.profiles
+  for each row execute function check_profile_update();
+
 -- Recalcular votes_count de una canción (upvote = +1, downvote = -1).
 create or replace function recompute_song_votes()
 returns trigger
@@ -393,8 +435,16 @@ create policy profiles_select on profiles
   for select using (true);                         -- ranking/usernames son públicos
 
 drop policy if exists profiles_update_own on profiles;
-create policy profiles_update_own on profiles
-  for update using (auth.uid() = id) with check (auth.uid() = id);
+drop policy if exists profiles_update_own_or_admin on profiles;
+create policy profiles_update_own_or_admin on profiles
+  for update using (
+    auth.uid() = id 
+    or (select role from public.profiles where id = auth.uid()) = 'admin'
+  )
+  with check (
+    auth.uid() = id 
+    or (select role from public.profiles where id = auth.uid()) = 'admin'
+  );
 
 -- ── events ───────────────────────────────────────────────────────────────────
 drop policy if exists events_select on events;
