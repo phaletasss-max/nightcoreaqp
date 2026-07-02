@@ -20,7 +20,11 @@ export async function getNextEvent(): Promise<EventItem | null> {
     .order('date', { ascending: true });
   if (error || !data) return null;
   const events = data as EventItem[];
-  return events.find((e) => e.status === 'confirmed') ?? events[0] ?? null;
+  const now = new Date();
+  return events.find((e) => e.status === 'confirmed' && new Date(e.date) >= now) 
+    ?? events.filter((e) => e.status === 'confirmed').pop()
+    ?? events[events.length - 1] 
+    ?? null;
 }
 
 export async function getEvents(): Promise<EventItem[]> {

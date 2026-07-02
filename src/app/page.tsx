@@ -51,8 +51,17 @@ export default function Home() {
   useEffect(() => {
     getEvents().then((evs) => {
       setEvents(evs);
-      const confirmed = evs.find((e) => e.status === 'confirmed');
-      setSelectedId(confirmed?.id ?? evs[0]?.id ?? '');
+      
+      const now = new Date();
+      // Buscar evento futuro confirmado
+      let active = evs.find((e) => e.status === 'confirmed' && new Date(e.date) >= now);
+      // Si no hay futuros, agarrar el último confirmado (el más reciente en la lista)
+      if (!active) {
+        const confirmedEvs = evs.filter((e) => e.status === 'confirmed');
+        active = confirmedEvs[confirmedEvs.length - 1];
+      }
+      
+      setSelectedId(active?.id ?? evs[evs.length - 1]?.id ?? '');
     });
     getSiteSettings().then(setBgs);
     getBannedWords().then(setBannedWords);
@@ -70,7 +79,10 @@ export default function Home() {
   }, [selectedId]);
 
   const selected = events.find((e) => e.id === selectedId);
-  const nextEvent = events.find((e) => e.status === 'confirmed') ?? events[0];
+  const now = new Date();
+  const nextEvent = events.find((e) => e.status === 'confirmed' && new Date(e.date) >= now) 
+    ?? events.filter((e) => e.status === 'confirmed').pop() 
+    ?? events[events.length - 1];
 
   const goToDetail = () => detailRef.current?.scrollIntoView({ behavior: 'smooth' });
 
