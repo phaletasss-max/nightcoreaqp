@@ -130,6 +130,7 @@ export default function HomeScreen() {
           { href: '/encuestas', icon: 'checkbox-outline', label: 'Retos/Votos' },
           { href: '/historial', icon: 'trophy-outline', label: 'Historial' },
           { href: '/actividad', icon: 'sparkles', label: 'Mi actividad' },
+          { href: '/descargas', icon: 'cloud-download-outline', label: 'Descargas' },
         ] as const).map((n) => (
           <Link key={n.href} href={n.href} asChild>
             <Pressable style={styles.navCard}>

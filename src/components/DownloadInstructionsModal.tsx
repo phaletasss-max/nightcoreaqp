@@ -53,12 +53,17 @@ export default function DownloadInstructionsModal({ onClose }: { onClose: () => 
                 <Smartphone className="h-5 w-5 text-neon-pink" />
                 <h4 className="font-bold text-white text-sm">Para Celulares (Android)</h4>
               </div>
-              <p className="text-xs text-muted-2 mb-3">Recomendamos aplicaciones seguras de código abierto como YTDLnis o Seal para extraer el audio.</p>
+              <p className="text-xs text-muted-2 mb-3">
+                Instala la <strong>App Oficial de Nightcore AQP</strong> (APK). Contiene toda la comunidad y te permite descargar directamente a tu galería usando la nube.
+              </p>
               <div className="flex gap-2">
-                <a href="https://github.com/deniscerri/ytdlnis/releases/latest" target="_blank" rel="noreferrer" className="btn bg-surface border border-border text-xs flex-1 justify-center hover:border-neon-pink transition-colors">
-                  Descargar YTDLnis
+                <a href="https://github.com/phaletasss-max/nightcoreaqp/releases/latest/download/NightcoreAQP.apk" target="_blank" rel="noreferrer" className="btn bg-surface border border-border text-xs flex-1 justify-center hover:border-neon-pink transition-colors">
+                  <Download className="h-4 w-4 mr-1 text-neon-pink" /> Descargar App (APK)
                 </a>
               </div>
+              <p className="text-[10px] text-muted-2 mt-2 leading-relaxed">
+                ⚠️ Tu celular puede pedir permiso para instalar apps de orígenes desconocidos.
+              </p>
             </div>
           </div>
         </div>
