@@ -9,7 +9,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   User, Flame, Coins, Camera, MessageSquare, Heart, Medal, Lock, ArrowLeft,
-  AtSign, Music2, ExternalLink, Star, Skull, Ghost, Trash2
+  AtSign, Music2, ExternalLink, Star, Skull, Ghost, Trash2, UserPlus
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import AuthModal from '@/components/AuthModal';
@@ -104,6 +104,10 @@ export default function PublicProfilePage() {
   const isPrivate = !!profile.is_private;
   const accent = profile.accent || undefined;
   const hasSocials = !!(profile.tiktok_url || profile.instagram_url);
+  // "Amigos" = reacciones de tipo 'friend' (no aparece en la fila de Fives, que
+  // solo cuenta sus 5 tipos propios).
+  const friendCount = reactions.filter((r) => r.reaction === 'friend').length;
+  const isFriend = !!currentUser && reactions.some((r) => r.user_id === currentUser.id && r.reaction === 'friend');
 
   const handleReact = async (reactionType: string) => {
     if (!currentUser) {
@@ -183,28 +187,66 @@ export default function PublicProfilePage() {
         <ArrowLeft className="h-4 w-4" /> Volver
       </Link>
 
-      {/* Cabecera retro hi5 */}
-      <div className={styles.panel}>
-        <div className={styles.titlebar}>★ Perfil de {profile.username} ★</div>
-        <div className="p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
-          <div
-            className="h-20 w-20 rounded-full bg-neon-pink/15 border border-neon-pink/30 flex items-center justify-center overflow-hidden shrink-0"
-            style={accent ? { borderColor: `color-mix(in srgb, ${accent} 60%, transparent)`, backgroundColor: `color-mix(in srgb, ${accent} 14%, transparent)` } : undefined}
-          >
-            {profile.avatar_url
-              ? <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
-              : <User className="h-9 w-9 text-neon-pink" />}
+      {/* Cabecera estilo red social: PORTADA (bg_url) + avatar montado + acciones.
+          "Amigos" reutiliza profile_reactions con reaction='friend' (tabla real,
+          sin migración nueva); "Mensaje" lleva al chat de la comunidad. */}
+      <div className={`${styles.panel} overflow-hidden`}>
+        {/* Portada */}
+        <div className="relative h-40 sm:h-56 w-full bg-gradient-to-r from-neon-magenta/25 via-surface-2 to-neon-cyan/25">
+          {profile.bg_url && (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={profile.bg_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+        </div>
+
+        {/* Avatar + identidad + acciones */}
+        <div className="px-6 sm:px-8 pb-6">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-12 sm:-mt-14 relative z-10">
+            <div
+              className="h-24 w-24 sm:h-28 sm:w-28 rounded-full bg-surface border-4 border-background flex items-center justify-center overflow-hidden shrink-0 shadow-[0_0_20px_rgba(0,0,0,0.6)] mx-auto sm:mx-0"
+              style={accent ? { boxShadow: `0 0 18px color-mix(in srgb, ${accent} 45%, transparent)` } : undefined}
+            >
+              {profile.avatar_url
+                ? <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
+                : <User className="h-12 w-12 text-neon-pink" />}
+            </div>
+            <div className="flex-1 text-center sm:text-left">
+              <h1 className={`text-2xl sm:text-3xl font-extrabold ${styles.glowName}`}>{profile.username}</h1>
+              <p className="text-sm text-muted font-semibold mt-0.5">
+                {friendCount} {friendCount === 1 ? 'amigo' : 'amigos'} · {profile.points} pts
+              </p>
+            </div>
+            {/* Acciones (no en el perfil propio ni en privados) */}
+            {currentUser?.id !== profile.id && !isPrivate && (
+              <div className="flex items-center justify-center gap-2 shrink-0">
+                <button
+                  onClick={() => handleReact('friend')}
+                  className={`btn text-xs py-2 ${isFriend ? 'btn-ghost border-neon-lime/50 text-neon-lime' : 'btn-primary'}`}
+                >
+                  <UserPlus className="h-4 w-4" /> {isFriend ? 'Amigos ✓' : 'Agregar a amigos'}
+                </button>
+                <Link href="/chat" className="btn btn-cyan text-xs py-2">
+                  <MessageSquare className="h-4 w-4" /> Mensaje
+                </Link>
+              </div>
+            )}
+            {currentUser?.id === profile.id && (
+              <Link href="/perfil" className="btn btn-ghost text-xs py-2 shrink-0 mx-auto sm:mx-0">
+                Editar mi perfil
+              </Link>
+            )}
           </div>
-          <div className="flex-1 w-full">
-            <h1 className={`text-2xl font-extrabold ${styles.glowName}`}>{profile.username}</h1>
-            <div className="flex items-center justify-center sm:justify-start gap-2 mt-2 flex-wrap">
+
+          <div className="mt-4">
+            <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
               <span className={`badge ${rank.cls}`}>{rank.title}</span>
               <span className="badge badge-cyan"><Coins className="h-3.5 w-3.5" /> {profile.points} pts</span>
               <span className="badge badge-pink"><Flame className="h-3.5 w-3.5" /> {profile.streak_count}d</span>
               {isPrivate && <span className="badge badge-yellow"><Lock className="h-3.5 w-3.5" /> Privado</span>}
             </div>
 
-            {profile.bio && <p className="text-sm text-muted mt-3 whitespace-pre-wrap">{profile.bio}</p>}
+            {profile.bio && <p className="text-sm text-muted mt-3 whitespace-pre-wrap text-center sm:text-left">&ldquo;{profile.bio}&rdquo;</p>}
 
             {hasSocials && (
               <div className="flex items-center justify-center sm:justify-start gap-2 mt-3 flex-wrap">

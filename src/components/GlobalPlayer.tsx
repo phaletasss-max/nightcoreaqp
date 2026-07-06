@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { usePlayer, type PlayableItem } from '@/context/PlayerContext';
 import { getSongs } from '@/lib/data';
 import {
@@ -16,6 +16,7 @@ function getYouTubeId(url: string) {
 
 export default function GlobalPlayer() {
   const router = useRouter();
+  const pathname = usePathname();
   const { playingItem, isPlaying, isMuted, togglePlay, toggleMute, playNext, playPrevious, queue, setQueue } = usePlayer();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -139,6 +140,10 @@ export default function GlobalPlayer() {
             }}
             className={`absolute inset-0 w-[110vw] h-[110vh] -top-[5vh] -left-[5vw] object-cover pointer-events-none transition-opacity duration-500 ${bgFrozen ? 'opacity-0' : 'opacity-50'}`}
           />
+        ) : playingItem?.type === 'default' && pathname === '/playlist' ? (
+          /* En /playlist el fondo idle de la radio (fondoscenecoe) se superponía con el
+             video glitch de la sección → aquí no se pinta. Al reproducir algo, sí. */
+          null
         ) : (
           <video
             ref={videoRef}

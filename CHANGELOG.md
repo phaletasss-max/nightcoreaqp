@@ -7,6 +7,28 @@ Versión semántica: MAYOR.MENOR.PATCH (la app web no tiene número de versión 
 
 ## [Unreleased] — Web
 
+### 2026-07-06 (d) — Playlist sin video superpuesto, foto de perfil, alias únicos y perfil social
+
+- **Playlist**: el fondo idle de la radio (`fondoscenecoe.mp4`, GlobalPlayer) ya no se pinta
+  en `/playlist` (se superponía con el video glitch de la sección). Al reproducir algo, el
+  visual del player vuelve a mostrarse. Disfraces quedó con su fondo original (pedido del dueño).
+- **Perfil propio** (`src/app/perfil/page.tsx`):
+  - Campo nuevo **"Foto de perfil (el círculo)"** en el editor, separado del "Fondo del Perfil
+    (detrás de la tarjeta)" — antes la única subida visible iba al fondo y parecía que la foto
+    "se ponía en toda la pantalla".
+  - **Alias únicos**: al guardar, se valida contra los usernames de otros usuarios
+    (case-insensitive, ignora @); error visible si está tomado.
+  - El "Sobre mí" (bio) ahora se muestra también en el perfil propio.
+- **Perfil público estilo red social** (`src/app/perfil/[id]/page.tsx`):
+  - **Portada** con `bg_url` (o gradiente si no hay), avatar circular montado sobre ella,
+    nombre grande y contador de amigos.
+  - Botones **"Agregar a amigos"** (toggle; usa `profile_reactions` con `reaction='friend'`,
+    tabla existente — sin migración) y **"Mensaje"** (→ /chat). En el perfil propio:
+    "Editar mi perfil". Ocultos en perfiles privados.
+  - La fila de Fives no cuenta los 'friend' (solo sus 5 tipos).
+- Verificado: tsc limpio, build OK, prueba funcional en preview (toggle de amigos 0→1,
+  campos del editor, un solo video en /playlist).
+
 ### 2026-07-06 (c) — Fix SW en dev, fondo de perfil contenido y "Mi estilo" pulido
 
 - **Service worker solo en producción** (`src/components/PWARegister.tsx`): en dev el

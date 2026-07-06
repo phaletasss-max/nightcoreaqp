@@ -7,7 +7,7 @@ import {
   Music, Sparkles, Plus, Trash2, ExternalLink, Check, Loader2, Lock, Globe
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
-import { getAttendees, getUserActivity, addSong, uploadMediaFile, updateProfilePrivacy, updateProfileAvatar } from '@/lib/data';
+import { getAttendees, getUserActivity, addSong, uploadMediaFile, updateProfilePrivacy, updateProfileAvatar, getProfiles } from '@/lib/data';
 import { searchYouTube } from '@/lib/media';
 import ProfileEditorExtras from '@/components/ProfileEditorExtras';
 import UserDesignPanel from '@/components/UserDesignPanel';
@@ -49,6 +49,7 @@ export default function PerfilPage() {
 
   const [editing, setEditing] = useState(false);
   const [localAlias, setLocalAlias] = useState('');
+  const [aliasError, setAliasError] = useState<string | null>(null);
   const [localBg, setLocalBg] = useState('');
   const [localBgOpacity, setLocalBgOpacity] = useState(0.15);
   const [uploadingBg, setUploadingBg] = useState(false);
@@ -90,8 +91,22 @@ export default function PerfilPage() {
     refresh();
   };
 
-  const saveProfileSettings = (e: React.FormEvent) => {
+  const saveProfileSettings = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Alias único: no puede coincidir con el username de OTRO usuario registrado
+    // (sin @ y sin mayúsculas para comparar). El propio username sí se permite.
+    const aliasClean = localAlias.trim().replace(/^@+/, '').toLowerCase();
+    if (aliasClean) {
+      try {
+        const all = await getProfiles();
+        const taken = all.some((p) => p.id !== profile?.id && (p.username || '').toLowerCase() === aliasClean);
+        if (taken) {
+          setAliasError(`El alias "@${aliasClean}" ya pertenece a otro usuario. Elige otro.`);
+          return;
+        }
+      } catch { /* sin conexión: no bloquear el guardado */ }
+    }
+    setAliasError(null);
     const suffix = profile?.id ? `_${profile.id}` : '_guest';
     localStorage.setItem(`nq_alias${suffix}`, localAlias);
     localStorage.setItem(`nq_bg${suffix}`, localBg);
@@ -338,6 +353,8 @@ export default function PerfilPage() {
                   {displayName}
                 </h2>
                 <span className={`badge ${rank.cls} mt-2`}>{rank.title}</span>
+                {/* "Sobre mí" visible también en el perfil propio (antes solo se veía en el público) */}
+                {profile?.bio && <p className="text-xs text-muted italic mt-2 max-w-[240px] leading-relaxed">&ldquo;{profile.bio}&rdquo;</p>}
               </div>
               <button onClick={() => setEditing(!editing)} className="text-xs text-neon-cyan hover:underline mt-1">
                 {editing ? 'Cancelar edición' : 'Personalizar perfil'}
@@ -355,10 +372,41 @@ export default function PerfilPage() {
               <form onSubmit={saveProfileSettings} className="relative z-10 card bg-black/50 p-4 space-y-3 border-dashed border-neon-cyan/50 animate-fade-in text-left">
                 <div>
                   <label className="label text-[10px]">Alias / @nombre (Local)</label>
-                  <input className="input py-1.5 text-xs" value={localAlias} onChange={(e) => setLocalAlias(e.target.value)} placeholder={`Ej. @${profile?.username || 'user'}`} />
+                  <input className="input py-1.5 text-xs" value={localAlias} onChange={(e) => { setLocalAlias(e.target.value); setAliasError(null); }} placeholder={`Ej. @${profile?.username || 'user'}`} />
+                  {aliasError && <p className="text-[10px] text-red-400 font-bold mt-1">⚠️ {aliasError}</p>}
                 </div>
+
+                {/* Foto de perfil (el círculo de arriba) — separada del FONDO para que
+                    subir una imagen no termine "detrás" por error. */}
                 <div>
-                  <label className="label text-[10px]">Fondo del Perfil (URL Imagen/GIF)</label>
+                  <label className="label text-[10px]">Foto de perfil (el círculo)</label>
+                  <div className="flex items-center gap-3">
+                    {avatarUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={avatarUrl} alt="Foto de perfil actual" className="h-11 w-11 rounded-full object-cover border-2 border-neon-pink/50 shrink-0" />
+                    ) : (
+                      <div className="h-11 w-11 rounded-full bg-neon-pink/15 border border-neon-pink/30 flex items-center justify-center shrink-0">
+                        <User className="h-5 w-5 text-neon-pink" />
+                      </div>
+                    )}
+                    <div className="relative flex-1 border border-dashed border-white/20 rounded-lg p-2 text-center hover:border-neon-pink/50 transition-colors bg-white/5 cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        disabled={uploadingAvatar}
+                        onChange={(e) => handleAvatarUpload(e.target.files?.[0])}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      />
+                      <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted font-bold">
+                        <Camera className="h-3.5 w-3.5 text-neon-pink" />
+                        {uploadingAvatar ? 'Subiendo...' : 'Cargar foto de perfil'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="label text-[10px]">Fondo del Perfil (detrás de la tarjeta)</label>
                   <div className="space-y-2">
                     <input className="input py-1.5 text-xs text-white" value={localBg} onChange={(e) => setLocalBg(e.target.value)} placeholder="https://... o carga una abajo" />
                     
