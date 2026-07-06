@@ -168,7 +168,9 @@ export default function AdminPage() {
     getBannedWords().then(setBannedWords);
     getAttendanceProofs().then(setProofs);
     getSuggestions().then(setSuggestions);
-    getCustomBlocks('home').then(setBlocks);
+    // Bloques de la home + de "Sets del DJ" (el selector del form elige dónde va cada uno)
+    Promise.all([getCustomBlocks('home'), getCustomBlocks('sets')])
+      .then(([h, s]) => setBlocks([...h, ...s]));
   }, []);
 
   const handleAddWord = async (e: React.FormEvent) => {
@@ -1317,6 +1319,20 @@ export default function AdminPage() {
                 })}
               </div>
             )}
+
+            {/* Dónde se muestra el bloque */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-muted font-bold">Sección:</span>
+              {[{ k: 'home', l: '🏠 Home' }, { k: 'sets', l: '🎧 Sets del DJ' }].map((s) => (
+                <button key={s.k} type="button"
+                  onClick={() => setBlkForm((f) => ({ ...f, section: s.k }))}
+                  className={`px-2.5 py-1 rounded-full border text-[11px] font-bold transition-colors ${
+                    blkForm.section === s.k ? 'border-neon-magenta/60 bg-neon-magenta/15 text-white' : 'border-border text-muted hover:text-white'
+                  }`}>
+                  {s.l}
+                </button>
+              ))}
+            </div>
 
             <div className="flex items-center gap-3 pt-1">
               <button type="submit" disabled={blkSaving}

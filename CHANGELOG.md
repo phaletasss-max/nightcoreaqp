@@ -11,6 +11,19 @@ Versión semántica: MAYOR.MENOR.PATCH (la app web no tiene número de versión 
 > + funciones admin (tag `v1.1`, entradas (a)–(e) de abajo). Lo siguiente es la **v1.2**:
 > identidad "Internet 2010 + Nightcore + Windows XP + Winamp + neón + anime + Arequipa".
 
+### 2026-07-06 (j) — Sets del DJ publicables + marquesina Winamp
+
+- **"Sets del DJ" dejó de ser placeholder**: el admin publica sets desde
+  **Admin → Bloques** eligiendo la sección nueva **"🎧 Sets del DJ"** (anuncio, enlace,
+  imagen o video — misma infra `custom_blocks`, sin SQL nuevo). La home los renderiza
+  en la sección Sets; sin bloques, se mantiene el placeholder (prop `fallback` nueva
+  en `CustomBlocks`). El admin ahora carga y lista los bloques de ambas secciones.
+- **Marquesina en el LCD Winamp**: cuando suena una canción, el título se desplaza en
+  loop continuo como el Winamp real (`.winamp-marquee`, texto duplicado → loop -50%
+  perfecto). En idle ("Glitch AQP") queda estático. Respeta `prefers-reduced-motion`.
+- Verificado en preview: publicar set → aparece en la home; borrar → vuelve el
+  placeholder; marquesina y ecualizador andando.
+
 ### 2026-07-06 (i) — v1.2: player con skin Winamp
 
 - **La barra flotante de la radio (GlobalPlayer) ahora es un Winamp clásico**:

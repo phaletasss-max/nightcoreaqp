@@ -915,6 +915,16 @@ html.nq-glitch-flash body {
   to { transform: scaleY(1); }
 }
 .winamp-eq.paused span { animation: none; transform: scaleY(0.12); }
+/* Marquesina del LCD: el texto va duplicado en el JSX → -50% da loop perfecto */
+.winamp-marquee {
+  display: inline-block;
+  white-space: nowrap;
+  animation: winampScroll 9s linear infinite;
+}
+@keyframes winampScroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
 
 /* Accesibilidad: sin movimiento para quien lo pide */
 @media (prefers-reduced-motion: reduce) {
@@ -927,6 +937,7 @@ html.nq-glitch-flash body {
   .crt-boot::before,
   .crt-boot::after,
   .winamp-eq span,
+  .winamp-marquee,
   .glitch-hover:hover { animation: none !important; }
   .crt-boot { display: none; }
 }

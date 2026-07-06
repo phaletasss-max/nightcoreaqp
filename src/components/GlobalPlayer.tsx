@@ -199,8 +199,15 @@ export default function GlobalPlayer() {
                   {playingItem?.type === 'default' ? 'Radio' : (playingItem?.artist || 'Reproduciendo')}
                   {multi && <span> · playlist</span>}
                 </p>
-                <p className="text-[13px] font-bold truncate w-[120px] sm:w-[220px]">
-                  {playingItem?.title || 'Glitch AQP'}
+                <p className="text-[13px] font-bold overflow-hidden whitespace-nowrap w-[120px] sm:w-[220px]">
+                  {playingItem?.type === 'default' ? (
+                    <span className="truncate block">Glitch AQP</span>
+                  ) : (
+                    /* texto duplicado → el loop de la marquesina (-50%) es perfecto */
+                    <span className="winamp-marquee">
+                      {playingItem?.title || 'Reproduciendo'} ✦ {playingItem?.title || 'Reproduciendo'} ✦{' '}
+                    </span>
+                  )}
                 </p>
               </div>
               <div className={`winamp-eq shrink-0 ${isPlaying ? '' : 'paused'}`} aria-hidden>

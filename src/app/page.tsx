@@ -437,10 +437,17 @@ export default function Home() {
             <p className="text-sm text-muted mt-0.5">Grabaciones oficiales de los sets en vivo, libres de copyright.</p>
           </div>
         </div>
-        <div className="text-sm text-muted-2 text-center py-10 border border-dashed border-border rounded-xl flex flex-col items-center gap-2">
-          <Download className="h-6 w-6" />
-          Aún no hay grabaciones publicadas. Aparecerán aquí después del próximo evento. ✦
-        </div>
+        {/* El admin publica los sets desde Admin → Bloques (sección "Sets del DJ"):
+            anuncios, enlaces, imágenes o videos. Sin bloques → placeholder. */}
+        <CustomBlocks
+          section="sets"
+          fallback={
+            <div className="text-sm text-muted-2 text-center py-10 border border-dashed border-border rounded-xl flex flex-col items-center gap-2">
+              <Download className="h-6 w-6" />
+              Aún no hay grabaciones publicadas. Aparecerán aquí después del próximo evento. ✦
+            </div>
+          }
+        />
       </section>
       )}
 

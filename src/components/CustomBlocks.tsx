@@ -119,16 +119,18 @@ function BlockRenderer({ b }: { b: CustomBlock }) {
 
 interface Props {
   section?: string;
+  /** Qué mostrar si NO hay bloques (p. ej. el placeholder de "Sets del DJ"). */
+  fallback?: React.ReactNode;
 }
 
-export default function CustomBlocks({ section = 'home' }: Props) {
+export default function CustomBlocks({ section = 'home', fallback = null }: Props) {
   const [blocks, setBlocks] = useState<CustomBlock[]>([]);
 
   useEffect(() => {
     getCustomBlocks(section).then((list) => setBlocks(list.filter((b) => b.visible)));
   }, [section]);
 
-  if (!blocks.length) return null;
+  if (!blocks.length) return <>{fallback}</>;
 
   return (
     <div className="space-y-3">
