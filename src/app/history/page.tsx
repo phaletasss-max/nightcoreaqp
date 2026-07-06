@@ -61,7 +61,7 @@ export default function HistoryPage() {
           <Trophy className="h-8 w-8 sm:h-12 sm:w-12 text-yellow-400" />
         </h1>
         <p className="text-muted-2 text-sm max-w-xl mx-auto">
-          Los verdaderos reyes y reinas de Nightcore AQP. Aquí inmortalizamos a los Geeks con más puntos, las canciones que rompieron la pista y los cosplays legendarios.
+          Los verdaderos reyes y reinas de Glitch AQP. Aquí inmortalizamos a los Geeks con más puntos, las canciones que rompieron la pista y los cosplays legendarios.
         </p>
       </div>
 
@@ -123,7 +123,7 @@ export default function HistoryPage() {
       {/* Canciones Históricas */}
       <div className="card accent-lime p-6 sm:p-8 space-y-5">
         <h2 className="section-title text-xl flex items-center gap-2">
-          <Music className="h-6 w-6 text-neon-lime" /> Himnos de Nightcore AQP
+          <Music className="h-6 w-6 text-neon-lime" /> Himnos de Glitch AQP
         </h2>
         <p className="text-xs text-muted">Las canciones más votadas en la historia de nuestros eventos.</p>
         

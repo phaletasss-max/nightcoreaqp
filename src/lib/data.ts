@@ -283,8 +283,35 @@ export async function setSongFileUrl(songId: string, fileUrl: string): Promise<v
   lsSet('nq_songs', all);
 }
 
+// Sin Supabase: convierte el archivo a dataURL (base64) para que SOBREVIVA a la
+// recarga (URL.createObjectURL muere con la pestaña → "la foto se pierde").
+// Las imágenes se reducen a máx. 1280px para no reventar la cuota de localStorage.
+async function fileToPersistentUrl(file: File): Promise<string> {
+  const isImage = file.type.startsWith('image/');
+  if (isImage) {
+    try {
+      const bitmap = await createImageBitmap(file);
+      const MAX = 1280;
+      const scale = Math.min(1, MAX / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(bitmap.width * scale);
+      canvas.height = Math.round(bitmap.height * scale);
+      canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/webp', 0.82);
+    } catch { /* formato raro (p. ej. GIF animado pierde frames) → dataURL directo */ }
+  }
+  // Video/audio grande: dataURL solo si es chico; si no, objectURL (dura la sesión).
+  if (!isImage && file.size > 3 * 1024 * 1024) return URL.createObjectURL(file);
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+
 export async function uploadMediaFile(file: File): Promise<string | null> {
-  if (!cfg()) return URL.createObjectURL(file);
+  if (!cfg()) return fileToPersistentUrl(file);
   const ext = file.name.split('.').pop() || 'mp4';
   const path = `uploads/${Date.now()}_${Math.random().toString(36).substring(2)}.${ext}`;
   const { error } = await supabase.storage.from('media').upload(path, file);
@@ -420,6 +447,16 @@ export async function updateProfileAvatar(id: string, url: string): Promise<void
   }
   const all = lsGet<Profile[]>('nq_profiles', []).map((p) => p.id === id ? { ...p, avatar_url: url } : p);
   lsSet('nq_profiles', all);
+  // El perfil demo/local vive en su propio store (nq_demo_profile / nq_local_profile,
+  // ver lib/auth) — sin esto el avatar "se guardaba" pero desaparecía al recargar.
+  try {
+    for (const key of ['nq_demo_profile', 'nq_local_profile']) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      const p = JSON.parse(raw);
+      if (p?.id === id) { p.avatar_url = url; localStorage.setItem(key, JSON.stringify(p)); }
+    }
+  } catch { /* ignorar */ }
 }
 
 export async function updateProfilePrivacy(id: string, isPrivate: boolean): Promise<void> {

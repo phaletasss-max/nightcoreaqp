@@ -26,6 +26,7 @@ import {
 import type { EventItem, EventComment, Attendee } from '@/lib/types';
 import { hasBannedWord, censorText } from '@/lib/moderation';
 import SectionBg from '@/components/SectionBg';
+import FlyerMedia from '@/components/FlyerMedia';
 
 export default function Home() {
   const { profile, addPoints, isStaff } = useAuth();
@@ -132,18 +133,14 @@ export default function Home() {
       {/* Bloques de contenido del admin (anuncios, links, etc.) */}
       <CustomBlocks section="home" />
 
-      {/* DJs del evento — mostrado solo para Nightcore Fest 2.0 */}
-      {selected && selected.title.includes('Cyberpunk') && (
+      {/* DJs del evento — sale para cualquier evento que tenga DJs configurados en el admin */}
+      {selected && (selected.djs?.length ?? 0) > 0 && (
         <section className="card p-6 sm:p-8 space-y-4 accent-magenta checkerboard-subtle">
           <h3 className="section-title flex items-center gap-2 text-xl">
             <Headphones className="h-5 w-5 text-neon-magenta glow-magenta" /> DJs del Evento
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {(nextEvent?.djs?.length ? nextEvent.djs : [
-              { name: 'DJ LOBITO', tel: '946 388 627', color: 'neon-magenta', bg_url: '' },
-              { name: 'DJ MATT', tel: '944 506 957', color: 'neon-lime', bg_url: '' },
-              { name: 'DJ MELY', tel: '951 710 227', color: 'neon-cyan', bg_url: '' },
-            ]).map((dj) => (
+            {(selected.djs ?? []).map((dj) => (
               <div 
                 key={dj.name} 
                 className="card bg-surface-2 p-5 text-center space-y-2 border-neon-lime/30 relative overflow-hidden transition-all hover:border-neon-lime hover:shadow-[0_0_15px_rgba(57,255,20,0.3)]"
@@ -161,19 +158,19 @@ export default function Home() {
               </div>
             ))}
           </div>
-          <div className="card bg-surface-2 p-4 border-neon-lime/20 space-y-2">
-            <div className="flex items-center gap-2 text-sm">
-              <Zap className="h-4 w-4 text-neon-lime glow-lime" />
-              <span className="font-bold text-neon-lime">Extras del evento</span>
+          {selected.details && (
+            <div className="card bg-surface-2 p-4 border-neon-lime/20 space-y-2">
+              <div className="flex items-center gap-2 text-sm">
+                <Zap className="h-4 w-4 text-neon-lime glow-lime" />
+                <span className="font-bold text-neon-lime">Extras del evento</span>
+              </div>
+              <ul className="text-xs text-muted space-y-1 list-inside">
+                {selected.details.split(',').map((det, i) => (
+                  <li key={i}>✦ <strong className="text-white">{det.trim()}</strong></li>
+                ))}
+              </ul>
             </div>
-            <ul className="text-xs text-muted space-y-1 list-inside">
-              <li>🥃 <strong>Shots gratis</strong> a los primeros en llegar</li>
-              <li>🍸 <strong>Cóctel gratis</strong> si vienes con cosplay</li>
-              <li>🍾 <strong>1 sellada</strong> al grupo más grande</li>
-              <li>🎵 <strong>10 horas</strong> de música Nightcore</li>
-              <li>🎤 <strong>Pedidos musicales</strong> a los DJs por WhatsApp</li>
-            </ul>
-          </div>
+          )}
         </section>
       )}
 
@@ -220,6 +217,19 @@ export default function Home() {
               <span className="flex items-center gap-2 text-sm text-muted">
                 <MapPin className="h-4 w-4 text-neon-cyan glow-cyan" /> {selected.location || 'Ubicación por confirmar (Arequipa)'}
               </span>
+              <span className="flex items-center gap-2 text-sm text-muted">
+                <Ticket className="h-4 w-4 text-neon-lime glow-lime" />
+                {selected.ticket_price > 0 ? `Entrada: S/ ${selected.ticket_price}` : 'Entrada gratuita'}
+              </span>
+
+              {/* Bullets del flyer (campo "Detalles" del admin) */}
+              {selected.details && (
+                <ul className="text-sm text-muted space-y-1 pt-1">
+                  {selected.details.split(',').map((det, i) => (
+                    <li key={i}>✦ <strong className="text-white font-semibold">{det.trim()}</strong></li>
+                  ))}
+                </ul>
+              )}
 
               {/* Maps & TikToks */}
               <div className="flex flex-wrap gap-2 pt-2">
@@ -243,8 +253,14 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Capacidad */}
-            <div className="card bg-surface-2 p-5 w-full lg:w-72 shrink-0 space-y-3">
+            {/* Flyer + Capacidad */}
+            <div className="w-full lg:w-72 shrink-0 space-y-4">
+            {selected.flyer_url && (
+              <div className="rounded-xl overflow-hidden border border-neon-magenta/40 shadow-[0_0_20px_rgba(255,0,255,0.15)] glitch-hover">
+                <FlyerMedia url={selected.flyer_url} alt={`Flyer ${selected.title}`} />
+              </div>
+            )}
+            <div className="card bg-surface-2 p-5 w-full space-y-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted font-semibold">{selected.status === 'planning' ? 'Registrados' : 'Capacidad'}</span>
                 <span className="text-neon-cyan font-bold">
@@ -259,6 +275,7 @@ export default function Home() {
               <p className="text-xs text-muted-2">
                 {selected.status === 'paused' ? 'Venta pausada temporalmente.' : selected.status === 'planning' ? 'Pre-registro de interés abierto.' : '¡Asegura tu lugar!'}
               </p>
+            </div>
             </div>
           </div>
         </section>

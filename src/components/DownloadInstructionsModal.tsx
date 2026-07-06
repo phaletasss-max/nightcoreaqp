@@ -54,7 +54,7 @@ export default function DownloadInstructionsModal({ onClose }: { onClose: () => 
                 <h4 className="font-bold text-white text-sm">Para Celulares (Android)</h4>
               </div>
               <p className="text-xs text-muted-2 mb-3">
-                Instala la <strong>App Oficial de Nightcore AQP</strong> (APK). Contiene toda la comunidad y te permite descargar directamente a tu galería usando la nube.
+                Instala la <strong>App Oficial de Glitch AQP</strong> (APK). Contiene toda la comunidad y te permite descargar directamente a tu galería usando la nube.
               </p>
               <div className="flex gap-2">
                 <a href="https://github.com/phaletasss-max/nightcoreaqp/releases/latest/download/NightcoreAQP.apk" target="_blank" rel="noreferrer" className="btn bg-surface border border-border text-xs flex-1 justify-center hover:border-neon-pink transition-colors">

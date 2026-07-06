@@ -11,6 +11,8 @@
 
 import { useEffect, useState } from 'react';
 import { getSiteSettings } from '@/lib/data';
+import { useAuth } from '@/lib/auth';
+import { getUserDesign } from '@/lib/designPresets';
 
 const CACHE_KEY = 'nq_design_cache';
 
@@ -126,14 +128,21 @@ function applyDesign(s: Record<string, string>) {
 
 export default function DesignLoader() {
   const [overlay, setOverlay] = useState(0);
+  const { profile } = useAuth();
+  const userId = profile?.id ?? null;
 
   useEffect(() => {
+    // El default lo pone el admin (site_settings); el usuario puede PISAR sus
+    // claves de estilo (tema/fuentes/acento — ver USER_DESIGN_KEYS) solo para él.
+    const withUser = (s: Record<string, string>): Record<string, string> =>
+      ({ ...s, ...getUserDesign(userId) });
+
     // 1) Aplicar cache local al instante (evita parpadeo en F5).
     try {
       const cached = localStorage.getItem(CACHE_KEY);
       if (cached) {
         const s = JSON.parse(cached) as Record<string, string>;
-        applyDesign(s);
+        applyDesign(withUser(s));
         setTimeout(() => setOverlay(parseFloat(s.design_overlay || '0') || 0), 0);
       }
     } catch { /* ignorar */ }
@@ -142,7 +151,7 @@ export default function DesignLoader() {
     let active = true;
     getSiteSettings().then((s) => {
       if (!active) return;
-      applyDesign(s);
+      applyDesign(withUser(s));
       setOverlay(parseFloat(s.design_overlay || '0') || 0);
       try { localStorage.setItem(CACHE_KEY, JSON.stringify(s)); } catch { /* ignorar */ }
     });
@@ -150,14 +159,27 @@ export default function DesignLoader() {
     // 3) Re-aplicar en vivo cuando el admin guarda.
     const onUpdate = (e: Event) => {
       const s = (e as CustomEvent<Record<string, string>>).detail || {};
-      applyDesign(s);
+      applyDesign(withUser(s));
       setOverlay(parseFloat(s.design_overlay || '0') || 0);
       try { localStorage.setItem(CACHE_KEY, JSON.stringify(s)); } catch { /* ignorar */ }
     };
     window.addEventListener('nq-design-updated', onUpdate as EventListener);
 
-    return () => { active = false; window.removeEventListener('nq-design-updated', onUpdate as EventListener); };
-  }, []);
+    // 4) Re-aplicar cuando el USUARIO cambia su estilo (panel "Mi estilo" del perfil).
+    const onUserUpdate = () => {
+      try {
+        const cached = localStorage.getItem(CACHE_KEY);
+        applyDesign(withUser(cached ? JSON.parse(cached) : {}));
+      } catch { applyDesign(withUser({})); }
+    };
+    window.addEventListener('nq-user-design-updated', onUserUpdate);
+
+    return () => {
+      active = false;
+      window.removeEventListener('nq-design-updated', onUpdate as EventListener);
+      window.removeEventListener('nq-user-design-updated', onUserUpdate);
+    };
+  }, [userId]);
 
   // Capa oscura sobre el fondo general (debajo del contenido, encima del fondo).
   if (overlay <= 0) return null;

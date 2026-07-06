@@ -10,6 +10,7 @@ import { useAuth } from '@/lib/auth';
 import { getAttendees, getUserActivity, addSong, uploadMediaFile, updateProfilePrivacy, updateProfileAvatar } from '@/lib/data';
 import { searchYouTube } from '@/lib/media';
 import ProfileEditorExtras from '@/components/ProfileEditorExtras';
+import UserDesignPanel from '@/components/UserDesignPanel';
 import type { UserActivity } from '@/lib/data';
 import type { Attendee } from '@/lib/types';
 
@@ -228,7 +229,7 @@ export default function PerfilPage() {
     return (
       <div className="card p-10 text-center max-w-md mx-auto relative overflow-hidden">
         {localBg && (
-          <img src={localBg} className="absolute inset-0 w-full h-full object-cover pointer-events-none mix-blend-screen" style={{ opacity: localBgOpacity }} alt="bg" />
+          <img src={localBg} className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ opacity: localBgOpacity }} alt="bg" />
         )}
         <div className="relative z-10">
           <User className="h-10 w-10 text-neon-pink mx-auto mb-3" />
@@ -305,17 +306,18 @@ export default function PerfilPage() {
 
   return (
     <>
-      {localBg && (
-        <div className="fixed inset-0 -z-10 pointer-events-none">
-          <img src={localBg} className="absolute inset-0 w-full h-full object-cover mix-blend-screen" style={{ opacity: localBgOpacity }} alt="Profile background" />
-        </div>
-      )}
       <div className="grid lg:grid-cols-3 gap-8 items-start relative z-10">
         {/* Resumen */}
         <div className="space-y-6">
           <div className="card p-6 space-y-6 relative overflow-hidden">
+            {/* Fondo del perfil: SOLO dentro de esta tarjeta (antes había una capa
+                fixed a pantalla completa). Opacidad literal del slider + degradado
+                abajo para que el texto siga legible. */}
             {localBg && (
-              <img src={localBg} className="absolute inset-0 w-full h-full object-cover mix-blend-overlay pointer-events-none blur-sm" style={{ opacity: Math.min(localBgOpacity * 2, 0.6) }} alt="card bg" />
+              <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[inherit]">
+                <img src={localBg} className="absolute inset-0 w-full h-full object-cover" style={{ opacity: localBgOpacity }} alt="card bg" />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/65" />
+              </div>
             )}
             <div className="relative z-10 flex flex-col items-center text-center gap-3">
               <label className="relative h-20 w-20 rounded-full bg-neon-pink/15 border border-neon-pink/30 flex items-center justify-center overflow-hidden cursor-pointer group/avatar" title="Cambiar foto de perfil">
@@ -443,6 +445,9 @@ export default function PerfilPage() {
         {/* Bio, links sociales, acento y galería (Perfil+) — al activar "Personalizar perfil" */}
         {editing && <ProfileEditorExtras />}
 
+        {/* Mi estilo: tema/fuentes/acento POR USUARIO (pisa el default del admin solo para ti) */}
+        {editing && <UserDesignPanel />}
+
         {/* Notificaciones */}
         <div className="card accent-pink p-6 space-y-4">
           <h3 className="section-title text-base flex items-center gap-2"><Bell className="h-5 w-5 text-neon-pink" /> Notificaciones</h3>
@@ -515,7 +520,7 @@ export default function PerfilPage() {
                           <span className="eyebrow">Pase de acceso</span>
                           <span className={`badge ${t.status === 'confirmed' ? 'badge-green' : 'badge-yellow'}`}>{t.status === 'confirmed' ? 'Confirmado' : 'Interesado'}</span>
                         </div>
-                        <p className="text-lg font-extrabold text-white">Nightcore AQP</p>
+                        <p className="text-lg font-extrabold text-white">Glitch AQP</p>
                         <p className="text-xs text-muted">Titular: {t.name}</p>
                         <p className="text-xs text-muted">{t.email}</p>
                       </div>

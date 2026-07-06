@@ -93,7 +93,7 @@ export default function BgEditor({ sectionKey, currentBg, onBgUpdate, currentOpa
   }
 
   return (
-    <div className="absolute top-2 right-2 z-50 bg-black/90 p-4 rounded-xl border border-neon-magenta shadow-2xl shadow-neon-magenta/20 backdrop-blur-md w-72">
+    <div className="absolute top-2 right-2 z-50 bg-black/90 p-4 rounded-xl border border-neon-magenta shadow-2xl shadow-neon-magenta/20 backdrop-blur-md w-72 max-w-[calc(100vw-2rem)]">
       <div className="flex items-center justify-between mb-3">
         <h4 className="text-xs font-bold text-white flex items-center gap-2"><ImageIcon className="h-3 w-3 text-neon-magenta" /> Fondo de Sección</h4>
         <button onClick={() => setIsOpen(false)} className="text-muted hover:text-white"><X className="h-4 w-4" /></button>

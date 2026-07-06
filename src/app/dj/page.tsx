@@ -97,7 +97,7 @@ export default function DJPage() {
       return;
     }
     const bat = buildCrateBat(downloadable.map((s) => s.youtube_url), crateFormat, {
-      title: `Set ${activeEvent?.title ?? 'Nightcore AQP'}`,
+      title: `Set ${activeEvent?.title ?? 'Glitch AQP'}`,
       dest: '%USERPROFILE%\\Desktop\\NightcoreAQP_Set',
     });
     downloadTextFile(`NightcoreAQP_Set_${crateFormat}.bat`, bat);

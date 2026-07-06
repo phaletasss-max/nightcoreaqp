@@ -23,6 +23,8 @@ import { supabase } from '@/utils/supabase';
 import { storeBackup, isMediaConfigured } from '@/lib/media';
 import { buildCrateBat, downloadTextFile } from '@/lib/crate';
 import type { EventItem, Song, Attendee, EventStatus, Profile, Costume, EventComment, AttendanceProof, Suggestion, CustomBlock, BlockType } from '@/lib/types';
+// Catálogos de temas/fuentes/acentos: compartidos con el panel "Mi estilo" del perfil.
+import { THEME_OPTIONS, FONT_OPTIONS, BODY_FONT_OPTIONS, ACCENT_OPTIONS } from '@/lib/designPresets';
 
 type Tab = 'kpi' | 'dj' | 'survey' | 'events' | 'users' | 'posts' | 'comments' | 'design' | 'proofs' | 'buzon' | 'bloques';
 
@@ -39,51 +41,6 @@ const HOME_SECTIONS = [
   { key: 'sets', label: 'Sets del DJ' },
 ];
 
-const FONT_OPTIONS = [
-  { key: 'default', label: 'Geist (limpia)' },
-  { key: 'pixel', label: 'Pixel / Scene' },
-  { key: 'rounded', label: 'Redondeada / Happycore' },
-  { key: 'mono', label: 'Monoespaciada' },
-  { key: 'vt323', label: 'Terminal (VT323)' },
-  { key: 'orbitron', label: 'Orbitron (cyber)' },
-  { key: 'bungee', label: 'Bungee (Y2K)' },
-  { key: 'rajdhani', label: 'Rajdhani' },
-];
-
-// Fuente del CUERPO (las "letras"). Mantén legibilidad: las pixeladas cansan en texto largo.
-const BODY_FONT_OPTIONS = [
-  { key: 'default', label: 'Geist (limpia)' },
-  { key: 'rounded', label: 'Baloo 2 (redonda)' },
-  { key: 'poppins', label: 'Poppins' },
-  { key: 'nunito', label: 'Nunito' },
-  { key: 'comic', label: 'Comic Neue' },
-  { key: 'rajdhani', label: 'Rajdhani' },
-  { key: 'mono', label: 'Monoespaciada' },
-  { key: 'vt323', label: 'Terminal (VT323)' },
-];
-
-// Presets de tema visual (paleta + superficies). Las muestras `colors` son solo la
-// vista previa; la paleta real vive en globals.css (html[data-theme="..."]).
-const THEME_OPTIONS = [
-  { key: 'default', label: 'Scenecore', hint: 'Neón morado (base)', colors: ['#ff00ff', '#00ffff', '#39ff14'] },
-  { key: 'pixel', label: 'Pixel Arcade', hint: 'Combínalo con la fuente Pixel', colors: ['#00ff66', '#00e5ff', '#ff00d4'] },
-  { key: 'gothic', label: 'Gótico', hint: 'Carmesí, plata y carbón', colors: ['#c1121f', '#6b8cae', '#c9a227'] },
-  { key: 'anime', label: 'Anime Pastel', hint: 'Sakura, lavanda y menta', colors: ['#ff8fc7', '#b69cff', '#9bf6c8'] },
-  { key: 'y2k', label: 'Y2K Chrome', hint: 'Cromo, lila burbuja y celeste', colors: ['#ff6ad5', '#6fe0ff', '#c774ff'] },
-  { key: 'vaporwave', label: 'Vaporwave', hint: 'Magenta, cian y violeta', colors: ['#ff71ce', '#05ffd1', '#b967ff'] },
-  { key: 'cyber', label: 'Cyber', hint: 'Lima ácida y cian eléctrico', colors: ['#4dff9e', '#18e0ff', '#f6ff45'] },
-];
-
-// Color de acento (token sobre el tema). '' = usar el del tema.
-const ACCENT_OPTIONS = [
-  { key: '', label: 'Del tema', color: 'transparent' },
-  { key: '#ff00ff', label: 'Magenta', color: '#ff00ff' },
-  { key: '#00ffff', label: 'Cian', color: '#00ffff' },
-  { key: '#39ff14', label: 'Lima', color: '#39ff14' },
-  { key: '#ff2d8f', label: 'Rosa', color: '#ff2d8f' },
-  { key: '#9933ff', label: 'Morado', color: '#9933ff' },
-  { key: '#fff01f', label: 'Amarillo', color: '#fff01f' },
-];
 
 // Confirmación anti-accidentes para acciones DESTRUCTIVAS (vaciar playlist, borrar
 // usuarios/eventos). Es solo un freno; la seguridad real la da la RLS de Supabase (solo
@@ -968,6 +925,7 @@ export default function AdminPage() {
                 {rsvps.filter((r) => r.event_id === expandedEvent).length === 0 ? (
                   <p className="text-xs text-muted-2 text-center py-4">Sin registros todavía.</p>
                 ) : (
+                  <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead><tr className="border-b border-border text-muted-2 uppercase"><th className="py-1.5 px-2">Nombre</th><th className="py-1.5 px-2">Correo</th><th className="py-1.5 px-2">Código</th><th className="py-1.5 px-2 text-right">Estado</th></tr></thead>
                     <tbody className="divide-y divide-border text-muted">
@@ -981,6 +939,7 @@ export default function AdminPage() {
                       ))}
                     </tbody>
                   </table>
+                  </div>
                 )}
               </div>
             )}

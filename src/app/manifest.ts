@@ -4,8 +4,8 @@ import type { MetadataRoute } from 'next';
 // pantalla completa). Next inyecta el <link rel="manifest"> automáticamente.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Nightcore AQP — Club de nightcore de Arequipa',
-    short_name: 'Nightcore AQP',
+    name: 'Glitch AQP — Club de nightcore de Arequipa',
+    short_name: 'Glitch AQP',
     description: 'Eventos, playlist colaborativa, concurso de disfraces, encuestas y rachas. El club de nightcore de Arequipa.',
     start_url: '/',
     scope: '/',

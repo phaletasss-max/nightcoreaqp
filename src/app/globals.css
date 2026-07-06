@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ════════════════════════════════════════════════════════════════════════════
-   NIGHTCORE AQP — Sistema de diseño SCENECORE
+   GLITCH AQP — Sistema de diseño SCENECORE
    Estética scenecore: colores neón vibrantes, patrones checkerboard,
    arcoíris, estrellas, calaveras y animaciones jugueetonas.
    Fondo profundo con acentos de magenta, lima, cian y rosa chicle.
@@ -357,11 +357,35 @@ html[data-theme="cyber"] {
   --electric-blue: #2d9bff;
 }
 
+/* GLITCH — corrupción digital: negro profundo, magenta/cian duros y verde fósforo.
+   Pensado para combinarse con el fondo de video glitch y las clases .glitch-*. */
+html[data-theme="glitch"] {
+  --background: #030306;
+  --surface: #0a0a12;
+  --surface-2: #10101c;
+  --card-rgb: 10, 10, 18;
+  --foreground: #e8f6ff;
+  --muted: #8fa3c4;
+  --muted-2: #56637f;
+  --border: rgba(0, 255, 255, 0.16);
+  --border-strong: rgba(255, 0, 255, 0.45);
+  --pink: #ff0055;
+  --magenta: #ff00c8;
+  --cyan: #00f0ff;
+  --lime: #39ff88;
+  --purple: #7d2bff;
+  --hot-pink: #ff3d9e;
+  --neon-yellow: #eaff00;
+  --electric-blue: #2d5bff;
+}
+
 .text-glow-pink { text-shadow: 0 0 18px color-mix(in srgb, var(--magenta) 55%, transparent), 0 0 40px color-mix(in srgb, var(--pink) 30%, transparent); }
 .text-glow-cyan { text-shadow: 0 0 18px color-mix(in srgb, var(--cyan) 50%, transparent), 0 0 40px color-mix(in srgb, var(--cyan) 22%, transparent); }
 .text-glow-lime { text-shadow: 0 0 18px color-mix(in srgb, var(--lime) 50%, transparent); }
+/* Gradiente "arcoíris" con los colores del TEMA activo (no hex fijos), para que
+   combine igual en Scenecore, Glitch, Gótico, etc. */
 .text-glow-rainbow {
-  background: linear-gradient(90deg, #ff00ff, #00ffff, #39ff14, #ff69b4, #fff01f, #ff00ff);
+  background: linear-gradient(90deg, var(--magenta), var(--cyan), var(--lime), var(--hot-pink), var(--neon-yellow), var(--magenta));
   background-size: 300% 100%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -542,6 +566,139 @@ html[data-theme="cyber"] {
 .glow-magenta { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--magenta) 55%, transparent)); }
 .glow-cyan { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--cyan) 55%, transparent)); }
 .glow-lime { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--lime) 55%, transparent)); }
+
+/* ── Kit GLITCH ──────────────────────────────────────────────────────────────
+   Efectos de corrupción digital reutilizables. .glitch-text necesita el mismo
+   texto duplicado en data-text (lo leen los pseudoelementos para el RGB split).
+   Con el tema "glitch" activo, el efecto corre solo; en otros temas, al hover. */
+
+.glitch-text { position: relative; display: inline-block; }
+.glitch-text::before,
+.glitch-text::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  color: inherit;
+  background: inherit;
+}
+.glitch-text::before { text-shadow: -2px 0 var(--magenta); }
+.glitch-text::after  { text-shadow: 2px 0 var(--cyan); }
+.glitch-text:hover::before,
+html[data-theme="glitch"] .glitch-text::before {
+  opacity: 0.85;
+  animation: glitchSliceA 2.4s steps(2, jump-none) infinite;
+}
+.glitch-text:hover::after,
+html[data-theme="glitch"] .glitch-text::after {
+  opacity: 0.85;
+  animation: glitchSliceB 3.1s steps(2, jump-none) infinite;
+}
+
+@keyframes glitchSliceA {
+  0%, 88%, 100% { clip-path: inset(0 0 100% 0); transform: translate(0); }
+  90% { clip-path: inset(12% 0 58% 0); transform: translate(-3px, 1px); }
+  93% { clip-path: inset(62% 0 8% 0); transform: translate(3px, -1px); }
+  96% { clip-path: inset(35% 0 40% 0); transform: translate(-2px, 0); }
+}
+@keyframes glitchSliceB {
+  0%, 84%, 100% { clip-path: inset(100% 0 0 0); transform: translate(0); }
+  86% { clip-path: inset(55% 0 20% 0); transform: translate(3px, -1px); }
+  90% { clip-path: inset(8% 0 75% 0); transform: translate(-3px, 1px); }
+  94% { clip-path: inset(42% 0 30% 0); transform: translate(2px, 1px); }
+}
+
+/* Sacudida + aberración cromática al hover (para tarjetas, imágenes, botones) */
+.glitch-hover { transition: filter 0.15s ease; }
+.glitch-hover:hover {
+  animation: glitchJitter 0.35s steps(3, jump-none) 1;
+  filter: drop-shadow(-2px 0 color-mix(in srgb, var(--magenta) 60%, transparent))
+          drop-shadow(2px 0 color-mix(in srgb, var(--cyan) 60%, transparent));
+}
+@keyframes glitchJitter {
+  0% { transform: translate(0); }
+  25% { transform: translate(-2px, 1px) skewX(1.5deg); }
+  50% { transform: translate(2px, -1px) skewX(-1.5deg); }
+  75% { transform: translate(-1px, 0); }
+  100% { transform: translate(0); }
+}
+
+/* Scanlines CRT — overlay para secciones (o global con el tema glitch) */
+.scanlines { position: relative; }
+.scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 3px,
+    rgba(0, 0, 0, 0.18) 3px,
+    rgba(0, 0, 0, 0.18) 4px
+  );
+  mix-blend-mode: multiply;
+}
+
+/* Con el tema glitch: scanlines + viñeta CRT sobre toda la página */
+html[data-theme="glitch"] body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent,
+      transparent 3px,
+      rgba(0, 0, 0, 0.22) 3px,
+      rgba(0, 0, 0, 0.22) 4px
+    ),
+    radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.5) 100%);
+  animation: crtFlicker 8s steps(1) infinite;
+}
+@keyframes crtFlicker {
+  0%, 96%, 100% { opacity: 1; }
+  97% { opacity: 0.82; }
+  98% { opacity: 1; }
+  99% { opacity: 0.9; }
+}
+
+/* Barra de "tear" horizontal que cruza la pantalla de vez en cuando (tema glitch) */
+html[data-theme="glitch"] body::before {
+  content: '';
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: -10%;
+  height: 3px;
+  z-index: -2;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--cyan) 45%, transparent), color-mix(in srgb, var(--magenta) 45%, transparent), transparent);
+  animation: tearScan 7s linear infinite;
+}
+@keyframes tearScan {
+  0%, 72% { top: -10%; opacity: 0; }
+  74% { opacity: 0.9; }
+  100% { top: 110%; opacity: 0; }
+}
+
+/* Accesibilidad: sin movimiento para quien lo pide */
+@media (prefers-reduced-motion: reduce) {
+  .glitch-text::before,
+  .glitch-text::after,
+  html[data-theme="glitch"] body::before,
+  html[data-theme="glitch"] body::after,
+  .glitch-hover:hover { animation: none !important; }
+}
+
+/* Franja arcoíris (bordes del hero) con los colores del tema activo */
+.rainbow-stripe {
+  background: linear-gradient(90deg, var(--magenta), var(--cyan), var(--lime), var(--hot-pink), var(--neon-yellow), var(--purple), var(--magenta));
+}
 
 /* Checkerboard pattern overlay for special sections */
 .checkerboard-subtle {

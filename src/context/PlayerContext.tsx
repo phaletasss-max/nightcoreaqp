@@ -32,7 +32,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
 
-  const defaultItem: PlayableItem = { type: 'default', title: 'Nightcore AQP', artist: 'Radio' };
+  const defaultItem: PlayableItem = { type: 'default', title: 'Glitch AQP', artist: 'Radio' };
 
   const playingItem = currentIndex >= 0 && currentIndex < queue.length ? queue[currentIndex] : defaultItem;
 

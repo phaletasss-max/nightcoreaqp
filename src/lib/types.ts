@@ -1,4 +1,4 @@
-// ── Tipos del dominio Nightcore AQP ──────────────────────────────────────────
+// ── Tipos del dominio Glitch AQP ──────────────────────────────────────────
 // Reflejan las tablas de supabase/schema.sql.
 
 export type UserRole = 'user' | 'dj' | 'admin';

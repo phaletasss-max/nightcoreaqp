@@ -124,7 +124,7 @@ export default function ChatPage() {
         <span className="badge badge-cyan">{visible.length} mensajes</span>
       </div>
       <p className="text-sm text-muted -mt-1">
-        Habla en vivo con la banda de Nightcore AQP. Sé buena onda: hay filtro de palabras y moderación.
+        Habla en vivo con la banda de Glitch AQP. Sé buena onda: hay filtro de palabras y moderación.
       </p>
 
       <div className="card p-0 overflow-hidden flex flex-col" style={{ height: '70vh' }}>

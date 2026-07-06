@@ -1,9 +1,78 @@
-# Changelog — Nightcore AQP
+# Changelog — Glitch AQP (antes Nightcore AQP)
 
 Formato: `[vX.Y.Z] YYYY-MM-DD — descripción breve`.  
 Versión semántica: MAYOR.MENOR.PATCH (la app web no tiene número de versión forzado; el desktop-app sí).
 
 ---
+
+## [Unreleased] — Web
+
+### 2026-07-06 (c) — Fix SW en dev, fondo de perfil contenido y "Mi estilo" pulido
+
+- **Service worker solo en producción** (`src/components/PWARegister.tsx`): en dev el
+  sw.js servía estáticos cache-first → localhost mostraba código viejo ("no veo los
+  cambios"). Ahora en dev se des-registra y borra sus caches automáticamente.
+- **Fondo del perfil contenido**: la foto subida se pintaba a PANTALLA COMPLETA
+  (capa `fixed inset-0` en `src/app/perfil/page.tsx`); ahora vive solo dentro de la
+  tarjeta del perfil, con la opacidad literal del slider y degradado arriba/abajo
+  para legibilidad.
+- **"Mi estilo" pulido** (`src/components/UserDesignPanel.tsx`): tarjetas de tema con
+  franja-gradiente de la paleta, hint, hover con elevación y check ✓ brillante en el
+  activo; acentos como círculos de color con glow y check; chip "Del tema" con franja
+  multicolor.
+
+### 2026-07-06 (b) — Videos de sección, eventos completos, perfil y "Mi estilo" por usuario
+
+> Detalle completo del sistema glitch + personalización: **[docs/GLITCH.md](docs/GLITCH.md)**
+
+- **Video de fondo por página** (`src/components/PageVideoBg.tsx`, nuevo): `/playlist` y
+  `/disfraces` usan `public/section-glitch.mp4` (Veo 3). Fixed, z -17, opacidad baja;
+  si el archivo no existe no se monta (nunca rompe).
+- **Gradientes adaptados al tema**: `text-glow-rainbow` y las franjas del hero
+  (`.rainbow-stripe`, nueva) usan variables del tema en vez de hex fijos.
+- **Eventos completos en la home** (`src/app/page.tsx`, `src/components/Hero.tsx`):
+  - DJs: salen para cualquier evento con DJs configurados (fuera el hardcode `'Cyberpunk'`
+    y los DJs de relleno); "Extras" usa el campo `details` real.
+  - Detalle: flyer + precio (`ticket_price` / "Entrada gratuita") + bullets de `details`.
+  - Hero: flyer visible también en móvil (antes solo desktop `lg:`).
+  - `FlyerMedia.tsx` (nuevo): flyer como imagen, MP4 o MP3 según su tipo real.
+- **Perfil arreglado** (`src/lib/data.ts`, `src/app/perfil/page.tsx`):
+  - `uploadMediaFile` demo: dataURL persistente (webp máx 1280px) en vez de blob
+    `createObjectURL` que moría al recargar (avatar/fondo "se perdían").
+  - `updateProfileAvatar` demo: actualiza también `nq_demo_profile`/`nq_local_profile`.
+  - Opacidad del fondo literal (se quitó `mix-blend-screen` que lavaba la imagen).
+- **"Mi estilo" — personalización POR USUARIO** (`src/lib/designPresets.ts`,
+  `src/components/UserDesignPanel.tsx`, `DesignLoader.tsx`):
+  - El admin define el default (site_settings); el usuario pisa tema/acento/fuentes/tamaño
+    solo para él (localStorage `nq_user_design_<id>`; merge en DesignLoader, live-update
+    vía evento `nq-user-design-updated`).
+  - Catálogos de temas/fuentes/acentos unificados en `lib/designPresets.ts` (admin y
+    perfil importan de ahí).
+  - Panel en `/perfil` → "Personalizar perfil" → tarjeta "Mi estilo" (con reset "Del sitio").
+- **Admin responsive**: tabla de asistentes por evento con scroll horizontal; modal del
+  BgEditor con `max-w-[calc(100vw-2rem)]` (antes se desbordaba en pantallas angostas).
+- **Verificado**: `tsc` limpio, `npm run build` OK, revisión visual en localhost
+  (home, playlist, perfil, admin; override de usuario probado en vivo).
+
+### 2026-07-06 — Rebrand a "Glitch AQP" + kit de estética glitch
+
+- **Rebrand**: "Nightcore AQP" → "Glitch AQP" en todos los textos visibles de la web:
+  metadata/OG/Twitter/PWA (`src/app/layout.tsx`, `src/app/manifest.ts`), navbar (`GLITCHAQP`),
+  footer, chat, historial, perfil, player global, `.bat` del descargador y modal de descargas.
+  *No* se tocó el desktop-app (appId/productName) ni las URLs de releases para no romper
+  el auto-update; ese rename va aparte cuando se publique una release nueva.
+- **Kit CSS glitch** (`src/app/globals.css`): `.glitch-text` (RGB split magenta/cián con
+  slices animados; usa `data-text`), `.glitch-hover` (jitter + aberración cromática),
+  `.scanlines` (overlay CRT por sección). Respeta `prefers-reduced-motion`.
+- **Tema nuevo "Glitch"** (`html[data-theme="glitch"]` + entrada en THEME_OPTIONS del admin):
+  paleta de corrupción digital (negro profundo, magenta/cían duros, verde fósforo) y, con el
+  tema activo, scanlines + viñeta CRT global (`body::after`) y barra de "tear" que cruza la
+  pantalla (`body::before`).
+- **`GlitchBackground.tsx`** (nuevo): video de fondo en loop (`public/glitch-bg.mp4`, pensado
+  para un clip generado con Veo 3) que solo se monta con el tema glitch activo; si el archivo
+  no existe, no muestra nada. z-index -18 (entre ScenecoreBackground y el overlay).
+- Aplicado: `.glitch-text` en logo del navbar y H1 del hero; `.glitch-hover` en el flyer.
+- **Verificado**: `tsc --noEmit` limpio + `npm run build` OK.
 
 ## [Unreleased] — Mobile (Expo)
 

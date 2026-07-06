@@ -225,7 +225,7 @@ export default function PublicProfilePage() {
             <div className={`${styles.player} mt-4`}>
               <div className={styles.disc} aria-hidden />
               <div className={styles.marquee}>
-                <span>♪ {profile.username} en NIGHTCORE AQP — sube tu música a la playlist y mantén tu racha 🔥 ♪</span>
+                <span>♪ {profile.username} en GLITCH AQP — sube tu música a la playlist y mantén tu racha 🔥 ♪</span>
               </div>
             </div>
           </div>

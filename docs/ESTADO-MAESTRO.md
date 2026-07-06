@@ -4,7 +4,11 @@
 > seguridad y marketing — cada cosa con su **estado real en código**.
 > Es el documento "padre"; los de `docs/` y `docs/pt/` son el detalle.
 
-**Última actualización:** 2026-07-02
+**Última actualización:** 2026-07-06 — **Rebrand a "Glitch AQP"** ✅ + kit CSS glitch + tema
+"Glitch" + videos de fondo Veo 3 (global y por página) + eventos completos en la home +
+perfil arreglado (avatar/fondo persistentes) + **"Mi estilo"** (diseño por usuario que pisa
+el default del admin). Detalle: [GLITCH.md](./GLITCH.md) + `CHANGELOG.md`. El desktop-app
+NO se renombró (auto-update); pendiente para la próxima release del `.exe`.
 **Edición vigente:** Nightcore Arequipa 3 · **Organiza:** Yorch · **Hecho por:** Los Simpatizantes de JP
 **Producción:** https://nightcoreaqp-five.vercel.app (Vercel) · Media-service en Render (`nightcore-media`)
 

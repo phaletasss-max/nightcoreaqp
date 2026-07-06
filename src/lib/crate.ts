@@ -61,11 +61,11 @@ export function buildCrateBat(urls: string[], format: 'mp3' | 'mp4', opts: Crate
   return [
     '@echo off',
     'setlocal',
-    `title Nightcore AQP - ${title}`,
+    `title Glitch AQP - ${title}`,
     'color 0D',
     'cd /d "%~dp0"',
     'echo.',
-    `echo  === NIGHTCORE AQP - DESCARGA LOCAL (${format.toUpperCase()}) ===`,
+    `echo  === GLITCH AQP - DESCARGA LOCAL (${format.toUpperCase()}) ===`,
     `echo  ${clean.length} archivo^(s^) a descargar en TU PC.`,
     'echo.',
     ...BOOTSTRAP,

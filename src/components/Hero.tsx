@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Sparkles, Zap, Star, X, Info } from 'lucide-react';
 import type { EventItem } from '@/lib/types';
+import FlyerMedia from '@/components/FlyerMedia';
 
 const THEMES = [
   { emoji: '💜', label: 'Cyberpunk' },
@@ -62,10 +63,8 @@ export default function Hero({ nextEvent, onCta }: { nextEvent?: EventItem; onCt
             <Star className="h-6 w-6 text-neon-magenta" />
           </div>
           {/* Rainbow stripe accent */}
-          <div className="absolute top-0 left-0 right-0 h-1"
-            style={{ background: 'linear-gradient(90deg, #ff00ff, #00ffff, #39ff14, #ff69b4, #fff01f, #9933ff, #ff00ff)' }} />
-          <div className="absolute bottom-0 left-0 right-0 h-1"
-            style={{ background: 'linear-gradient(90deg, #ff00ff, #00ffff, #39ff14, #ff69b4, #fff01f, #9933ff, #ff00ff)' }} />
+          <div className="absolute top-0 left-0 right-0 h-1 rainbow-stripe" />
+          <div className="absolute bottom-0 left-0 right-0 h-1 rainbow-stripe" />
         </div>
 
         {/* Glow blobs */}
@@ -80,7 +79,7 @@ export default function Hero({ nextEvent, onCta }: { nextEvent?: EventItem; onCt
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.05] text-white">
-              El club de nightcore<br />
+              <span className="glitch-text" data-text="El club de nightcore">El club de nightcore</span><br />
               <span className="text-glow-rainbow">de Arequipa.</span>
             </h1>
 
@@ -117,6 +116,18 @@ export default function Hero({ nextEvent, onCta }: { nextEvent?: EventItem; onCt
               </div>
             )}
 
+            {/* Flyer en móvil/tablet (la columna derecha solo existe en lg+) */}
+            {nextEvent && (
+              <div className="lg:hidden mt-8 space-y-3">
+                <div className="relative rounded-2xl overflow-hidden border-2 border-neon-magenta shadow-[0_0_30px_rgba(255,0,255,0.25)] w-full max-w-sm mx-auto glitch-hover">
+                  <FlyerMedia url={nextEvent.flyer_url || "/nightcorefest2.0.png"} alt="Event Flyer" />
+                </div>
+                <button onClick={() => setShowModal(true)} className="btn btn-ghost w-full max-w-sm mx-auto flex border-neon-cyan text-neon-cyan hover:bg-neon-cyan/10">
+                  <Info className="h-4 w-4" /> Conoce los detalles
+                </button>
+              </div>
+            )}
+
             {/* Temáticas */}
             <div className="mt-8 flex flex-wrap items-center gap-2">
               <span className="eyebrow mr-1">Temáticas</span>
@@ -130,9 +141,8 @@ export default function Hero({ nextEvent, onCta }: { nextEvent?: EventItem; onCt
 
           {/* Right column: Flyer */}
           <div className="hidden lg:flex flex-col items-center justify-center space-y-5">
-            <div className="relative rounded-2xl overflow-hidden border-2 border-neon-magenta shadow-[0_0_30px_rgba(255,0,255,0.25)] transform md:rotate-2 hover:rotate-0 transition-all duration-300 w-full max-w-sm">
-              { }
-              <img src={nextEvent?.flyer_url || "/nightcorefest2.0.png"} alt="Event Flyer" className="w-full h-auto object-cover bg-black" />
+            <div className="relative rounded-2xl overflow-hidden border-2 border-neon-magenta shadow-[0_0_30px_rgba(255,0,255,0.25)] transform md:rotate-2 hover:rotate-0 transition-all duration-300 w-full max-w-sm glitch-hover">
+              <FlyerMedia url={nextEvent?.flyer_url || "/nightcorefest2.0.png"} alt="Event Flyer" />
             </div>
             {nextEvent && (
               <button onClick={() => setShowModal(true)} className="btn btn-ghost border-neon-cyan text-neon-cyan hover:bg-neon-cyan/10">
@@ -160,8 +170,7 @@ export default function Hero({ nextEvent, onCta }: { nextEvent?: EventItem; onCt
             {/* Modal Body */}
             <div className="p-6 grid md:grid-cols-2 gap-8 items-start">
               <div>
-                { }
-                <img src={nextEvent.flyer_url || "/nightcorefest2.0.png"} alt="Flyer" className="w-full rounded-xl border border-border shadow-lg bg-black" />
+                <FlyerMedia url={nextEvent.flyer_url || "/nightcorefest2.0.png"} alt="Flyer" className="rounded-xl border border-border shadow-lg" />
               </div>
               <div className="space-y-6">
                 <div>

@@ -11,6 +11,7 @@ import { isMediaConfigured, searchYouTube, searchYouTubeList, type VideoInfo, ty
 import type { Song, VoteType } from '@/lib/types';
 import { usePlayer, type PlayableItem } from '@/context/PlayerContext';
 import DownloadInstructionsModal from '@/components/DownloadInstructionsModal';
+import PageVideoBg from '@/components/PageVideoBg';
 import { buildCrateBat, downloadTextFile } from '@/lib/crate';
 
 function getYouTubeId(url: string) {
@@ -308,6 +309,7 @@ export default function PlaylistPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      <PageVideoBg src="/section-glitch.mp4" />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="section-title flex items-center gap-2 text-2xl">

@@ -173,7 +173,7 @@ export default function GlobalPlayer() {
                 {multi && <span className="text-neon-cyan"> · playlist</span>}
               </p>
               <p className="text-sm font-bold text-white truncate w-[150px] sm:w-[250px]">
-                {playingItem?.title || 'Nightcore AQP'}
+                {playingItem?.title || 'Glitch AQP'}
               </p>
             </div>
           </div>
