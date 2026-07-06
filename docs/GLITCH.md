@@ -49,10 +49,18 @@ no `var()` dentro de `blur()`.
 
 ## 4. Videos de fondo
 
+Regla (2026-07-06h): **UN solo video a la vez**. Por defecto, TODAS las páginas muestran
+el idle de la radio (`fondoscenecoe.mp4`, GlobalPlayer, z -50). Si el admin asigna un
+video a una página, ese lo reemplaza ahí (el idle se oculta solo).
+
 | Componente | Qué muestra | Cuándo se ve | z-index |
 |---|---|---|---|
-| `GlitchBackground.tsx` | `public/glitch-bg.mp4` | Global, SOLO con tema glitch activo (observa `data-theme` con MutationObserver) | -18 |
+| `GlobalPlayer.tsx` (fondo idle) | `public/fondoscenecoe.mp4` o el visual de la canción | Siempre, salvo que la página tenga video asignado | -50 |
 | `PageVideoManager.tsx` (layout) → `PageVideoBg.tsx` | lo que el admin configure | Por página, según **Admin → Diseño → Videos de fondo por página** | -17 |
+
+> `GlitchBackground.tsx` (video automático del tema glitch) **se eliminó** en (h): se
+> superponía con el idle. Para ese efecto: gestor → asignar `/glitch-bg.mp4` a
+> "Todas las páginas".
 
 Ambos: `<video autoplay muted loop playsinline>`, `position:fixed`, opacidad baja,
 y **si el archivo no existe simplemente no se montan** (onError) — nunca rompen la

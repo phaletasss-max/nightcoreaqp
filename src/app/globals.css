@@ -874,6 +874,48 @@ html.nq-glitch-flash body {
 .xp-window .text-neon-purple { color: #6a2c70 !important; }
 .xp-window .text-yellow-400 { color: #b8860b !important; }
 
+/* ── Player estilo WINAMP (v1.2 · identidad "Internet 2010") ─────────────────
+   La barra flotante de la radio con chasis metálico azul-acero y pantalla LCD
+   verde fosforescente, como el Winamp clásico. El mini ecualizador (.winamp-eq)
+   baila cuando hay música y se aplana en pausa. */
+.winamp-bar {
+  background: linear-gradient(180deg, #52527a 0%, #34344f 8%, #26263c 50%, #1b1b2c 100%);
+  border: 1px solid #10101c;
+  border-radius: 6px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.6),
+    0 10px 28px rgba(0, 0, 0, 0.65);
+}
+.winamp-lcd {
+  background: #060c06;
+  border: 1px solid #000;
+  border-radius: 3px;
+  box-shadow: inset 0 0 8px rgba(34, 224, 34, 0.18);
+  color: #22e022;
+  font-family: var(--font-geist-mono), 'Courier New', monospace;
+  text-shadow: 0 0 4px rgba(34, 224, 34, 0.55);
+}
+.winamp-lcd .winamp-dim { color: #0f9f0f; }
+.winamp-eq { display: flex; align-items: flex-end; gap: 2px; height: 16px; }
+.winamp-eq span {
+  width: 3px;
+  height: 100%;
+  transform-origin: bottom;
+  background: linear-gradient(180deg, #ffe600, #22e022 55%, #0a7a0a);
+  animation: eqBounce 0.6s ease-in-out infinite alternate;
+}
+.winamp-eq span:nth-child(1) { animation-duration: 0.52s; }
+.winamp-eq span:nth-child(2) { animation-duration: 0.74s; animation-delay: 0.1s; }
+.winamp-eq span:nth-child(3) { animation-duration: 0.47s; animation-delay: 0.05s; }
+.winamp-eq span:nth-child(4) { animation-duration: 0.82s; animation-delay: 0.15s; }
+.winamp-eq span:nth-child(5) { animation-duration: 0.6s; animation-delay: 0.02s; }
+@keyframes eqBounce {
+  from { transform: scaleY(0.12); }
+  to { transform: scaleY(1); }
+}
+.winamp-eq.paused span { animation: none; transform: scaleY(0.12); }
+
 /* Accesibilidad: sin movimiento para quien lo pide */
 @media (prefers-reduced-motion: reduce) {
   .glitch-text::before,
@@ -884,6 +926,7 @@ html.nq-glitch-flash body {
   .crt-boot,
   .crt-boot::before,
   .crt-boot::after,
+  .winamp-eq span,
   .glitch-hover:hover { animation: none !important; }
   .crt-boot { display: none; }
 }

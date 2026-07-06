@@ -186,20 +186,26 @@ export default function GlobalPlayer() {
 
       {/* Floating Control Bar */}
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-xl">
-        <div className="bg-black/60 backdrop-blur-md border border-border/50 rounded-full py-2 px-4 flex items-center justify-between shadow-2xl">
+        <div className="winamp-bar py-2 px-3 flex items-center justify-between">
 
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="flex items-center justify-center h-10 w-10 rounded-full bg-white/5 border border-white/10 shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex items-center justify-center h-9 w-9 rounded bg-black/35 border border-black/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.15)] shrink-0">
               <Tv className={`h-4 w-4 ${playingItem?.type !== 'default' ? 'text-neon-cyan animate-pulse' : 'text-neon-magenta'}`} />
             </div>
-            <div className="flex flex-col min-w-0">
-              <p className="text-[10px] font-bold text-muted uppercase tracking-widest truncate">
-                {playingItem?.type === 'default' ? 'Radio' : (playingItem?.artist || 'Reproduciendo')}
-                {multi && <span className="text-neon-cyan"> · playlist</span>}
-              </p>
-              <p className="text-sm font-bold text-white truncate w-[150px] sm:w-[250px]">
-                {playingItem?.title || 'Glitch AQP'}
-              </p>
+            {/* Pantalla LCD estilo Winamp: título + mini ecualizador */}
+            <div className="winamp-lcd flex items-center gap-2.5 px-2.5 py-1 min-w-0">
+              <div className="flex flex-col min-w-0">
+                <p className="winamp-dim text-[9px] font-bold uppercase tracking-widest truncate">
+                  {playingItem?.type === 'default' ? 'Radio' : (playingItem?.artist || 'Reproduciendo')}
+                  {multi && <span> · playlist</span>}
+                </p>
+                <p className="text-[13px] font-bold truncate w-[120px] sm:w-[220px]">
+                  {playingItem?.title || 'Glitch AQP'}
+                </p>
+              </div>
+              <div className={`winamp-eq shrink-0 ${isPlaying ? '' : 'paused'}`} aria-hidden>
+                <span /><span /><span /><span /><span />
+              </div>
             </div>
           </div>
 

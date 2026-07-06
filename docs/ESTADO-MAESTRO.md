@@ -4,11 +4,16 @@
 > seguridad y marketing — cada cosa con su **estado real en código**.
 > Es el documento "padre"; los de `docs/` y `docs/pt/` son el detalle.
 
-**Última actualización:** 2026-07-06 — **Rebrand a "Glitch AQP"** ✅ + kit CSS glitch + tema
-"Glitch" + videos de fondo Veo 3 (global y por página) + eventos completos en la home +
-perfil arreglado (avatar/fondo persistentes) + **"Mi estilo"** (diseño por usuario que pisa
-el default del admin). Detalle: [GLITCH.md](./GLITCH.md) + `CHANGELOG.md`. El desktop-app
-NO se renombró (auto-update); pendiente para la próxima release del `.exe`.
+**Última actualización:** 2026-07-06 — **Rebrand a "Glitch AQP"** ✅.
+**v1.1** (tag, en prod): kit glitch + tema Glitch + gestor de videos de fondo por página
+(admin sube y elige dónde: 1, varias o todas) + eventos completos en la home + perfil
+social (portada+avatar, amigos, foto de perfil, alias únicos) + "Mi estilo" por usuario.
+**v1.2** (local, lista para deploy): identidad *"Internet 2010 + Nightcore + XP + Winamp"*
+— glitch solo en momentos clave (logo/canción/click/CRT boot), TODO el perfil en ventanas
+Windows XP, player con skin Winamp (LCD + ecualizador), y un solo video de fondo global
+(`fondoscenecoe.mp4`) salvo asignación del admin. Detalle: [GLITCH.md](./GLITCH.md) +
+`CHANGELOG.md` (entradas a–i). El desktop-app NO se renombró (auto-update); pendiente
+para la próxima release del `.exe`.
 **Edición vigente:** Nightcore Arequipa 3 · **Organiza:** Yorch · **Hecho por:** Los Simpatizantes de JP
 **Producción:** https://nightcoreaqp-five.vercel.app (Vercel) · Media-service en Render (`nightcore-media`)
 

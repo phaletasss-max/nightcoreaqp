@@ -11,6 +11,15 @@ Versión semántica: MAYOR.MENOR.PATCH (la app web no tiene número de versión 
 > + funciones admin (tag `v1.1`, entradas (a)–(e) de abajo). Lo siguiente es la **v1.2**:
 > identidad "Internet 2010 + Nightcore + Windows XP + Winamp + neón + anime + Arequipa".
 
+### 2026-07-06 (i) — v1.2: player con skin Winamp
+
+- **La barra flotante de la radio (GlobalPlayer) ahora es un Winamp clásico**:
+  chasis metálico azul-acero (`.winamp-bar`), pantalla **LCD verde fosforescente**
+  con fuente mono para artista/título (`.winamp-lcd`) y **mini ecualizador de 5
+  barras** que baila con la música y se aplana en pausa (`.winamp-eq`).
+  Los controles (play/pausa, skip, mute, menú) no cambian de comportamiento.
+- Respeta `prefers-reduced-motion` (el ecualizador no anima).
+
 ### 2026-07-06 (h) — Un solo video de fondo en todo el sitio (fondoscenecoe)
 
 - **Playlist ya no tiene video propio por defecto**: `DEFAULT_PAGE_VIDEOS` quedó vacío →
