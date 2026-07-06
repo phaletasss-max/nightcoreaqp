@@ -22,11 +22,11 @@ export const PAGE_OPTIONS: { key: string; path: string; label: string }[] = [
   { key: 'dj', path: '/dj', label: 'Panel DJ' },
 ];
 
-// Default de fábrica (si el admin nunca configuró nada): el video glitch en
-// Playlist, como quedó tras el rebrand. El admin puede quitarlo desde su panel.
-export const DEFAULT_PAGE_VIDEOS: Record<string, string> = {
-  playlist: '/section-glitch.mp4',
-};
+// Default de fábrica: SIN videos por página → todas las páginas muestran el
+// fondo idle de la radio (fondoscenecoe.mp4, el video original del proyecto),
+// igual en todos lados. Los videos por página se asignan solo desde
+// Admin → Diseño → "Videos de fondo por página".
+export const DEFAULT_PAGE_VIDEOS: Record<string, string> = {};
 
 export function parsePageVideos(raw: string | undefined | null): Record<string, string> {
   if (raw === undefined || raw === null || raw === '') return { ...DEFAULT_PAGE_VIDEOS };

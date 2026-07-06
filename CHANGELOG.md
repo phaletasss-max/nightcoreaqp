@@ -11,6 +11,20 @@ Versión semántica: MAYOR.MENOR.PATCH (la app web no tiene número de versión 
 > + funciones admin (tag `v1.1`, entradas (a)–(e) de abajo). Lo siguiente es la **v1.2**:
 > identidad "Internet 2010 + Nightcore + Windows XP + Winamp + neón + anime + Arequipa".
 
+### 2026-07-06 (h) — Un solo video de fondo en todo el sitio (fondoscenecoe)
+
+- **Playlist ya no tiene video propio por defecto**: `DEFAULT_PAGE_VIDEOS` quedó vacío →
+  todas las páginas (eventos, playlist, chat, buzón, historial, descargas, dj, perfil…)
+  muestran el MISMO fondo: el idle de la radio (`fondoscenecoe.mp4`, el video original).
+- **Se quitó `GlitchBackground`** (el video global automático del tema glitch): se
+  superponía con el idle de la radia cuando el tema estaba activo. Si se quiere ese video,
+  se asigna desde Admin → Diseño → Videos de fondo por página con "Todas las páginas"
+  (así el idle se oculta solo y nunca hay dos videos).
+- El gestor de videos por página sigue igual: cualquier asignación del admin pisa el idle
+  en esa ruta, sin superposición.
+- SQL: nada nuevo que correr. (Sigue pendiente de siempre `site_settings_setup.sql` SOLO
+  si el gestor de diseño no persistiera en prod.)
+
 ### 2026-07-06 (g) — v1.2: Windows XP en TODO el perfil
 
 - **`src/components/XPWindow.tsx`** (nuevo): ventana XP reutilizable (titlebar Luna +

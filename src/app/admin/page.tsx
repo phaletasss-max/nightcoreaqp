@@ -25,6 +25,8 @@ import { buildCrateBat, downloadTextFile } from '@/lib/crate';
 import type { EventItem, Song, Attendee, EventStatus, Profile, Costume, EventComment, AttendanceProof, Suggestion, CustomBlock, BlockType } from '@/lib/types';
 // Catálogos de temas/fuentes/acentos: compartidos con el panel "Mi estilo" del perfil.
 import { THEME_OPTIONS, FONT_OPTIONS, BODY_FONT_OPTIONS, ACCENT_OPTIONS } from '@/lib/designPresets';
+import PageVideoAdmin from '@/components/PageVideoAdmin';
+import { PAGE_VIDEO_KEY } from '@/lib/pageVideos';
 
 type Tab = 'kpi' | 'dj' | 'survey' | 'events' | 'users' | 'posts' | 'comments' | 'design' | 'proofs' | 'buzon' | 'bloques';
 
@@ -1560,6 +1562,9 @@ export default function AdminPage() {
               })}
             </div>
           </div>
+
+          {/* Videos de fondo por página (subir + elegir dónde se muestran) */}
+          <PageVideoAdmin raw={design[PAGE_VIDEO_KEY]} onSave={(v) => setDesignKey(PAGE_VIDEO_KEY, v)} />
 
           {/* Restablecer */}
           <div className="card p-5 flex items-center justify-between gap-3 border-dashed">
