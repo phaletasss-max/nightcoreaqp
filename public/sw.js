@@ -1,8 +1,9 @@
-// Service worker de Nightcore AQP — habilita "instalar" (PWA) + offline básico.
+// Service worker de Glitch AQP — habilita "instalar" (PWA) + offline básico.
 // Diseño conservador: solo toca peticiones GET del MISMO origen y nunca /api,
 // así no interfiere con YouTube, Supabase ni las rutas dinámicas.
 
-const CACHE = 'nq-cache-v2';
+// v3: rebrand Glitch AQP — bump para que los clientes viejos descarten su cache.
+const CACHE = 'nq-cache-v3';
 const PRECACHE = ['/', '/playlist', '/icon-192x192.png', '/icon-512x512.png'];
 
 // Respuesta de último recurso: nunca devolver undefined a respondWith() (eso lanza
