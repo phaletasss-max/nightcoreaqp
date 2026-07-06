@@ -49,18 +49,31 @@ no `var()` dentro de `blur()`.
 
 ## 4. Videos de fondo
 
-| Componente | Archivo de video | Cuándo se ve | z-index |
+| Componente | Qué muestra | Cuándo se ve | z-index |
 |---|---|---|---|
 | `GlitchBackground.tsx` | `public/glitch-bg.mp4` | Global, SOLO con tema glitch activo (observa `data-theme` con MutationObserver) | -18 |
-| `PageVideoBg.tsx` | el que pida la página | Por página: `/playlist` y `/disfraces` usan `public/section-glitch.mp4` | -17 |
+| `PageVideoManager.tsx` (layout) → `PageVideoBg.tsx` | lo que el admin configure | Por página, según **Admin → Diseño → Videos de fondo por página** | -17 |
 
-Ambos: `<video autoplay muted loop playsinline>`, `position:fixed`, opacidad baja
-(0.22–0.45), y **si el archivo no existe simplemente no se montan** (onError) —
-nunca rompen la página. La capa oscura del admin (overlay, z -5) los oscurece.
+Ambos: `<video autoplay muted loop playsinline>`, `position:fixed`, opacidad baja,
+y **si el archivo no existe simplemente no se montan** (onError) — nunca rompen la
+página. La capa oscura del admin (overlay, z -5) los oscurece.
+
+### Gestor "Videos de fondo por página" (2026-07-06e)
+
+- El admin sube un video (bucket `media`) o pega una URL y marca en qué páginas se ve:
+  una, varias o "Todas las páginas". UI: `src/components/PageVideoAdmin.tsx`.
+- Persistencia: `site_settings[design_page_videos]` = JSON `{ pageKey: url }`.
+  Catálogo de páginas + resolver: `src/lib/pageVideos.ts` (una página específica
+  pisa la clave `all`). **Default de fábrica**: Playlist → `/section-glitch.mp4`
+  (aplica solo si el admin nunca guardó nada; se quita desde el panel).
+- Render: `PageVideoManager` (montado en `layout.tsx`) resuelve la ruta actual y
+  pinta `PageVideoBg`; se actualiza en vivo con el evento `nq-design-updated` y
+  cachea en `localStorage[nq_page_videos_cache]`.
+- **Anti-superposición**: `GlobalPlayer` usa `usePageVideoUrl()` y oculta el fondo
+  idle de la radio (`fondoscenecoe.mp4`) en cualquier página con video asignado.
+  Al reproducir una canción, el visual del player sí se muestra.
 
 Videos generados con **Veo 3** (~2.7 MB cada uno, tamaño ideal ≤10 MB).
-Para añadir uno a otra página: `<PageVideoBg src="/mi-video.mp4" opacity={0.3} />`
-al inicio del JSX de la página.
 
 ## 5. Personalización por usuario ("Mi estilo")
 

@@ -7,6 +7,25 @@ Versión semántica: MAYOR.MENOR.PATCH (la app web no tiene número de versión 
 
 ## [Unreleased] — Web
 
+### 2026-07-06 (e) — Perfil propio remasterizado + gestor de videos de fondo por página
+
+- **Perfil propio con el mismo modelo social** (`src/app/perfil/page.tsx`): el "Fondo del
+  Perfil" ahora es una PORTADA (banda superior de la tarjeta) y el avatar va montado sobre
+  ella (grande, borde grueso), como el perfil público. Editor/privacidad/stats intactos.
+- **Gestor admin "Videos de fondo por página"** (Admin → Diseño):
+  - `src/lib/pageVideos.ts`: catálogo de páginas + parse/resolve; se guarda en
+    `site_settings[design_page_videos]` (JSON pageKey→url). Default de fábrica:
+    Playlist → `/section-glitch.mp4` (el admin puede quitarlo).
+  - `src/components/PageVideoAdmin.tsx`: subir video o pegar URL, marcar páginas
+    (una, varias o "Todas las páginas") y asignar; lista con mini-preview y quitar.
+  - `src/components/PageVideoManager.tsx` (montado en layout): renderiza el video que
+    toca en la ruta actual; live-update vía `nq-design-updated`. Expone `usePageVideoUrl`.
+  - **GlobalPlayer**: el fondo idle de la radio se oculta automáticamente en cualquier
+    página con video asignado (generaliza el fix (d) que era solo /playlist); el hardcode
+    de PageVideoBg en /playlist se movió al default del gestor.
+- Verificado en preview: asignar video a Chat desde el admin → /chat lo muestra sin
+  superposición; /playlist conserva su default; /disfraces intacta.
+
 ### 2026-07-06 (d) — Playlist sin video superpuesto, foto de perfil, alias únicos y perfil social
 
 - **Playlist**: el fondo idle de la radio (`fondoscenecoe.mp4`, GlobalPlayer) ya no se pinta

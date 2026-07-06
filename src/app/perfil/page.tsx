@@ -324,18 +324,18 @@ export default function PerfilPage() {
       <div className="grid lg:grid-cols-3 gap-8 items-start relative z-10">
         {/* Resumen */}
         <div className="space-y-6">
-          <div className="card p-6 space-y-6 relative overflow-hidden">
-            {/* Fondo del perfil: SOLO dentro de esta tarjeta (antes había una capa
-                fixed a pantalla completa). Opacidad literal del slider + degradado
-                abajo para que el texto siga legible. */}
-            {localBg && (
-              <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[inherit]">
-                <img src={localBg} className="absolute inset-0 w-full h-full object-cover" style={{ opacity: localBgOpacity }} alt="card bg" />
-                <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/65" />
-              </div>
-            )}
-            <div className="relative z-10 flex flex-col items-center text-center gap-3">
-              <label className="relative h-20 w-20 rounded-full bg-neon-pink/15 border border-neon-pink/30 flex items-center justify-center overflow-hidden cursor-pointer group/avatar" title="Cambiar foto de perfil">
+          <div className="card p-0 space-y-6 relative overflow-hidden pb-6">
+            {/* PORTADA (mismo modelo que el perfil público): el "Fondo del Perfil" es
+                la banda de arriba, y el avatar va montado sobre ella. */}
+            <div className="relative h-28 sm:h-32 w-full bg-gradient-to-r from-neon-magenta/25 via-surface-2 to-neon-cyan/25">
+              {localBg && (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={localBg} className="absolute inset-0 w-full h-full object-cover" style={{ opacity: Math.max(localBgOpacity, 0.35) }} alt="Portada" />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+            </div>
+            <div className="relative z-10 flex flex-col items-center text-center gap-3 px-6 -mt-16">
+              <label className="relative h-24 w-24 rounded-full bg-surface border-4 border-background flex items-center justify-center overflow-hidden cursor-pointer group/avatar shadow-[0_0_20px_rgba(0,0,0,0.6)]" title="Cambiar foto de perfil">
                 {avatarUrl ? (
                    
                   <img src={avatarUrl} alt="avatar" className="absolute inset-0 w-full h-full object-cover" />
@@ -369,7 +369,7 @@ export default function PerfilPage() {
             </div>
 
             {editing && (
-              <form onSubmit={saveProfileSettings} className="relative z-10 card bg-black/50 p-4 space-y-3 border-dashed border-neon-cyan/50 animate-fade-in text-left">
+              <form onSubmit={saveProfileSettings} className="relative z-10 card bg-black/50 p-4 mx-6 space-y-3 border-dashed border-neon-cyan/50 animate-fade-in text-left">
                 <div>
                   <label className="label text-[10px]">Alias / @nombre (Local)</label>
                   <input className="input py-1.5 text-xs" value={localAlias} onChange={(e) => { setLocalAlias(e.target.value); setAliasError(null); }} placeholder={`Ej. @${profile?.username || 'user'}`} />
@@ -460,7 +460,7 @@ export default function PerfilPage() {
             )}
 
             {/* Privacidad del perfil */}
-            <div className="relative z-10 flex items-center justify-between gap-3 border-t border-border pt-4 mt-4">
+            <div className="relative z-10 flex items-center justify-between gap-3 border-t border-border pt-4 mt-4 px-6">
               <div className="flex items-center gap-2 text-left">
                 {isPrivate ? <Lock className="h-4 w-4 text-neon-yellow shrink-0" /> : <Globe className="h-4 w-4 text-neon-lime shrink-0" />}
                 <div>
@@ -476,7 +476,7 @@ export default function PerfilPage() {
               </button>
             </div>
 
-            <div className="relative z-10 grid grid-cols-2 gap-3 border-t border-border pt-5">
+            <div className="relative z-10 grid grid-cols-2 gap-3 border-t border-border pt-5 px-6">
               <div className="card bg-surface-2 p-4 text-center">
                 <Coins className="h-5 w-5 text-neon-cyan mx-auto mb-1" />
                 <span className="text-2xl font-extrabold text-white block">{points}</span>

@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useRef, useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { usePlayer, type PlayableItem } from '@/context/PlayerContext';
+import { usePageVideoUrl } from '@/components/PageVideoManager';
 import { getSongs } from '@/lib/data';
 import {
   Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Tv,
@@ -16,7 +17,9 @@ function getYouTubeId(url: string) {
 
 export default function GlobalPlayer() {
   const router = useRouter();
-  const pathname = usePathname();
+  // Video de fondo configurado por el admin para esta página (si hay, el fondo
+  // idle de la radio se oculta para no superponerse).
+  const pageVideo = usePageVideoUrl();
   const { playingItem, isPlaying, isMuted, togglePlay, toggleMute, playNext, playPrevious, queue, setQueue } = usePlayer();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -140,9 +143,9 @@ export default function GlobalPlayer() {
             }}
             className={`absolute inset-0 w-[110vw] h-[110vh] -top-[5vh] -left-[5vw] object-cover pointer-events-none transition-opacity duration-500 ${bgFrozen ? 'opacity-0' : 'opacity-50'}`}
           />
-        ) : playingItem?.type === 'default' && pathname === '/playlist' ? (
-          /* En /playlist el fondo idle de la radio (fondoscenecoe) se superponía con el
-             video glitch de la sección → aquí no se pinta. Al reproducir algo, sí. */
+        ) : playingItem?.type === 'default' && pageVideo ? (
+          /* Donde el admin puso un video de página, el fondo idle de la radio no se
+             pinta (se superponían). Al reproducir algo, el visual del player sí sale. */
           null
         ) : (
           <video

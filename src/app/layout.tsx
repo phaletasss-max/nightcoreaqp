@@ -7,6 +7,7 @@ import { PlayerProvider } from "@/context/PlayerContext";
 import GlobalPlayer from "@/components/GlobalPlayer";
 import DesignLoader from "@/components/DesignLoader";
 import GlitchBackground from "@/components/GlitchBackground";
+import PageVideoManager from "@/components/PageVideoManager";
 import Assistant from "@/components/Assistant";
 import PWARegister from "@/components/PWARegister";
 
@@ -72,6 +73,7 @@ export default function RootLayout({
             <PWARegister />
             <DesignLoader />
             <GlitchBackground />
+            <PageVideoManager />
             <GlobalPlayer />
             <Assistant />
             <Navbar />
