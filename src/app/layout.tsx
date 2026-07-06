@@ -24,9 +24,9 @@ const geistMono = Geist_Mono({
 });
 
 const SITE_URL = "https://nightcoreaqp-five.vercel.app";
-// Imagen para compartir (Open Graph). Usa el icono por defecto; para un banner propio,
-// genera uno con el editor de fondos (Generar con IA) y reemplaza por '/og.png'.
-const OG_IMAGE = "/icon-512x512.png";
+// Imagen para compartir (Open Graph): banner 1200x630 con el branding Glitch AQP.
+// Se regenera junto con los íconos: `node scripts/gen-icons.mjs`.
+const OG_IMAGE = "/og.png";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -43,10 +43,10 @@ export const metadata: Metadata = {
     siteName: "Glitch AQP",
     title: "Glitch AQP — El club de nightcore de Arequipa ✦",
     description: "Eventos, playlist colaborativa, concurso de disfraces y más. El club de nightcore de Arequipa. 🎵",
-    images: [{ url: OG_IMAGE, width: 512, height: 512, alt: "Glitch AQP" }],
+    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: "Glitch AQP" }],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Glitch AQP — El club de nightcore de Arequipa ✦",
     description: "Eventos, playlist colaborativa, concurso de disfraces y más. Estilo glitch. 🎵",
     images: [OG_IMAGE],

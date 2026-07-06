@@ -11,6 +11,16 @@ Versión semántica: MAYOR.MENOR.PATCH (la app web no tiene número de versión 
 > + funciones admin (tag `v1.1`, entradas (a)–(e) de abajo). Lo siguiente es la **v1.2**:
 > identidad "Internet 2010 + Nightcore + Windows XP + Winamp + neón + anime + Arequipa".
 
+### 2026-07-06 (k) — Branding completo: íconos, favicon y OG image de Glitch AQP
+
+- **Íconos nuevos** (`scripts/gen-icons.mjs`, SVG → PNG con sharp): antes el ícono de la
+  PWA/OG era el FLYER del Nightcore Fest 2.0. Ahora: "GLITCH AQP" con RGB split,
+  scanlines, barra de tear y franjas de la paleta (512/192/favicon.ico 48px PNG-in-ICO).
+- **OG image propia** `public/og.png` (1200x630) con tagline — `layout.tsx` la usa en
+  Open Graph y Twitter pasa a `summary_large_image`.
+- Regenerar todo: `node scripts/gen-icons.mjs`.
+- `sw.js` → `nq-cache-v4` (los íconos viejos estaban precacheados).
+
 ### 2026-07-06 (j) — Sets del DJ publicables + marquesina Winamp
 
 - **"Sets del DJ" dejó de ser placeholder**: el admin publica sets desde

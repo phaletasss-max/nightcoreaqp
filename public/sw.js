@@ -2,8 +2,8 @@
 // Diseño conservador: solo toca peticiones GET del MISMO origen y nunca /api,
 // así no interfiere con YouTube, Supabase ni las rutas dinámicas.
 
-// v3: rebrand Glitch AQP — bump para que los clientes viejos descarten su cache.
-const CACHE = 'nq-cache-v3';
+// v4: íconos nuevos del branding Glitch AQP (los viejos eran el flyer del evento).
+const CACHE = 'nq-cache-v4';
 const PRECACHE = ['/', '/playlist', '/icon-192x192.png', '/icon-512x512.png'];
 
 // Respuesta de último recurso: nunca devolver undefined a respondWith() (eso lanza
