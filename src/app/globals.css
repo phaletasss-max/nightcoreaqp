@@ -841,6 +841,39 @@ html.nq-glitch-flash body {
 .xp-btn:hover { box-shadow: inset 0 0 0 2px rgba(251, 196, 89, 0.65); }
 .xp-btn:active { background: linear-gradient(180deg, #d8d0bf, #ece9d8); }
 
+/* Contenido del sitio DENTRO de una ventana XP: se aclara para leerse sobre beige */
+.xp-window .section-title { color: #00309c; font-family: Tahoma, Verdana, sans-serif; }
+.xp-window .eyebrow { color: #777; }
+.xp-window .card {
+  background: #f7f5ec;
+  border: 1px solid #9db4d0;
+  border-radius: 4px;
+  backdrop-filter: none;
+}
+.xp-window :is(.bg-surface-2, .bg-black\/40, .bg-black\/30) { background: #f0ede0 !important; }
+.xp-window :is(.border-border, .border-white\/10) { border-color: #c6d3e7 !important; }
+.xp-window .badge {
+  color: #00309c !important;
+  background: #e6f0ff !important;
+  border-color: #7f9db9 !important;
+}
+.xp-window .btn:not(.xp-btn) {
+  background: linear-gradient(180deg, #ffffff, #ece9d8 86%, #d8d0bf);
+  border: 1px solid #003c74;
+  border-radius: 3px;
+  color: #1a1a1a !important;
+  text-shadow: none;
+  font-family: Tahoma, Verdana, sans-serif;
+}
+.xp-window .btn:not(.xp-btn):hover:not(:disabled) {
+  filter: none;
+  box-shadow: inset 0 0 0 2px rgba(251, 196, 89, 0.65);
+}
+.xp-window :is(.text-neon-pink, .text-neon-magenta) { color: #c81e0f !important; }
+.xp-window :is(.text-neon-lime, .badge-green) { color: #1d7d1d !important; }
+.xp-window .text-neon-purple { color: #6a2c70 !important; }
+.xp-window .text-yellow-400 { color: #b8860b !important; }
+
 /* Accesibilidad: sin movimiento para quien lo pide */
 @media (prefers-reduced-motion: reduce) {
   .glitch-text::before,

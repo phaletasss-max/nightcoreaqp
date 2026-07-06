@@ -11,6 +11,7 @@ import { getAttendees, getUserActivity, addSong, uploadMediaFile, updateProfileP
 import { searchYouTube } from '@/lib/media';
 import ProfileEditorExtras from '@/components/ProfileEditorExtras';
 import UserDesignPanel from '@/components/UserDesignPanel';
+import XPWindow from '@/components/XPWindow';
 import type { UserActivity } from '@/lib/data';
 import type { Attendee } from '@/lib/types';
 
@@ -502,13 +503,21 @@ export default function PerfilPage() {
           </div>
 
         {/* Bio, links sociales, acento y galería (Perfil+) — al activar "Personalizar perfil" */}
-        {editing && <ProfileEditorExtras />}
+        {editing && (
+          <XPWindow title="➕ Perfil+ — Bio, links y galería">
+            <ProfileEditorExtras />
+          </XPWindow>
+        )}
 
         {/* Mi estilo: tema/fuentes/acento POR USUARIO (pisa el default del admin solo para ti) */}
-        {editing && <UserDesignPanel />}
+        {editing && (
+          <XPWindow title="🎨 Mi estilo — Propiedades de pantalla">
+            <UserDesignPanel />
+          </XPWindow>
+        )}
 
         {/* Notificaciones */}
-        <div className="card accent-pink p-6 space-y-4">
+        <XPWindow title="🔔 Notificaciones" bodyClassName="space-y-4">
           <h3 className="section-title text-base flex items-center gap-2"><Bell className="h-5 w-5 text-neon-pink" /> Notificaciones</h3>
           <p className="text-xs text-muted">Recibe alertas de eventos, estados de tus canciones y cupones.</p>
 
@@ -528,7 +537,7 @@ export default function PerfilPage() {
             <label className="flex items-center justify-between"><span>Votos en mis canciones</span>
               <input type="checkbox" checked={notifySongs} onChange={(e) => setNotifySongs(e.target.checked)} className="accent-[var(--pink)]" /></label>
           </div>
-        </div>
+        </XPWindow>
       </div>
 
       {/* Entradas */}
@@ -561,7 +570,7 @@ export default function PerfilPage() {
         {subTab === 'tickets' ? (
           <div className="space-y-6 animate-fade-in">
             {/* Entradas */}
-            <div className="card accent-cyan p-6 sm:p-8 space-y-6">
+            <XPWindow title="🎫 Mis entradas" bodyClassName="space-y-6">
               <h2 className="section-title text-lg flex items-center gap-2"><Ticket className="h-6 w-6 text-neon-cyan" /> Mis entradas</h2>
 
               {tickets.length === 0 ? (
@@ -591,10 +600,10 @@ export default function PerfilPage() {
                   ))}
                 </div>
               )}
-            </div>
+            </XPWindow>
 
             {/* Insignias de asistencia */}
-            <div className="card p-6 sm:p-8 space-y-4">
+            <XPWindow title="🏅 Insignias de asistencia" bodyClassName="space-y-4">
               <h2 className="section-title text-lg flex items-center gap-2"><Medal className="h-5 w-5 text-yellow-400" /> Insignias de asistencia</h2>
               {activity.attended.length === 0 ? (
                 <p className="text-sm text-muted-2">Aún sin insignias. Asiste a un evento para ganar la tuya.</p>
@@ -607,10 +616,10 @@ export default function PerfilPage() {
                   ))}
                 </div>
               )}
-            </div>
+            </XPWindow>
 
             {/* Mi actividad */}
-            <div className="card p-6 sm:p-8 space-y-5">
+            <XPWindow title="📊 Mi actividad" bodyClassName="space-y-5">
               <h2 className="section-title text-lg">Mi actividad</h2>
               <div className="grid grid-cols-3 gap-3">
                 {[
@@ -648,13 +657,13 @@ export default function PerfilPage() {
                   </div>
                 </div>
               )}
-            </div>
+            </XPWindow>
           </div>
         ) : (
           /* Music Tab Content */
           <div className="space-y-6 animate-fade-in">
             {/* Spotify Playlist Linker */}
-            <div className="card accent-pink p-6 sm:p-8 space-y-4">
+            <XPWindow title="🎧 Playlist de Spotify" bodyClassName="space-y-4">
               <h2 className="section-title text-lg flex items-center gap-2 text-neon-pink">
                 <Sparkles className="h-5 w-5" /> Playlist de Spotify
               </h2>
@@ -680,11 +689,11 @@ export default function PerfilPage() {
               ) : (
                 <p className="text-xs text-muted-2">Aún sin playlist vinculada.</p>
               )}
-            </div>
+            </XPWindow>
 
             {/* Canciones de la playlist de Spotify → sugerir al DJ */}
             {spotifyPlaylistId && (
-              <div className="card accent-cyan p-6 sm:p-8 space-y-4">
+              <XPWindow title="🎵 Canciones de tu playlist" bodyClassName="space-y-4">
                 <div>
                   <h2 className="section-title text-lg flex items-center gap-2 text-neon-cyan">
                     <Music className="h-5 w-5" /> Canciones de tu playlist
@@ -734,11 +743,11 @@ export default function PerfilPage() {
                     })}
                   </div>
                 )}
-              </div>
+              </XPWindow>
             )}
 
             {/* Biblioteca de Sugerencias Rápidas */}
-            <div className="card accent-cyan p-6 sm:p-8 space-y-6">
+            <XPWindow title="⭐ Mis canciones guardadas" bodyClassName="space-y-6">
               <div>
                 <h2 className="section-title text-lg flex items-center gap-2 text-neon-cyan">
                   <Music className="h-5 w-5" /> Mis canciones guardadas
@@ -854,7 +863,7 @@ export default function PerfilPage() {
                   ))}
                 </div>
               )}
-            </div>
+            </XPWindow>
           </div>
         )}
       </div>

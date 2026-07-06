@@ -11,6 +11,19 @@ Versión semántica: MAYOR.MENOR.PATCH (la app web no tiene número de versión 
 > + funciones admin (tag `v1.1`, entradas (a)–(e) de abajo). Lo siguiente es la **v1.2**:
 > identidad "Internet 2010 + Nightcore + Windows XP + Winamp + neón + anime + Arequipa".
 
+### 2026-07-06 (g) — v1.2: Windows XP en TODO el perfil
+
+- **`src/components/XPWindow.tsx`** (nuevo): ventana XP reutilizable (titlebar Luna +
+  _ □ ✕ + cuerpo beige). `onClose` opcional para la ✕.
+- **Todas las secciones de `/perfil` son ventanas XP**: Personalizar perfil, Perfil+
+  (bio/links/galería), Mi estilo — Propiedades de pantalla, Notificaciones, Mis entradas,
+  Insignias de asistencia, Mi actividad, Playlist de Spotify, Canciones de tu playlist y
+  Mis canciones guardadas. La cabecera social (portada + avatar) se queda neón a propósito
+  (contraste "2010 vs moderno").
+- **Overrides `.xp-window`** en globals.css: tarjetas/badges/botones/inputs internos se
+  aclaran al estilo clásico (beige/azul XP) automáticamente — cualquier contenido del sitio
+  metido en una XPWindow se adapta sin tocar su JSX.
+
 ### 2026-07-06 (f) — v1.2: glitch en momentos clave + editor de perfil Windows XP
 
 Filosofía v1.2: si todo tiene glitch, deja de destacar → el efecto aparece solo en
