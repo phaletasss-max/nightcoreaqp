@@ -8,7 +8,6 @@ import { useAuth } from '@/lib/auth';
 import { getCostumes, addCostume, setCostumeVote, getEvents, uploadMediaFile, addCostumeComment } from '@/lib/data';
 import type { Costume, EventItem } from '@/lib/types';
 import AuthModal from '@/components/AuthModal';
-import PageVideoBg from '@/components/PageVideoBg';
 
 const PLACEHOLDER_IMG = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80';
 
@@ -130,7 +129,6 @@ export default function DisfracesPage() {
 
   return (
     <div className="space-y-8">
-      <PageVideoBg src="/section-glitch.mp4" opacity={0.22} />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="section-title flex items-center gap-2 text-2xl">
