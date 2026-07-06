@@ -8,11 +8,13 @@ console.log('[VERIFY-UI-CONTRACTS] Validando contratos de componentes críticos 
 const contracts = [
   {
     route: '/',
-    mustContain: ['Nightcore AQP']
+    // Rebrand 2026-07-06: el sitio es "Glitch AQP" (antes Nightcore AQP).
+    mustContain: ['Glitch AQP']
   },
   {
     route: '/admin',
     // La página de admin debería contener al menos un form, o un texto clave, o no explotar.
+    // El marcador vive en el branch de carga (sr-only) para que exista en el SSR.
     mustContain: ['Acceso Admin']
   }
 ];

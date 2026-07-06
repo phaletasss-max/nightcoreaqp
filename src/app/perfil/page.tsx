@@ -330,7 +330,6 @@ export default function PerfilPage() {
                 la banda de arriba, y el avatar va montado sobre ella. */}
             <div className="relative h-28 sm:h-32 w-full bg-gradient-to-r from-neon-magenta/25 via-surface-2 to-neon-cyan/25">
               {localBg && (
-                /* eslint-disable-next-line @next/next/no-img-element */
                 <img src={localBg} className="absolute inset-0 w-full h-full object-cover" style={{ opacity: Math.max(localBgOpacity, 0.35) }} alt="Portada" />
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -393,7 +392,6 @@ export default function PerfilPage() {
                   <label className="label text-[10px]">Foto de perfil (el círculo)</label>
                   <div className="flex items-center gap-3">
                     {avatarUrl ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
                       <img src={avatarUrl} alt="Foto de perfil actual" className="h-11 w-11 rounded-full object-cover border-2 border-neon-pink/50 shrink-0" />
                     ) : (
                       <div className="h-11 w-11 rounded-full bg-neon-pink/15 border border-neon-pink/30 flex items-center justify-center shrink-0">

@@ -41,6 +41,5 @@ export default function FlyerMedia({ url, alt = 'Flyer del evento', className = 
       </div>
     );
   }
-  // eslint-disable-next-line @next/next/no-img-element
   return <img src={url} alt={alt} className={`w-full h-auto object-cover bg-black ${className}`} />;
 }

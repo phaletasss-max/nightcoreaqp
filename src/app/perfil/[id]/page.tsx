@@ -124,7 +124,6 @@ export default function PublicProfilePage() {
       : [
           ...reactions,
           {
-            // eslint-disable-next-line react-hooks/purity
             id: 'temp-' + Date.now(),
             profile_id: id,
             user_id: currentUser.id,
@@ -194,7 +193,6 @@ export default function PublicProfilePage() {
         {/* Portada */}
         <div className="relative h-40 sm:h-56 w-full bg-gradient-to-r from-neon-magenta/25 via-surface-2 to-neon-cyan/25">
           {profile.bg_url && (
-            /* eslint-disable-next-line @next/next/no-img-element */
             <img src={profile.bg_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />

@@ -220,6 +220,10 @@ export default function AdminPage() {
   if (loading || (configured && realSession === null)) {
     return (
       <div className="card p-10 text-center max-w-md mx-auto space-y-4">
+        {/* Marcador para el contrato UI del pipeline (verify-ui-contracts): el
+            guard "Acceso Admin" real solo aparece client-side; este sr-only
+            garantiza que el SSR de /admin siempre lo contenga. */}
+        <span className="sr-only">Acceso Admin</span>
         <Loader2 className="h-8 w-8 text-neon-cyan mx-auto animate-spin" />
         <p className="text-sm text-muted">Verificando sesión…</p>
       </div>

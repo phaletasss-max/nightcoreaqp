@@ -581,10 +581,10 @@ export async function getCostumes(): Promise<Costume[]> {
   if (cfg()) {
     const { data } = await supabase.from('costumes').select('*, costume_comments(*)').order('votes_count', { ascending: false });
     if (data) {
-      return (data as any[]).map((c) => ({
+      return (data as (Costume & { costume_comments?: CostumeComment[] })[]).map((c) => ({
         ...c,
         comments: c.costume_comments ?? []
-      })) as Costume[];
+      }));
     }
     return [];
   }

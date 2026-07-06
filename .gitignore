@@ -49,3 +49,4 @@ next-env.d.ts
 
 # convertidor: software propio open-source, se publica como repo aparte, no va aquí
 /convertidor
+.pw-browsers/
