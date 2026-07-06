@@ -36,6 +36,23 @@ export default function GlobalPlayer() {
     }
   };
 
+  // Destello glitch de ~250ms cuando EMPIEZA una canción (v1.2 — glitch en
+  // momentos clave). La clase la anima globals.css (html.nq-glitch-flash body).
+  const lastFlashRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!playingItem || playingItem.type === 'default') return;
+    const key = `${playingItem.type}:${playingItem.id ?? playingItem.url ?? playingItem.title}`;
+    if (lastFlashRef.current === key) return;
+    lastFlashRef.current = key;
+    const root = document.documentElement;
+    root.classList.remove('nq-glitch-flash');
+    // reflow para reiniciar la animación si dos canciones van seguidas
+    void root.offsetWidth;
+    root.classList.add('nq-glitch-flash');
+    const t = setTimeout(() => root.classList.remove('nq-glitch-flash'), 300);
+    return () => clearTimeout(t);
+  }, [playingItem]);
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [bgFrozen, setBgFrozen] = useState(false);   // congelar fondo (música sigue)
   const [loadingList, setLoadingList] = useState(false);

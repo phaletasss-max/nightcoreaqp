@@ -369,7 +369,17 @@ export default function PerfilPage() {
             </div>
 
             {editing && (
-              <form onSubmit={saveProfileSettings} className="relative z-10 card bg-black/50 p-4 mx-6 space-y-3 border-dashed border-neon-cyan/50 animate-fade-in text-left">
+              /* Ventana Windows XP (v1.2): identidad "Internet 2010 + XP + Winamp" */
+              <div className="relative z-10 xp-window mx-6 animate-fade-in w-auto self-stretch">
+                <div className="xp-titlebar">
+                  <span>🖼️ Personalizar perfil — Panel de control</span>
+                  <span className="xp-title-btns">
+                    <span className="xp-title-btn" aria-hidden>_</span>
+                    <span className="xp-title-btn" aria-hidden>□</span>
+                    <button type="button" className="xp-title-btn close" title="Cerrar" onClick={() => setEditing(false)}>✕</button>
+                  </span>
+                </div>
+              <form onSubmit={saveProfileSettings} className="xp-body space-y-3 text-left">
                 <div>
                   <label className="label text-[10px]">Alias / @nombre (Local)</label>
                   <input className="input py-1.5 text-xs" value={localAlias} onChange={(e) => { setLocalAlias(e.target.value); setAliasError(null); }} placeholder={`Ej. @${profile?.username || 'user'}`} />
@@ -455,8 +465,9 @@ export default function PerfilPage() {
                     className="w-full accent-neon-cyan cursor-pointer bg-white/10 rounded-lg appearance-none h-1.5"
                   />
                 </div>
-                <button type="submit" className="btn btn-cyan py-1.5 text-xs w-full">Guardar cambios</button>
+                <button type="submit" className="xp-btn w-full">Guardar cambios</button>
               </form>
+              </div>
             )}
 
             {/* Privacidad del perfil */}

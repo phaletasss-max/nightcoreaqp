@@ -7,6 +7,29 @@ Versión semántica: MAYOR.MENOR.PATCH (la app web no tiene número de versión 
 
 ## [Unreleased] — Web
 
+> **Versionado del sitio:** v1.0 = base Nightcore AQP (tag `v1.0`), v1.1 = rebrand Glitch AQP
+> + funciones admin (tag `v1.1`, entradas (a)–(e) de abajo). Lo siguiente es la **v1.2**:
+> identidad "Internet 2010 + Nightcore + Windows XP + Winamp + neón + anime + Arequipa".
+
+### 2026-07-06 (f) — v1.2: glitch en momentos clave + editor de perfil Windows XP
+
+Filosofía v1.2: si todo tiene glitch, deja de destacar → el efecto aparece solo en
+momentos concretos (intencional y memorable).
+
+- **Glitch en momentos clave** (`globals.css` bloque "Glitch en MOMENTOS CLAVE"):
+  - Logo: desplazamiento 2–3px con separación RGB al hover (`.glitch-shift` + `.glitch-text`).
+  - **Canción empieza** → destello glitch de ~250ms en toda la pantalla (GlobalPlayer añade
+    `nq-glitch-flash` al `<html>`; keyframes `glitchSongFlash`).
+  - **Botones** → distorsión breve solo al hacer CLICK (`.btn:active`: skew + RGB shadow).
+  - **Carga de la web** → interferencia CRT de "monitor encendiéndose" (~0.9s), una vez por
+    sesión (`src/components/CRTBoot.tsx` + `.crt-boot`; sessionStorage `nq_crt_boot_done`).
+  - Todo respeta `prefers-reduced-motion`.
+- **Editor de perfil estilo Windows XP** (`.xp-window/.xp-titlebar/.xp-btn` en globals +
+  `src/app/perfil/page.tsx`): "Personalizar perfil" ahora es una ventana XP Luna — barra de
+  título azul con botones _ □ ✕ (✕ cierra), cuerpo beige `#ece9d8`, inputs blancos clásicos
+  y botón "Guardar cambios" estilo XP. Los overrides pisan las utilidades neón dentro de
+  la ventana.
+
 ### 2026-07-06 (e) — Perfil propio remasterizado + gestor de videos de fondo por página
 
 - **Perfil propio con el mismo modelo social** (`src/app/perfil/page.tsx`): el "Fondo del

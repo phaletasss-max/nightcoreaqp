@@ -686,13 +686,173 @@ html[data-theme="glitch"] body::before {
   100% { top: 110%; opacity: 0; }
 }
 
+/* ── Glitch en MOMENTOS CLAVE (v1.2) ─────────────────────────────────────────
+   Filosofía: si todo tiene glitch, deja de destacar. Estos efectos aparecen
+   solo en instantes concretos para que se sientan intencionales:
+   1. Logo al hover → desplazamiento 2-3px (el RGB split lo pone .glitch-text)
+   2. Canción empieza → destello de ~250ms en toda la pantalla (GlobalPlayer
+      añade la clase nq-glitch-flash al <html>)
+   3. Botones importantes → distorsión breve al hacer CLICK (:active)
+   4. Carga de la web → interferencia CRT de encendido (componente CRTBoot) */
+
+/* 1) Logo: micro-desplazamiento al hover (steps = brusco, como señal corrupta) */
+.glitch-shift { transition: transform 90ms steps(2, jump-none); }
+.glitch-shift:hover { transform: translate(2px, -1px); }
+
+/* 2) Destello al empezar una canción */
+html.nq-glitch-flash body {
+  animation: glitchSongFlash 0.25s steps(5, jump-none) 1;
+}
+@keyframes glitchSongFlash {
+  0% { transform: translate(0); filter: none; }
+  20% { transform: translate(-4px, 2px) skewX(1.5deg); filter: hue-rotate(90deg) saturate(2); }
+  40% { transform: translate(4px, -2px) skewX(-1.5deg); filter: hue-rotate(-70deg) contrast(1.4); }
+  60% { transform: translate(-2px, 1px); filter: saturate(3) brightness(1.15); }
+  80% { transform: translate(2px, -1px) skewX(0.8deg); filter: hue-rotate(40deg); }
+  100% { transform: translate(0); filter: none; }
+}
+
+/* 3) Botones: distorsión SOLO al click (no al hover, para no saturar) */
+.btn:active:not(:disabled) {
+  transform: translate(1px, 1px) skewX(-2deg);
+  filter: drop-shadow(-2px 0 color-mix(in srgb, var(--magenta) 70%, transparent))
+          drop-shadow(2px 0 color-mix(in srgb, var(--cyan) 70%, transparent));
+}
+
+/* 4) Encendido CRT al cargar (overlay de CRTBoot.tsx, una vez por sesión) */
+.crt-boot {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000;
+  pointer-events: none;
+  animation: crtBootFade 0.9s ease-out forwards;
+}
+.crt-boot::before {
+  /* línea horizontal que "abre" la imagen, como un monitor viejo */
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  background: #fff;
+  box-shadow: 0 0 24px 4px rgba(255, 255, 255, 0.9), 0 0 60px 10px color-mix(in srgb, var(--cyan) 60%, transparent);
+  animation: crtBootLine 0.9s ease-out forwards;
+}
+.crt-boot::after {
+  /* scanlines + flicker mientras "enciende" */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(to bottom, transparent, transparent 3px, rgba(0, 0, 0, 0.35) 3px, rgba(0, 0, 0, 0.35) 4px);
+  animation: crtBootFlicker 0.9s steps(6, jump-none) forwards;
+}
+@keyframes crtBootLine {
+  0% { transform: scaleX(0); opacity: 1; }
+  25% { transform: scaleX(1); opacity: 1; }
+  55% { transform: scaleY(80); opacity: 0.6; }
+  100% { transform: scaleY(600); opacity: 0; }
+}
+@keyframes crtBootFade {
+  0%, 35% { opacity: 1; }
+  70% { opacity: 0.5; }
+  100% { opacity: 0; visibility: hidden; }
+}
+@keyframes crtBootFlicker {
+  0%, 100% { opacity: 1; }
+  40% { opacity: 0.6; }
+  55% { opacity: 0.9; }
+  70% { opacity: 0.4; }
+}
+
+/* ── Ventana Windows XP (v1.2 · identidad "Internet 2010") ───────────────────
+   Para los paneles de configuración del PERFIL: barra de título Luna azul con
+   botones _ □ ✕, cuerpo beige clásico y controles estilo XP. Uso:
+   <div class="xp-window"><div class="xp-titlebar">…</div><div class="xp-body">…</div></div> */
+.xp-window {
+  border: 3px solid #0831d9;
+  border-top: none;
+  border-radius: 8px 8px 4px 4px;
+  background: #ece9d8;
+  color: #1a1a1a;
+  overflow: hidden;
+  box-shadow: 2px 4px 18px rgba(0, 0, 0, 0.55);
+  font-family: Tahoma, Verdana, 'Segoe UI', sans-serif;
+  text-align: left;
+}
+.xp-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.35rem 0.4rem 0.35rem 0.75rem;
+  background: linear-gradient(180deg, #0997ff 0%, #0053ee 8%, #0050ee 40%, #0066ff 88%, #003dd7 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+  border-radius: 8px 8px 0 0;
+}
+.xp-title-btns { display: flex; gap: 3px; }
+.xp-title-btn {
+  height: 21px;
+  width: 21px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: linear-gradient(180deg, #7ba2e7, #2b5bd7);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.xp-title-btn:hover { filter: brightness(1.15); }
+.xp-title-btn.close { background: linear-gradient(180deg, #e88c7d, #c81e0f); }
+.xp-body { padding: 0.9rem; }
+/* Controles clásicos dentro de la ventana (pisan el look neón del sitio) */
+.xp-window .label { color: #003399; }
+.xp-window .input {
+  background: #fff;
+  color: #111;
+  border: 1px solid #7f9db9;
+  border-radius: 0;
+}
+.xp-window .input::placeholder { color: #999; }
+.xp-window .input:focus { border-color: #0046d5; box-shadow: none; }
+.xp-window :is(.text-white, .text-muted, .text-muted-2) { color: #1a1a1a !important; }
+.xp-window .text-neon-cyan { color: #0046d5 !important; }
+.xp-window :is(.border-dashed, .border-white\/20) { border-color: #9db4d0 !important; }
+.xp-window :is(.bg-white\/5, .bg-black\/50) { background: #f5f3ea !important; }
+.xp-btn {
+  background: linear-gradient(180deg, #ffffff, #ece9d8 86%, #d8d0bf);
+  border: 1px solid #003c74;
+  border-radius: 3px;
+  color: #1a1a1a;
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+  font-family: Tahoma, Verdana, sans-serif;
+}
+.xp-btn:hover { box-shadow: inset 0 0 0 2px rgba(251, 196, 89, 0.65); }
+.xp-btn:active { background: linear-gradient(180deg, #d8d0bf, #ece9d8); }
+
 /* Accesibilidad: sin movimiento para quien lo pide */
 @media (prefers-reduced-motion: reduce) {
   .glitch-text::before,
   .glitch-text::after,
   html[data-theme="glitch"] body::before,
   html[data-theme="glitch"] body::after,
+  html.nq-glitch-flash body,
+  .crt-boot,
+  .crt-boot::before,
+  .crt-boot::after,
   .glitch-hover:hover { animation: none !important; }
+  .crt-boot { display: none; }
 }
 
 /* Franja arcoíris (bordes del hero) con los colores del tema activo */

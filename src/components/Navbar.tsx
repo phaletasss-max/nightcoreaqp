@@ -44,7 +44,7 @@ export default function Navbar() {
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-neon-magenta/15 border border-neon-magenta/30">
               <Sparkles className="h-5 w-5 text-neon-magenta glow-magenta" />
             </div>
-            <span className="text-lg font-extrabold tracking-tight text-white glitch-text" data-text="GLITCHAQP">
+            <span className="text-lg font-extrabold tracking-tight text-white glitch-text glitch-shift" data-text="GLITCHAQP">
               GLITCH<span className="text-glow-rainbow">AQP</span>
             </span>
           </Link>
