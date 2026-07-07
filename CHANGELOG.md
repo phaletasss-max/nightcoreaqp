@@ -11,6 +11,55 @@ Versión semántica: MAYOR.MENOR.PATCH (la app web no tiene número de versión 
 > + funciones admin (tag `v1.1`, entradas (a)–(e) de abajo). Lo siguiente es la **v1.2**:
 > identidad "Internet 2010 + Nightcore + Windows XP + Winamp + neón + anime + Arequipa".
 
+### 2026-07-07 (m) — NΞON reactiva + descargador para no técnicos
+
+- **feat(neon): Fase 3 — reacciones a la música.** Con el chat ABIERTO, cuando arranca
+  una canción NΞON comenta («Frecuencia sincronizada…», «Nuevo BPM detectado…», rotando)
+  con límite anti-saturación: máx. 1 cada 2 min, nunca con el fondo idle, sin llamar a la
+  API (`Assistant.tsx` + `usePlayer`). También: easter eggs 2000s (Konata, Miku, XP, MSN,
+  Ares, Rakion, GunBound, StepMania, Happy Hardcore) y saludo según la hora (Fase 2).
+- **feat(descargador): lanzador para no técnicos** `public/downloads/Instalar_Descargador.bat`:
+  si la app ya está instalada la abre; si no, baja el Setup OFICIAL del release de GitHub
+  y lo ejecuta, explicando en pantalla qué hace (y el aviso de SmartScreen). No descarga
+  canciones — solo instala/abre la app.
+- **feat(desktop-app): "🧰 Exportar herramientas".** Botón en la topbar que copia
+  yt-dlp/ffmpeg/ffprobe/deno de `userData/bin` a una carpeta elegida (+ `LEEME.txt`),
+  SIN las canciones descargadas (IPC `export-tools` en main + preload + renderer).
+  Nota: el `.exe` se compila en CI al publicar release (local sin node_modules).
+- Verificado: `tsc --noEmit` limpio, `npm run build` OK, home y NΞON sin errores en
+  preview; sintaxis de los 3 archivos del desktop-app validada con Node.
+
+### 2026-07-07 (l) — Roles reales, NΞON y limpieza (pendiente aplicar SQL)
+
+- **fix(roles): el cambio de rol ya persiste.** Causa: `updateProfileRole` hacía un
+  `UPDATE` directo a `profiles` que la RLS filtraba (0 filas, sin error) → el rol volvía
+  a USER. Ahora pasa por el RPC `admin_set_role` (SECURITY DEFINER): valida admin, exige
+  **credencial-hash** para promover a ADMIN, y audita en `admin_logs`. La función devuelve
+  `{ ok, error }` y el panel muestra el error real. SQL en `supabase/phase-roles.sql`
+  (**pendiente de ejecutar**; el hash lo fija el propietario con `crypt`/`gen_salt`).
+- **feat(roles): DJ solo ve lo suyo.** En `/admin` un DJ solo accede a Métricas, Consola
+  DJ y Encuestas (`DJ_TABS`); el admin ve todo (ROLES.md). La RLS sigue siendo la verdad.
+- **feat(neon): "Nightie" → NΞON.** Nuevo cerebro (`api/assistant`) con identidad, lore
+  2012, tono y lenguaje de frecuencias/BPM; recibe `role`/`page` para ajustar el tono
+  (sin dar permisos). El componente añade saludo de 1ª visita/regreso y comandos `/…`
+  locales (sin gastar cuota): `/help /status /neon /version /ping /glitch /profile …`.
+- **perf/clean(home): código muerto.** `VideoBackground` y `ScenecoreBackground` estaban
+  importados en `page.tsx` pero **nunca se renderizaban** → imports quitados y archivos
+  borrados. También se borró `CommunityFeed.tsx` (versión inicial, ya reemplazada por
+  `LiveFeed`, sin imports). El único fondo de video sigue siendo `fondoscenecoe.mp4`
+  (GlobalPlayer).
+- **perf(player): pausa el fondo idle en pestañas ocultas.** El `<video>` de fondo
+  (`fondoscenecoe`) seguía decodificando en segundo plano (CPU/GPU/batería en equipos
+  modestos). Nuevo efecto `visibilitychange` que lo pausa cuando `document.hidden` y lo
+  reanuda al volver — solo el fondo decorativo (type `default`); si el usuario escucha
+  algo (yt/stream) no se toca.
+- **docs/ux(descargador): copy más claro.** El modal de descargas explica que baja de
+  YouTube/TikTok/Instagram/Facebook (MP3/MP4) y que el instalador prepara solo yt-dlp/
+  ffmpeg. Spec de pendientes P4 en `docs/DESCARGADOR.md §6.5`.
+- Verificado: `tsc --noEmit` limpio; **`npm run build` OK**; preview OK (home sin errores,
+  NΞON saluda y `/status` responde local; video de fondo pausa correctamente con la
+  pestaña oculta). Detalle: `docs/pt-v1.2-p1/PT-IMPLEMENTACION.md`.
+
 ### 2026-07-06 (k) — Branding completo: íconos, favicon y OG image de Glitch AQP
 
 - **Íconos nuevos** (`scripts/gen-icons.mjs`, SVG → PNG con sharp): antes el ícono de la

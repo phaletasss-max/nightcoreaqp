@@ -1,25 +1,65 @@
 {
-  "timestamp": "2026-06-24T16:39:20.693Z",
+  "timestamp": "2026-07-06T21:44:08.674Z",
   "environment": "LOCAL",
-  "totalDurationMs": 17996,
+  "totalDurationMs": 24771,
   "steps": [
+    {
+      "id": "verify-env",
+      "name": "Variables de Entorno",
+      "status": "FAIL",
+      "reason": "Command failed: npx tsx scripts/verify-env.ts",
+      "durationMs": 963
+    },
+    {
+      "id": "verify-media-service",
+      "name": "Media Service",
+      "status": "FAIL",
+      "reason": "Command failed: npx tsx scripts/verify-media-service.ts",
+      "durationMs": 965
+    },
+    {
+      "id": "verify-supabase",
+      "name": "Conexión Supabase",
+      "status": "FAIL",
+      "reason": "Command failed: npx tsx scripts/verify-supabase.ts",
+      "durationMs": 1072
+    },
+    {
+      "id": "verify-schema",
+      "name": "Esquema de BD",
+      "status": "FAIL",
+      "reason": "Command failed: npx tsx scripts/verify-schema.ts",
+      "durationMs": 1087
+    },
     {
       "id": "build",
       "name": "Compilación Next.js",
       "status": "PASS",
-      "durationMs": 13240
+      "durationMs": 12568
     },
     {
       "id": "verify-routes",
       "name": "Rutas HTTP",
       "status": "PASS",
-      "durationMs": 1233
+      "durationMs": 1243
+    },
+    {
+      "id": "verify-mobile-api",
+      "name": "API Móvil",
+      "status": "PASS",
+      "durationMs": 955
+    },
+    {
+      "id": "verify-ui-contracts",
+      "name": "Contratos UI",
+      "status": "PASS",
+      "durationMs": 1071
     },
     {
       "id": "playwright",
       "name": "Smoke Tests",
       "status": "PASS",
-      "durationMs": 3458
+      "durationMs": 4773
     }
   ]
 }
