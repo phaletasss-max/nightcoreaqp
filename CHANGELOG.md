@@ -11,6 +11,20 @@ Versión semántica: MAYOR.MENOR.PATCH (la app web no tiene número de versión 
 > + funciones admin (tag `v1.1`, entradas (a)–(e) de abajo). Lo siguiente es la **v1.2**:
 > identidad "Internet 2010 + Nightcore + Windows XP + Winamp + neón + anime + Arequipa".
 
+### 2026-07-07 (n) — NΞON ve tu actividad + pop-up del .bat
+
+- **feat(neon): actividad del usuario en tiempo real.** El chat envía a NΞON quién eres
+  (nombre, puntos, racha) y **qué canción está sonando ahora** — responde personalizado
+  y puede comentar lo que escuchas. Se suma a los DATOS EN VIVO de la BD (eventos, top
+  playlist, encuesta activa; caché 60s, anon key + RLS, cero secretos nuevos).
+- **feat(descargas): pop-up post-descarga del .bat** (`BatHelpModal`): al bajar un .bat
+  desde Playlist o Descargas aparece un modal simple con 3 pasos (ábrelo con doble clic
+  → se prepara solo la 1ª vez → tu música queda en Escritorio\NightcoreAQP) + nota de
+  seguridad. Verificado en preview (aparece tras descargar y cierra bien).
+- ⚠️ **Aviso pendiente:** el repo está PRIVADO → la descarga pública del `.exe` desde
+  GitHub Releases da 404 a los usuarios (al dueño le funciona por su sesión). Decidir:
+  volver a público, o mover el instalador a Supabase Storage.
+
 ### 2026-07-07 (m) — NΞON reactiva + descargador para no técnicos
 
 - **feat(neon): Fase 3 — reacciones a la música.** Con el chat ABIERTO, cuando arranca

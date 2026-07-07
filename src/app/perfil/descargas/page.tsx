@@ -19,6 +19,7 @@ import { addSong, getSongs } from '@/lib/data';
 import type { Song } from '@/lib/types';
 import { usePlayer } from '@/context/PlayerContext';
 import DownloadInstructionsModal from '@/components/DownloadInstructionsModal';
+import BatHelpModal from '@/components/BatHelpModal';
 
 function getYouTubeId(url: string) {
   const m = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
@@ -54,6 +55,7 @@ export default function DescargasPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [showMobile, setShowMobile] = useState(false);
+  const [showBatHelp, setShowBatHelp] = useState(false);  // pop-up post-descarga del .bat
 
   // Buscador de YouTube (Data API)
   const [searchQuery, setSearchQuery] = useState('');
@@ -107,6 +109,7 @@ export default function DescargasPage() {
     const bat = buildCrateBat([cUrl], format, { title: 'Descarga', quality: format === 'mp4' ? quality : undefined });
     downloadTextFile(`NightcoreAQP_${platform}_${format}.bat`, bat);
     setSuccess(true);
+    setShowBatHelp(true);   // pop-up: explica en simple qué hacer con el .bat
     addPoints(3);
     setTimeout(() => setSuccess(false), 5000);
   };
@@ -386,6 +389,7 @@ export default function DescargasPage() {
     </div>
 
     {showMobile && <DownloadInstructionsModal onClose={() => setShowMobile(false)} />}
+    {showBatHelp && <BatHelpModal onClose={() => setShowBatHelp(false)} />}
     </>
   );
 }

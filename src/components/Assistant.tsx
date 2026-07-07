@@ -159,7 +159,13 @@ export default function Assistant() {
       const r = await fetch('/api/assistant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: q, history, role: profile?.role, page: pathname }),
+        body: JSON.stringify({
+          message: q, history, role: profile?.role, page: pathname,
+          // Actividad en tiempo real: quién es y qué está sonando AHORA. Solo
+          // ajusta las respuestas de NΞON; los permisos siguen siendo de la RLS.
+          user: profile ? { name: profile.username, points: profile.points, streak: profile.streak_count } : undefined,
+          track: playingItem && playingItem.type !== 'default' ? `${playingItem.title} — ${playingItem.artist}` : undefined,
+        }),
       });
       const data = await r.json();
       const reply = r.ok ? data.reply : (data.error || 'El paquete se perdió en una distorsión. Intenta de nuevo.');

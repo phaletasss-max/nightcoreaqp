@@ -109,6 +109,8 @@ export async function POST(request: NextRequest) {
     history?: { role: 'user' | 'model'; text: string }[];
     role?: string;
     page?: string;
+    user?: { name?: string; points?: number; streak?: number };
+    track?: string;
   };
   try { body = await request.json(); } catch { return Response.json({ error: 'Cuerpo inválido' }, { status: 400 }); }
 
@@ -121,9 +123,15 @@ export async function POST(request: NextRequest) {
     parts: [{ text: String(m.text || '').slice(0, 2000) }],
   }));
 
-  // Contexto ligero para que NΞON sepa quién pregunta y desde dónde. El rol lo
-  // envía el cliente solo para AJUSTAR EL TONO; nunca da permisos (eso es RLS).
-  const contextNote = `${roleNote(body.role)}${body.page ? ` Está en la página: ${String(body.page).slice(0, 60)}.` : ''}`;
+  // Contexto ligero para que NΞON sepa quién pregunta, desde dónde y qué está
+  // haciendo AHORA (canción sonando, puntos, racha). El cliente lo envía solo
+  // para PERSONALIZAR respuestas; nunca da permisos (eso es RLS).
+  const u = body.user;
+  const userNote = u?.name
+    ? ` Usuario: ${String(u.name).slice(0, 40)}${typeof u.points === 'number' ? `, ${u.points} puntos` : ''}${typeof u.streak === 'number' && u.streak > 0 ? `, racha de ${u.streak} día(s)` : ''}. Puedes saludarlo por su nombre.`
+    : '';
+  const trackNote = body.track ? ` Ahora mismo está escuchando: ${String(body.track).slice(0, 120)}.` : '';
+  const contextNote = `${roleNote(body.role)}${body.page ? ` Está en la página: ${String(body.page).slice(0, 60)}.` : ''}${userNote}${trackNote}`;
 
   // Datos reales de la BD (eventos/playlist/encuesta) — cacheados 60s.
   const live = await liveContext();

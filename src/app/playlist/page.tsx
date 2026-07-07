@@ -11,6 +11,7 @@ import { isMediaConfigured, searchYouTube, searchYouTubeList, type VideoInfo, ty
 import type { Song, VoteType } from '@/lib/types';
 import { usePlayer, type PlayableItem } from '@/context/PlayerContext';
 import DownloadInstructionsModal from '@/components/DownloadInstructionsModal';
+import BatHelpModal from '@/components/BatHelpModal';
 import { buildCrateBat, downloadTextFile } from '@/lib/crate';
 
 function getYouTubeId(url: string) {
@@ -56,6 +57,8 @@ export default function PlaylistPage() {
   // crate del DJ, que sí funciona). Reemplaza la descarga "por unidad" confusa. ──
   const [dlFormat, setDlFormat] = useState<'mp3' | 'mp4'>('mp3');
   const [crateNote, setCrateNote] = useState<string | null>(null);
+  // >0 = pop-up "qué hacer con el .bat" abierto (el número = canciones del crate).
+  const [batHelpCount, setBatHelpCount] = useState(0);
 
   const downloadCrate = (list: Song[], label: string) => {
     const urls = list.filter((s) => DOWNLOADABLE.test(s.youtube_url)).map((s) => s.youtube_url);
@@ -66,7 +69,8 @@ export default function PlaylistPage() {
     const safe = (label || 'Playlist').replace(/[^\w]+/g, '_').slice(0, 30) || 'Playlist';
     const bat = buildCrateBat(urls, dlFormat, { title: safe });
     downloadTextFile(`Nightcore_${safe}_${dlFormat.toUpperCase()}.bat`, bat);
-    setCrateNote(`Listo: se descargó un .bat con ${urls.length} canción${urls.length === 1 ? '' : 'es'}. Haz doble clic en ese archivo y se bajan a tu PC (instala yt-dlp solo).`);
+    setCrateNote(null);
+    setBatHelpCount(urls.length);   // pop-up: explica en simple qué hacer con el .bat
   };
 
 
@@ -652,6 +656,9 @@ export default function PlaylistPage() {
 
       {showDownloadModal && (
         <DownloadInstructionsModal onClose={() => setShowDownloadModal(false)} />
+      )}
+      {batHelpCount > 0 && (
+        <BatHelpModal count={batHelpCount} onClose={() => setBatHelpCount(0)} />
       )}
     </div>
   );
