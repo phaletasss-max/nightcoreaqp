@@ -79,6 +79,23 @@ export default function GlobalPlayer() {
     }
   }, [isMuted, playingItem]);
 
+  // ── Ahorro en equipos modestos: pausar el video de fondo IDLE cuando la
+  // pestaña no está visible. Un tab en segundo plano seguía decodificando el
+  // mp4 (CPU/GPU/batería). Solo afecta al fondo decorativo (type 'default'); si
+  // el usuario está escuchando algo (yt/stream) no se toca su reproducción.
+  useEffect(() => {
+    const isIdleBg = !playingItem || playingItem.type === 'default';
+    if (!isIdleBg) return;
+    const onVis = () => {
+      const v = videoRef.current;
+      if (!v) return;
+      if (document.hidden) v.pause();
+      else if (isPlaying) v.play().catch(() => {});
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, [playingItem, isPlaying]);
+
   // ── Autoplay siguiente cuando un video de YouTube termina ──
   // YouTube emite eventos vía postMessage si registramos "listening". OJO: `infoDelivery`
   // llega MUCHAS veces por segundo (lleva el currentTime), así que sin un guard se dispara

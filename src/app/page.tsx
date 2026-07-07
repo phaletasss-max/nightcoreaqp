@@ -15,8 +15,6 @@ import CustomBlocks from '@/components/CustomBlocks';
 import DailyChallenges from '@/components/DailyChallenges';
 import ThemesSection from '@/components/ThemesSection';
 import LiveFeed from '@/components/LiveFeed';
-import VideoBackground from '@/components/VideoBackground';
-import ScenecoreBackground from '@/components/ScenecoreBackground';
 import AttendanceProofModal from '@/components/AttendanceProofModal';
 import { useAuth } from '@/lib/auth';
 import Link from 'next/link';
