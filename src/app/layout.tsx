@@ -9,6 +9,7 @@ import DesignLoader from "@/components/DesignLoader";
 import PageVideoManager from "@/components/PageVideoManager";
 import CRTBoot from "@/components/CRTBoot";
 import Assistant from "@/components/Assistant";
+import NeonSpotlight from "@/components/NeonSpotlight";
 import PWARegister from "@/components/PWARegister";
 
 const geistSans = Geist({
@@ -79,6 +80,7 @@ export default function RootLayout({
             <CRTBoot />
             <GlobalPlayer />
             <Assistant />
+            <NeonSpotlight />
             <Navbar />
 
             <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 z-10 relative">

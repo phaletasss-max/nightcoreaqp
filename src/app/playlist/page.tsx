@@ -342,7 +342,7 @@ export default function PlaylistPage() {
             <button onClick={() => { setShowSearch((v) => !v); setShowForm(false); }} className="btn btn-cyan">
               <Search className="h-4 w-4" /> Buscar canción
             </button>
-            <button onClick={() => { setShowForm(!showForm); setShowSearch(false); }} className="btn btn-primary">
+            <button data-neon-target="sugerir-cancion" onClick={() => { setShowForm(!showForm); setShowSearch(false); }} className="btn btn-primary">
               <Plus className="h-4 w-4" /> Sugerir canción
             </button>
           </div>

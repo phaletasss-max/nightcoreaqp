@@ -957,3 +957,25 @@ html.nq-glitch-flash body {
   background-size: 20px 20px;
   background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
 }
+
+/* ── Resalte guiado de NΞON ─────────────────────────────────────────────────
+   NeonSpotlight añade .nq-spotlight al elemento objetivo tras navegar (ej. el
+   botón "Subir disfraz") para que el usuario vea dónde hacer clic. */
+@keyframes nq-spotlight-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(255, 0, 255, 0.9); }
+  50%      { box-shadow: 0 0 22px 6px rgba(255, 0, 255, 0.55), 0 0 0 3px rgba(0, 255, 255, 0.9); }
+}
+/* Longhand a propósito: Lightning CSS (Tailwind v4) rompe el shorthand
+   `animation:` y pone el nombre como `none`. Con longhand se respeta. */
+.nq-spotlight {
+  animation-name: nq-spotlight-pulse;
+  animation-duration: 1s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: 3;
+  border-radius: 10px;
+  position: relative;
+  z-index: 5;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nq-spotlight { animation-name: none; box-shadow: 0 0 0 3px rgba(255, 0, 255, 0.9); }
+}

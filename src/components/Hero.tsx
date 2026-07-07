@@ -109,7 +109,7 @@ export default function Hero({ nextEvent, onCta }: { nextEvent?: EventItem; onCt
                   ))}
                 </div>
                 {onCta && (
-                  <button onClick={onCta} className="btn btn-primary w-full mt-4">
+                  <button data-neon-target="reservar" onClick={onCta} className="btn btn-primary w-full mt-4">
                     Reservar mi entrada <ArrowRight className="h-4 w-4" />
                   </button>
                 )}

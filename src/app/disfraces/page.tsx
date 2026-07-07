@@ -136,7 +136,7 @@ export default function DisfracesPage() {
           </h1>
           <p className="text-sm text-muted mt-1">Sube tu cosplay del evento. El más votado gana pases VIP gratis.</p>
         </div>
-        <button onClick={() => {
+        <button data-neon-target="subir-disfraz" onClick={() => {
           if (!profile) {
             setShowAuthModal(true);
           } else {

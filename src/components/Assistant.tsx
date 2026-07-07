@@ -10,12 +10,13 @@
 // respuesta es instantánea.
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, X, Send, Loader2 } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import { Sparkles, X, Send, Loader2, ArrowRight } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { usePlayer } from '@/context/PlayerContext';
+import { matchNeonAction, type NeonButton } from '@/lib/neonActions';
 
-interface Msg { role: 'user' | 'model'; text: string }
+interface Msg { role: 'user' | 'model'; text: string; action?: NeonButton }
 
 const SUGERENCIAS = [
   '¿Cómo sugiero una canción?',
@@ -78,7 +79,18 @@ const TRACK_REACTIONS = [
 export default function Assistant() {
   const { profile } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const { playingItem } = usePlayer();
+
+  // Navega a la ruta de una acción y, si hay elemento objetivo, lo deja marcado
+  // para que NeonSpotlight lo resalte al llegar. Cierra el chat para ver la página.
+  const runAction = (btn: NeonButton) => {
+    if (btn.target && typeof window !== 'undefined') {
+      sessionStorage.setItem('nq_neon_spotlight', btn.target);
+    }
+    setOpen(false);
+    router.push(btn.route);
+  };
 
   const [open, setOpen] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([]);
@@ -151,6 +163,17 @@ export default function Assistant() {
       return;
     }
 
+    // Acción guiada (navegación con conciencia de permisos) → botón, sin API.
+    const act = matchNeonAction(q, {
+      isStaff: profile?.role === 'admin' || profile?.role === 'dj',
+      isAdmin: profile?.role === 'admin',
+    });
+    if (act) {
+      setMsgs((m) => [...m, { role: 'user', text: q }, { role: 'model', text: act.reply, action: act.button }]);
+      setInput('');
+      return;
+    }
+
     const history = msgs.slice(-10);
     setMsgs((m) => [...m, { role: 'user', text: q }]);
     setInput('');
@@ -213,10 +236,19 @@ export default function Assistant() {
               </div>
             )}
             {msgs.map((m, i) => (
-              <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div key={i} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
                 <div className={`max-w-[85%] px-3 py-2 rounded-2xl whitespace-pre-wrap ${m.role === 'user' ? 'bg-neon-magenta/20 text-white rounded-br-sm' : 'bg-white/5 text-foreground rounded-bl-sm'}`}>
                   {m.text}
                 </div>
+                {m.action && (
+                  <button
+                    onClick={() => runAction(m.action!)}
+                    className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-neon-magenta/20 border border-neon-magenta/50 text-white hover:bg-neon-magenta/35 transition-colors"
+                  >
+                    {m.action.label}
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
             ))}
             {loading && (

@@ -11,6 +11,22 @@ Versión semántica: MAYOR.MENOR.PATCH (la app web no tiene número de versión 
 > + funciones admin (tag `v1.1`, entradas (a)–(e) de abajo). Lo siguiente es la **v1.2**:
 > identidad "Internet 2010 + Nightcore + Windows XP + Winamp + neón + anime + Arequipa".
 
+### 2026-07-07 (r) — NΞON guía con botones + conciencia de permisos
+
+- **feat(neon): acciones guiadas con botones.** Si pides algo ("quiero subir mi disfraz",
+  "sugerir canción", "reservar", "descargar", "encuestas", "chat", "perfil", "buzón"),
+  NΞON responde con un botón que **navega a la ruta** y **resalta el elemento clave**
+  (`NeonSpotlight` + `data-neon-target` en Subir disfraz / Sugerir canción / Reservar).
+  Todo local, sin API. Nuevo `src/lib/neonActions.ts`, `src/components/NeonSpotlight.tsx`.
+- **feat(neon): conciencia de permisos (no da accesos).** "quiero ser DJ/admin" → explica
+  que NΞON no puede otorgar el rol (lo decide un admin / requiere credencial). Rutas de
+  staff ("consola dj", "panel admin") solo muestran el botón si tu rol lo permite; si no,
+  NΞON dice que no puede llevarte. La autorización real sigue siendo la RLS.
+- **fix(css): glow del spotlight en longhand** (Lightning CSS/Tailwind v4 rompía el
+  shorthand `animation:` poniendo el nombre en `none`). Respeta `prefers-reduced-motion`.
+- Verificado en preview: "subir disfraz" → botón → navega a /disfraces y resalta el
+  botón; "quiero ser dj" → sin botón, mensaje explicativo. `tsc`/build verdes.
+
 ### 2026-07-07 (q) — Config del APK lista para compilar
 
 - **chore(mobile-app): app.json listo para producción.** name "Glitch AQP", slug
