@@ -11,6 +11,16 @@ Versión semántica: MAYOR.MENOR.PATCH (la app web no tiene número de versión 
 > + funciones admin (tag `v1.1`, entradas (a)–(e) de abajo). Lo siguiente es la **v1.2**:
 > identidad "Internet 2010 + Nightcore + Windows XP + Winamp + neón + anime + Arequipa".
 
+### 2026-07-07 (q) — Config del APK lista para compilar
+
+- **chore(mobile-app): app.json listo para producción.** name "Glitch AQP", slug
+  `glitch-aqp`, `android.package` = `com.glitchaqp.app` (obligatorio para compilar),
+  `versionCode` 1, adaptiveIcon con fondo de la marca, y **plugins de permisos**:
+  `expo-media-library` (guardar descargas en galería) + `expo-image-picker` (subir
+  cosplay). eas.json ya generaba `.apk` en preview/production.
+- **docs**: `mobile-app/COMO-COMPILAR-APK.md` — guía copy-paste para compilar con EAS
+  (requiere cuenta Expo del dueño; el binario no se puede generar sin su login).
+
 ### 2026-07-07 (p) — Muro de comentarios en el APK + verificación general
 
 - **feat(mobile-app): muro de comentarios del evento.** El HomeScreen ahora muestra el

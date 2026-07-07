@@ -1,18 +1,21 @@
 {
   "expo": {
-    "name": "mobile-app",
-    "slug": "mobile-app",
+    "name": "Glitch AQP",
+    "slug": "glitch-aqp",
     "version": "1.0.0",
     "scheme": "nightcoreaqp",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.glitchaqp.app"
     },
     "android": {
+      "package": "com.glitchaqp.app",
+      "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0a0410",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -23,7 +26,21 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Glitch AQP guarda tus descargas (música y videos) en tu galería.",
+          "savePhotosPermission": "Glitch AQP guarda tus descargas (música y videos) en tu galería.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Glitch AQP usa tus fotos para que subas tu cosplay al concurso."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
