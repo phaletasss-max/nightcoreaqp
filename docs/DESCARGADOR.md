@@ -95,6 +95,23 @@ descargas (un link).
 
 ---
 
+## 4.5 Proxy de releases (repo privado) — 2026-07-07
+
+El repo pasó a **privado** → los links directos a GitHub Releases dan 404 al público.
+Solución: el **media-service** expone un proxy que saca el asset del release con su
+`GITHUB_TOKEN` (solo server) y **redirige (302)** a la URL firmada temporal de GitHub
+(no gasta ancho de banda de Render):
+
+- `GET /api/release/exe` → instalador de Windows · `GET /api/release/apk` → APK
+- `GET /api/release/file/<nombre>` → cualquier asset (p. ej. `latest.yml` del updater)
+
+Config en Render (nightcore-media → Environment): `GITHUB_TOKEN` = fine-grained PAT con
+permiso **Contents: Read** SOLO de este repo. Opcional: `RELEASE_REPO` (default
+`phaletasss-max/nightcoreaqp`). La web y `Instalar_Descargador.bat` ya apuntan al proxy.
+⚠️ El **auto-update** del `.exe` instalado sigue roto con repo privado (electron-updater
+consulta GitHub anónimo); para arreglarlo hay que apuntar el updater al proxy (provider
+`generic`) en una release futura, o volver el repo a público.
+
 ## 5. media-service (respaldo)
 
 [`media-service/`](../media-service) (Express + yt-dlp, Docker, Render free). Hoy cubre **solo**:

@@ -1,6 +1,13 @@
 import React from 'react';
 import { Download, Terminal, X, Smartphone, Monitor } from 'lucide-react';
 
+// Los instaladores se sirven vía el media-service (Render), que los saca del
+// release privado de GitHub con su GITHUB_TOKEN y redirige a la descarga real.
+// El link directo a GitHub daba 404 a los usuarios desde que el repo es privado.
+const RELEASE_PROXY = 'https://nightcore-media.onrender.com/api/release';
+export const EXE_URL = `${RELEASE_PROXY}/exe`;
+export const APK_URL = `${RELEASE_PROXY}/apk`;
+
 export default function DownloadInstructionsModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -32,7 +39,7 @@ export default function DownloadInstructionsModal({ onClose }: { onClose: () => 
                 Instala la <strong>app de escritorio</strong>: pega un enlace de YouTube/TikTok/IG/Facebook, elige MP3 o MP4 y descarga con botones (sin terminal). El instalador prepara solo todo lo que necesita (yt-dlp y ffmpeg) — tú no instalas nada a mano. Se instala en 2 clics, pregunta la carpeta y crea el acceso directo. Se actualiza sola.
               </p>
               <a
-                href="https://github.com/phaletasss-max/nightcoreaqp/releases/latest/download/NightcoreAQP-Downloader-Setup.exe"
+                href={EXE_URL}
                 target="_blank" rel="noreferrer"
                 className="btn btn-primary w-full justify-center text-xs py-2.5"
               >
@@ -58,7 +65,7 @@ export default function DownloadInstructionsModal({ onClose }: { onClose: () => 
                 Instala la <strong>App Oficial de Glitch AQP</strong> (APK). Contiene toda la comunidad y te permite descargar directamente a tu galería usando la nube.
               </p>
               <div className="flex gap-2">
-                <a href="https://github.com/phaletasss-max/nightcoreaqp/releases/latest/download/NightcoreAQP.apk" target="_blank" rel="noreferrer" className="btn bg-surface border border-border text-xs flex-1 justify-center hover:border-neon-pink transition-colors">
+                <a href={APK_URL} target="_blank" rel="noreferrer" className="btn bg-surface border border-border text-xs flex-1 justify-center hover:border-neon-pink transition-colors">
                   <Download className="h-4 w-4 mr-1 text-neon-pink" /> Descargar App (APK)
                 </a>
               </div>

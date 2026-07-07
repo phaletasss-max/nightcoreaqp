@@ -11,6 +11,22 @@ Versión semántica: MAYOR.MENOR.PATCH (la app web no tiene número de versión 
 > + funciones admin (tag `v1.1`, entradas (a)–(e) de abajo). Lo siguiente es la **v1.2**:
 > identidad "Internet 2010 + Nightcore + Windows XP + Winamp + neón + anime + Arequipa".
 
+### 2026-07-07 (o) — Proxy de releases en Render + pantalla de descargas del APK
+
+- **feat(media-service): proxy de releases.** El repo privado dejaba el `.exe`/`.apk` en
+  404 para el público. Nuevo `GET /api/release/{exe|apk|file/:name}`: localiza el asset
+  del último release con `GITHUB_TOKEN` (solo server) y **redirige 302** a la URL firmada
+  de GitHub (sin gastar ancho de banda de Render, caché 5 min). Config: `GITHUB_TOKEN`
+  fine-grained (Contents: Read) en Render. La web (`DownloadInstructionsModal`,
+  `perfil/descargas`) y `Instalar_Descargador.bat` ya apuntan al proxy.
+- **feat(mobile-app): pantalla Descargas del APK** (`app/descargas.tsx`, Fase A del
+  plan): pega enlace → MP3/MP4 720p → el media-service procesa → se guarda en la
+  galería (expo-file-system SDK 56 `File.downloadFileAsync` + media-library
+  `Asset.create`). El acceso "Descargas" de la home del APK estaba roto (la ruta no
+  existía) — ya funciona. Falta: compilar con EAS y subir el `.apk` al release.
+- ⚠️ Auto-update del `.exe` instalado sigue roto con repo privado (documentado en
+  DESCARGADOR.md §4.5 con la solución para la próxima release).
+
 ### 2026-07-07 (n) — NΞON ve tu actividad + pop-up del .bat
 
 - **feat(neon): actividad del usuario en tiempo real.** El chat envía a NΞON quién eres

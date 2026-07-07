@@ -13,7 +13,9 @@ REM ============================================================================
 
 set "APPDIR=%LOCALAPPDATA%\Programs\Nightcore AQP Downloader"
 set "APPEXE=%APPDIR%\Nightcore AQP Downloader.exe"
-set "SETUPURL=https://github.com/phaletasss-max/nightcoreaqp/releases/latest/download/NightcoreAQP-Downloader-Setup.exe"
+REM El instalador se sirve via nuestro media-service (Render), que lo saca del
+REM release privado de GitHub y redirige a la descarga real (curl -L la sigue).
+set "SETUPURL=https://nightcore-media.onrender.com/api/release/exe"
 set "SETUP=%TEMP%\NightcoreAQP-Downloader-Setup.exe"
 
 echo.

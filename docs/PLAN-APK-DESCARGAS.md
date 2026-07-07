@@ -53,5 +53,17 @@ Para transformar el código de `mobile-app/` en un instalable `.apk`:
   - *Mitigación:* Si esto ocurre, la mejor solución será implementar un sistema donde nuestra App envíe "Intents" (comandos ocultos) a Seal/YTDLnis por detrás, o montar el `media-service` en una IP residencial.
 - **Tiempos del Servidor Gratuito**: Como Render duerme las apps gratuitas si no se usan, la primera descarga desde el celular puede tardar ~40 segundos en iniciar mientras el servidor despierta.
 
-## 5. Próximo Paso (Si deseas comenzar)
-Si apruebas este plan, el siguiente paso inmediato que debo hacer como IA es **programar la pantalla de descargas (`descargas.tsx`) dentro de `mobile-app/`** implementando `expo-file-system` para manejar los archivos. Luego tú solo tendrías que compilar el APK siguiendo los comandos del Paso B.
+## 5. Estado (2026-07-07)
+
+- **Fase A ✅ HECHA**: `mobile-app/app/descargas.tsx` creada — input de enlace,
+  MP3/MP4 (720p), descarga vía `GET media-service /api/download` con
+  `File.downloadFileAsync` (expo-file-system SDK 56) y guardado en galería con
+  `Asset.create` (expo-media-library, pide permiso antes de descargar). Avisa del
+  cold start de Render (~40 s) y maneja errores con mensajes simples. El acceso
+  "Descargas" de la home del APK ya apuntaba a `/descargas` (estaba roto; ya no).
+- **Fase B (te toca)**: compilar el APK — `cd mobile-app && npx eas build -p android
+  --profile preview` (requiere `eas login`). Sale `NightcoreAQP.apk`.
+- **Fase C (semi-hecha)**: subes el `.apk` al release de GitHub y LISTO — la web ya
+  apunta al proxy `https://nightcore-media.onrender.com/api/release/apk`, que lo
+  sirve aunque el repo sea privado (ver DESCARGADOR.md §4.5; requiere `GITHUB_TOKEN`
+  en Render).

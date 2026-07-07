@@ -18,7 +18,7 @@ import { buildCrateBat, downloadTextFile } from '@/lib/crate';
 import { addSong, getSongs } from '@/lib/data';
 import type { Song } from '@/lib/types';
 import { usePlayer } from '@/context/PlayerContext';
-import DownloadInstructionsModal from '@/components/DownloadInstructionsModal';
+import DownloadInstructionsModal, { EXE_URL } from '@/components/DownloadInstructionsModal';
 import BatHelpModal from '@/components/BatHelpModal';
 
 function getYouTubeId(url: string) {
@@ -171,7 +171,7 @@ export default function DescargasPage() {
         </div>
         <p className="text-xs text-muted-2">Instálala una vez: pega enlaces, elige MP3/MP4, cookies para YouTube, y se actualiza sola. Sin terminal.</p>
         <a
-          href="https://github.com/phaletasss-max/nightcoreaqp/releases/latest/download/NightcoreAQP-Downloader-Setup.exe"
+          href={EXE_URL}
           target="_blank" rel="noreferrer"
           className="btn btn-primary w-full justify-center"
         >
