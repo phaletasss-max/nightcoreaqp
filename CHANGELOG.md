@@ -11,6 +11,18 @@ Versión semántica: MAYOR.MENOR.PATCH (la app web no tiene número de versión 
 > + funciones admin (tag `v1.1`, entradas (a)–(e) de abajo). Lo siguiente es la **v1.2**:
 > identidad "Internet 2010 + Nightcore + Windows XP + Winamp + neón + anime + Arequipa".
 
+### 2026-07-07 (p) — Muro de comentarios en el APK + verificación general
+
+- **feat(mobile-app): muro de comentarios del evento.** El HomeScreen ahora muestra el
+  muro del próximo evento (comentar si hay sesión + lista de comentarios), espejo de la
+  web: `getComments`/`addComment` en `mobile-app/lib/data.ts` → tabla `event_comments`,
+  misma RLS (lectura pública, insert solo con `auth.uid() = user_id`). Respeta
+  `comments_enabled` del evento. Verificado: sintaxis (esbuild) y tipos consistentes;
+  el typecheck final lo hace EAS al compilar el APK.
+- **Ronda de verificación** (sin cambios de comportamiento): confirmado que el APK cubre
+  eventos/RSVP, disfraces, playlist, chat, encuestas, perfil, historial y descargas; que
+  NΞON apunta bien a las ayudas + datos en vivo; sin secretos hardcodeados ni XSS.
+
 ### 2026-07-07 (o) — Proxy de releases en Render + pantalla de descargas del APK
 
 - **feat(media-service): proxy de releases.** El repo privado dejaba el `.exe`/`.apk` en

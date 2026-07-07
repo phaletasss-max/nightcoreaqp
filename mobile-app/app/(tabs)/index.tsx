@@ -4,16 +4,16 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View,
+  ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { isConfigured } from '../../lib/supabase';
-import { getNextEvent, getAttendees, createRsvp } from '../../lib/data';
+import { getNextEvent, getAttendees, createRsvp, getComments, addComment } from '../../lib/data';
 import { useAuth } from '../../lib/auth';
 import { theme, radius, space } from '../../lib/theme';
-import type { EventItem, RsvpStatus } from '../../lib/types';
+import type { EventItem, RsvpStatus, EventComment } from '../../lib/types';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -23,19 +23,23 @@ export default function HomeScreen() {
   const [counts, setCounts] = useState({ confirmed: 0, interested: 0 });
   const [myStatus, setMyStatus] = useState<RsvpStatus | null>(null);
   const [saving, setSaving] = useState(false);
+  const [comments, setComments] = useState<EventComment[]>([]);
+  const [commentText, setCommentText] = useState('');
+  const [sendingComment, setSendingComment] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     const ev = await getNextEvent();
     setEvent(ev);
     if (ev) {
-      const att = await getAttendees(ev.id);
+      const [att, cms] = await Promise.all([getAttendees(ev.id), getComments(ev.id)]);
       setCounts({
         confirmed: att.filter((a) => a.status === 'confirmed').length,
         interested: att.filter((a) => a.status === 'interested').length,
       });
       const mine = att.find((a) => a.user_id === session?.user?.id);
       setMyStatus(mine?.status ?? null);
+      setComments(cms);
     }
     setLoading(false);
   }, [session?.user?.id]);
@@ -58,6 +62,21 @@ export default function HomeScreen() {
     }
     setSaving(false);
   };
+
+  const submitComment = async () => {
+    const text = commentText.trim();
+    if (!event || !session?.user || !text) return;
+    setSendingComment(true);
+    const row = await addComment(event.id, session.user.id, profile?.username ?? 'Invitado', text);
+    if (row) {
+      setComments((prev) => [row, ...prev]);
+      setCommentText('');
+    }
+    setSendingComment(false);
+  };
+
+  const fmtDate = (d: string) =>
+    new Date(d).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' });
 
   return (
     <ScrollView style={styles.safe} contentContainerStyle={[styles.scroll, { paddingTop: insets.top + space.lg }]}>
@@ -118,6 +137,52 @@ export default function HomeScreen() {
               {isConfigured ? 'No hay eventos en agenda.' : 'Configura Supabase para ver los eventos.'}
             </Text>
           )}
+
+          {/* Muro de comentarios del evento */}
+          {event && (event.comments_enabled ?? true) && (
+            <>
+              <Text style={styles.sectionTitle}>Muro del evento</Text>
+              {session?.user ? (
+                <View style={styles.commentBox}>
+                  <TextInput
+                    style={styles.commentInput}
+                    value={commentText}
+                    onChangeText={setCommentText}
+                    placeholder="Escribe un comentario…"
+                    placeholderTextColor={theme.muted2}
+                    multiline
+                    maxLength={500}
+                    editable={!sendingComment}
+                  />
+                  <Pressable
+                    style={[styles.commentSend, (!commentText.trim() || sendingComment) && { opacity: 0.4 }]}
+                    onPress={submitComment}
+                    disabled={!commentText.trim() || sendingComment}
+                  >
+                    <Ionicons name="send" size={16} color={theme.bg} />
+                  </Pressable>
+                </View>
+              ) : (
+                <Text style={[styles.muted, { marginBottom: space.sm }]}>
+                  Inicia sesión en Perfil para comentar.
+                </Text>
+              )}
+
+              {comments.length === 0 ? (
+                <Text style={styles.muted}>Sé el primero en comentar. 💬</Text>
+              ) : (
+                comments.map((c) => (
+                  <View key={c.id} style={styles.commentCard}>
+                    <View style={styles.commentHead}>
+                      <Text style={styles.commentUser}>{c.username || 'Invitado'}</Text>
+                      <Text style={styles.commentDate}>{fmtDate(c.created_at)}</Text>
+                    </View>
+                    <Text style={styles.commentText}>{c.content}</Text>
+                  </View>
+                ))
+              )}
+            </>
+          )}
         </>
       )}
 
@@ -168,6 +233,14 @@ const styles = StyleSheet.create({
   navGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   navCard: { width: '45%', flexGrow: 1, minWidth: 140, alignItems: 'center', gap: space.xs, backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1, borderRadius: radius.lg, paddingVertical: space.md },
   navLabel: { color: theme.text, fontSize: 12, fontWeight: '700' },
+  commentBox: { flexDirection: 'row', gap: space.sm, marginBottom: space.md, alignItems: 'flex-end' },
+  commentInput: { flex: 1, backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1, borderRadius: radius.md, color: theme.text, paddingHorizontal: space.md, paddingVertical: space.sm, fontSize: 13, maxHeight: 100 },
+  commentSend: { backgroundColor: theme.magenta, borderRadius: radius.md, width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
+  commentCard: { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1, borderRadius: radius.md, padding: space.md, marginBottom: space.sm },
+  commentHead: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  commentUser: { color: theme.cyan, fontSize: 12, fontWeight: '800' },
+  commentDate: { color: theme.muted2, fontSize: 11 },
+  commentText: { color: theme.text, fontSize: 13, lineHeight: 18 },
   warnCard: { borderColor: 'rgba(255,240,31,0.4)', marginTop: space.lg },
   warnTitle: { color: theme.yellow, fontWeight: '800', marginBottom: space.xs },
   muted: { color: theme.muted, fontSize: 13, lineHeight: 19 },

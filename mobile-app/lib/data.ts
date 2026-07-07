@@ -8,7 +8,7 @@
 // Mantener alineado con la RLS. Este archivo NO importa nada de `src/`.
 
 import { supabase, isConfigured } from './supabase';
-import type { EventItem, Song, Attendee, Profile, VoteType, Costume, ChatMessage, Survey, SurveyOption } from './types';
+import type { EventItem, Song, Attendee, Profile, VoteType, Costume, ChatMessage, Survey, SurveyOption, EventComment } from './types';
 
 // ── Eventos ──────────────────────────────────────────────────────────────────
 // Evento "activo": el confirmado, o el más próximo por fecha (igual que la web).
@@ -35,6 +35,36 @@ export async function getEvents(): Promise<EventItem[]> {
     .order('date', { ascending: true });
   if (error || !data) return [];
   return data as EventItem[];
+}
+
+// ── Muro de comentarios del evento ───────────────────────────────────────────
+// Espeja getComments/addComment de la web (src/lib/data.ts) → tabla event_comments,
+// misma RLS (lectura pública; insert solo con auth.uid() = user_id).
+export async function getComments(eventId: string): Promise<EventComment[]> {
+  if (!isConfigured) return [];
+  const { data } = await supabase
+    .from('event_comments')
+    .select('*')
+    .eq('event_id', eventId)
+    .order('created_at', { ascending: false })
+    .limit(50);
+  return (data as EventComment[]) ?? [];
+}
+
+export async function addComment(
+  eventId: string,
+  userId: string | null,
+  username: string,
+  content: string,
+): Promise<EventComment | null> {
+  if (!isConfigured) return null;
+  const { data, error } = await supabase
+    .from('event_comments')
+    .insert({ event_id: eventId, user_id: userId, username, content })
+    .select()
+    .single();
+  if (error) return null;
+  return data as EventComment;
 }
 
 // ── Asistencia (RSVP) ─────────────────────────────────────────────────────────
