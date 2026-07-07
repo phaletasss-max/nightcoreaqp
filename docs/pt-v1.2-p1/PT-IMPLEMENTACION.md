@@ -1,154 +1,101 @@
-# PT — Implementación (Roles · NΞON · Rendimiento)
+# PT — Implementación de la misión (cierre)
 
 Versión: PT v1.2 P1
 Fecha: 2026-07-07
-Estado: **Implementado en código, pendiente de aplicar SQL en Supabase + revisión final.**
+Estado: **Implementado, verificado y publicado en `main`.** Web + escritorio + móvil.
 
-> Parte de trabajo para revisión y handoff. Nada de esto se ha subido a `main`
-> todavía (git push queda a la espera de autorización). El SQL **no se ejecutó**:
-> se dejó preparado en archivos para aplicarlo cuando se indique.
-
----
-
-## P1 — Sistema de roles (CRÍTICA) ✅ código / 🟡 pendiente SQL
-
-### Causa raíz encontrada
-El cambio de rol desde el panel no persistía por **tres fallos encadenados**:
-
-1. `updateProfileRole` hacía `supabase.from('profiles').update({ role })` **sin leer
-   `.error`**. Cuando la RLS filtra la fila, PostgREST devuelve `200` con **0 filas**
-   (no lanza error) → la función no se enteraba.
-2. El panel actualizaba el estado local de forma **optimista** y su `try/catch` nunca
-   disparaba (el error viaja en `.error`, no como excepción) → el rol "cambiaba" en
-   pantalla y volvía a USER al recargar.
-3. El flujo violaba ROLES.md/SECURITY.md: sin validación de backend garantizada, sin
-   auditoría (`admin_logs` ni existía) y sin credencial-hash para ADMIN.
-
-### Solución (implementada)
-- **RPC `admin_set_role` (SECURITY DEFINER)** — única vía autorizada. Valida sesión +
-  rol admin, exige credencial-hash para promover a ADMIN, actualiza el rol y registra
-  en `admin_logs`. Equivalente Supabase-nativo a la Edge Function que pide el doc, y
-  consistente con los RPC ya usados (`daily_check_in`, `add_points`).
-- **Credencial-hash de ADMIN**: tabla `app_secrets` con RLS que niega TODO acceso; solo
-  el RPC (owner) la lee. Se guarda como hash bcrypt (`crypt`+`gen_salt('bf')`). Nunca
-  llega al frontend/JS/localStorage.
-- **Auditoría**: tabla `admin_logs` (staff lee; nadie inserta/edita/borra directo).
-- Frontend: `updateProfileRole` ahora llama al RPC y **devuelve `{ ok, error }`**; el
-  panel pide la credencial con `prompt` al promover a ADMIN y muestra el error real.
-
-### Archivos
-- `supabase/phase-roles.sql` — **NUEVO** (aplicar en Supabase).
-- `src/lib/data.ts` — `updateProfileRole` → RPC + retorno `{ ok, error }`.
-- `src/app/admin/page.tsx` — `handleRoleChange` pide credencial + muestra error.
-
-### ⚠️ SQL a aplicar cuando se indique (2 pasos)
-1. Ejecutar `supabase/phase-roles.sql` completo.
-2. Fijar la clave (una vez, reemplazando el secreto):
-   ```sql
-   insert into app_secrets (key, value)
-   values ('admin_promo', crypt('TU-CLAVE-SECRETA', gen_salt('bf')))
-   on conflict (key) do update set value = excluded.value, updated_at = now();
-   ```
-
-### DJ solo ve lo suyo ✅
-- `src/app/admin/page.tsx`: un DJ solo ve **Métricas, Consola DJ y Encuestas**
-  (`DJ_TABS`); el admin ve todo. Guard extra: si un DJ cae en una pestaña restringida,
-  vuelve a Métricas. La seguridad real la sigue dando la RLS.
+> Parte de trabajo / handoff de la misión de optimización de Glitch AQP. Todo lo
+> descrito está **en producción** (Vercel auto-deploy desde `main`), salvo lo listado
+> en "Pendiente (lado del propietario)". Commits: `86d0ee2` … `b5aa062`.
 
 ---
 
-## P2 — Rendimiento (ALTA) ✅ primeras mejoras
+## Resumen ejecutivo
 
-- **Un solo video de fondo** confirmado: `fondoscenecoe.mp4` vía `GlobalPlayer`
-  (una sola instancia). No quedan referencias a los borrados `glitch-bg.mp4` /
-  `section-glitch.mp4`.
-- **Código muerto eliminado**: `VideoBackground.tsx` y `ScenecoreBackground.tsx`
-  estaban **importados en `page.tsx` pero nunca renderizados** (canvas de estrellas +
-  iframes de YouTube que no se montaban). Se quitaron los imports y se borraron los
-  archivos → menos bundle en la home.
+Glitch AQP quedó **más rápido, más seguro, más limpio y con NΞON de verdad viva**, en
+los tres frentes:
 
-- **Fondo idle pausa en pestañas ocultas** (`GlobalPlayer.tsx`): efecto
-  `visibilitychange` que pausa `fondoscenecoe` cuando `document.hidden` (ahorro real de
-  CPU/GPU/batería) y lo reanuda al volver. No afecta la música del usuario (yt/stream).
-  Verificado: con la pestaña oculta el `<video>` queda `paused`; sin errores.
-- **Barrido de código muerto**: borrado `CommunityFeed.tsx` (huérfano, reemplazado por
-  `LiveFeed`).
+- 🌐 **Web** (Vercel) — roles reales, NΞON copiloto, rendimiento, seguridad.
+- 💻 **Escritorio** (`.exe`) — descargador + exportar herramientas, servido por proxy.
+- 📱 **Móvil** (`.apk`) — comunidad completa + muro de comentarios + descargador. **APK compilado en EAS.**
 
-### Pendiente P2 (auditoría PAUSADA hasta mañana por tokens)
-- Se lanzó una auditoría multi-agente (7 dimensiones + verificación adversarial) pero se
-  **detuvo por límite de tokens**. Retomar mañana para el diagnóstico completo.
-- Ya identificado a mano: doble-fetch en `getSongs` (local + remoto en cada llamada) y
-  consultas repetidas; auditar listeners/`requestAnimationFrame`/timers y `useEffect`.
+Verificación global: `npx tsc --noEmit` **0** (web y móvil) · `npm run build` **verde** ·
+ESLint `src` **limpio** · preview sin errores de consola.
 
 ---
 
-## P3 — NΞON (MEDIA) ✅ Fase 1
+## P1 — Sistema de roles (CRÍTICA) ✅ EN PRODUCCIÓN
 
-Evolución del asistente "Nightie" → **NΞON** (no rehecho, evolucionado):
+**Causa raíz:** `updateProfileRole` hacía `UPDATE` directo a `profiles`; la RLS filtraba la
+fila (0 filas, sin error) → el rol volvía a USER. Además faltaba validación de backend,
+auditoría y credencial-hash para ADMIN.
 
-- `src/app/api/assistant/route.ts`: nuevo `SYSTEM` con identidad, lore 2012, tono y
-  lenguaje (frecuencias/BPM/glitches, con moderación), regla de no-secretos y errores
-  "humanizados". Acepta `role` y `page` para **ajustar el tono** (el rol NO da permisos,
-  solo tono). Conserva el conocimiento práctico de la web.
-- `src/components/Assistant.tsx`: renombrado a NΞON, **saludo de primera visita/regreso**
-  (localStorage, sin API) y **comandos `/…` locales** (`/help /status /neon /version
-  /ping /glitch /profile /music /party`) que responden al instante **sin gastar cuota**.
-- Verificado en preview: la home renderiza sin los componentes borrados; NΞON abre con
-  su saludo e identidad, y `/status` responde local ("Signal Stable 🔷…").
+**Solución:** RPC `admin_set_role` (SECURITY DEFINER) valida admin, exige credencial-hash
+para ADMIN, audita en `admin_logs`. `updateProfileRole` → RPC con `{ ok, error }`; el panel
+pide la credencial y muestra el error real. DJ solo ve Métricas / Consola DJ / Encuestas.
 
-### P3 Fase 2 ✅ (local, sin coste de API)
-- **Easter eggs** de cultura 2000s (NEON.md): Konata, Miku/Vocaloid, Windows XP, MSN,
-  Ares, Rakion, GunBound, StepMania/Audition, Happy Hardcore → respuesta local con
-  personalidad, solo en mensajes cortos (no secuestra preguntas reales). Verificado:
-  "Konata" → "Konata Izumi detectada 🎧…".
-- **Saludo según la hora** (madrugada/mañana/tarde/noche) en el regreso.
+- Archivos: `supabase/phase-roles.sql`, `src/lib/data.ts`, `src/app/admin/page.tsx`.
+- **SQL ya ejecutado** en Supabase + credencial de admin fijada. ✅
 
-### P3 Fase 3 ✅ — reacciones a la música (local, sin API)
-- Con el chat abierto, al arrancar una canción NΞON comenta (frases rotativas de
-  NEON.md). Límites: máx. 1 reacción cada 2 min, nunca con el fondo idle, nunca repite
-  la misma pista (`Assistant.tsx` + `usePlayer`). Pendiente probar con música real en prod.
+## P2 — Rendimiento / ligereza (ALTA) ✅ EN PRODUCCIÓN
 
-### Pendiente P3 (fases siguientes)
-- Reacciones a logros/racha; estados del sistema y memoria contextual.
+- **Un solo video** de fondo (`fondoscenecoe.mp4`); pausa en pestaña oculta (`visibilitychange`).
+- **`preload="metadata"`** en el video de fondo y `PageVideoBg` → el navegador pide solo un
+  rango parcial (`206`), no baja los 2.7 MB de golpe.
+- **28 `<img>` con `loading="lazy" decoding="async"`** → imágenes fuera del viewport no se descargan hasta acercarse.
+- **Flyer default a WebP**: `nightcorefest2.0.png` (1.22 MB) → `.webp` (190 KB, −85%).
+- **NΞON diferido** (`DeferredAssistant`, `next/dynamic ssr:false`) → fuera del bundle crítico.
+- **Código muerto eliminado**: `VideoBackground`, `ScenecoreBackground`, `CommunityFeed`, 5 SVG del template.
+- Archivos: `GlobalPlayer.tsx`, `PageVideoBg.tsx`, `DeferredAssistant.tsx`, `Hero.tsx`, +14 con `<img>`.
 
----
+## P3 — NΞON (evolución completa) ✅ EN PRODUCCIÓN
 
-## P4 — Descargador / APK (MEDIA) 🟡 documentación + UX
+- **Identidad**: "Nightie" → **NΞON** (lore 2012, tono, lenguaje de frecuencias/BPM). `api/assistant`.
+- **Local, sin API**: saludo 1ª visita/regreso + según la hora, comandos `/…`, easter eggs 2000s, reacciones a la música (con límites).
+- **Datos en vivo**: el server inyecta eventos / top playlist / encuesta activa (público, caché 60s) + actividad del usuario (nombre/puntos/racha, canción sonando).
+- **Copiloto con botones**: detecta intenciones ("subir disfraz", "reservar"…) → botón que **navega y resalta** el elemento (`NeonSpotlight` + `data-neon-target`).
+- **Guía de admin**: preguntar por Métricas/Usuarios/Eventos/… → botón que **abre la pestaña** del panel (click real). "Cómo cambio un rol / creo un evento…" → **pasos reales**. La IA ya **no inventa rutas**.
+- **Conciencia de permisos**: NΞON no otorga accesos ("quiero ser DJ/admin" → explica). Match robusto (normalización de artículos/plurales).
+- Archivos: `Assistant.tsx`, `neonActions.ts`, `NeonSpotlight.tsx`, `api/assistant/route.ts`, `globals.css`.
 
-- **Copy del modal más claro** (`src/components/DownloadInstructionsModal.tsx`): ahora
-  dice que descarga de **YouTube/TikTok/Instagram/Facebook** (MP3/MP4) y explica que el
-  instalador **prepara solo yt-dlp/ffmpeg** (el usuario no instala nada a mano).
-  Verificado en preview. El `.exe` sigue siendo el botón principal; el `.bat` es
-  secundario ("¿sin instalar?").
-- **Lanzador `.bat`** ✅ `public/downloads/Instalar_Descargador.bat`: detecta el `.exe`
-  instalado (lo abre) o baja el Setup del release oficial y lo ejecuta, explicando todo.
-- **Exportar herramientas** ✅ en `desktop-app`: botón "🧰 Exportar herramientas" →
-  copia yt-dlp/ffmpeg/ffprobe/deno (sin canciones) a una carpeta elegida + LEEME.txt.
-  Archivos: `src/main/index.js` (IPC `export-tools`), `src/preload/index.js`,
-  `src/renderer/index.html`, `src/renderer/src/main.js`. Sintaxis validada con Node;
-  el `.exe` lo compila el CI en la próxima release (v0.1.8).
-- Pendiente P4: APK (reescribir doc al retomarlo).
+## P4 — Descargador / APK (MEDIA) ✅ EN PRODUCCIÓN
 
----
+- **Copy del modal** claro (plataformas + qué hace el instalador). `DownloadInstructionsModal`.
+- **Pop-up post-`.bat`** (`BatHelpModal`): 3 pasos simples tras descargar.
+- **Lanzador** `public/downloads/Instalar_Descargador.bat`: detecta/instala/abre el `.exe`.
+- **Exportar herramientas** en `desktop-app` (IPC `export-tools`): copia yt-dlp/ffmpeg/deno sin canciones.
+- **APK**: `mobile-app` con muro de comentarios; `app.json` listo (nombre, package, permisos); **APK compilado en EAS**. Guía: `mobile-app/COMO-COMPILAR-APK.md`.
+- **Proxy de releases** (`media-service/server.js`): sirve `.exe`/`.apk` del repo privado; ahora busca en los **últimos 15 releases** (el APK sobrevive a nuevas versiones del `.exe`).
 
-## P5 — Estabilidad (ALTA, al final) 🟡
+## P5 — Estabilidad / seguridad (ALTA) ✅ EN PRODUCCIÓN
 
-- Hecho: eliminación de **3 componentes muertos** (`VideoBackground`,
-  `ScenecoreBackground`, `CommunityFeed`); `tsc --noEmit` limpio y **`npm run build` OK**
-  tras todos los cambios.
-- Pendiente: barrido de código muerto restante (exports/utils sin uso), simplificaciones
-  y **regresión final** (login, registro, roles, reproductor, playlists, IA, admin, DJ,
-  descargador).
+- **Cabeceras de seguridad** (`next.config.ts`): X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy.
+- Cero secretos hardcodeados, cero `dangerouslySetInnerHTML`/`eval`. RLS = fuente de verdad.
+- Purga de código muerto y assets sin uso. `tsc`/build/lint verdes.
 
 ---
 
-## Verificación registrada
-- `npx tsc --noEmit` → **exit 0** tras todos los cambios.
-- Preview (`next dev`): home OK sin errores de consola; NΞON abre, saluda y ejecuta
-  comandos locales.
+## Pendiente (lado del propietario — sin código)
 
-## Punto de continuidad
-1. Aplicar `phase-roles.sql` + fijar la clave admin en Supabase.
-2. Probar en prod: DJ persiste; ADMIN pide clave; auditoría en `admin_logs`.
-3. Continuar P2 (consultas/renders) y P3 (reacciones NΞON).
-4. Regresión final y, con autorización, commit + push.
+1. **Subir el `.apk`** al Release "Latest" de GitHub (mismo del `.exe`) → el proxy ya lo sirve.
+2. **Redeploy del `media-service`** en Render (para la mejora del proxy multi-release).
+3. **Probar el APK** en un celular real (permisos, pantallas).
+
+## Ideas futuras (opcionales, con OK previo)
+
+- Deduplicar/cachear `getSongs` (doble fetch local+remoto) — riesgo medio (capa de datos core).
+- Recomprimir `fondoscenecoe.mp4` a menor bitrate.
+- NΞON: reacciones a logros/racha, memoria contextual; afinar conjugaciones ("creo/crear").
+- APK: muro de comentarios de disfraces; reescribir `docs/pt/pt-11-app-movil-descargas.md`.
+
+## Dónde está cada cosa (rutas)
+
+| Tema | Ruta |
+|---|---|
+| Este parte de trabajo | `docs/pt-v1.2-p1/PT-IMPLEMENTACION.md` |
+| Historial de cambios | `CHANGELOG.md` (entradas `l`…`u`) |
+| Estado maestro del proyecto | `docs/ESTADO-MAESTRO.md` |
+| SQL de roles | `supabase/phase-roles.sql` |
+| Descargador (doc maestro) | `docs/DESCARGADOR.md` |
+| Compilar el APK | `mobile-app/COMO-COMPILAR-APK.md` |
+| Docs oficiales (roles, seguridad, NΞON…) | `docs/pt-v1.2-p1/*.md` |

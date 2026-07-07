@@ -4,7 +4,14 @@
 > seguridad y marketing — cada cosa con su **estado real en código**.
 > Es el documento "padre"; los de `docs/` y `docs/pt/` son el detalle.
 
-**Última actualización:** 2026-07-06 — **Rebrand a "Glitch AQP"** ✅.
+**Última actualización:** 2026-07-07 — **Misión de optimización completada** ✅: roles reales
+(RPC `admin_set_role` + credencial-hash + auditoría `admin_logs`), NΞON copiloto (datos en
+vivo, botones que navegan/abren pestañas del panel, guía admin sin inventar rutas), **ligereza
+web** (video `preload=metadata`, imágenes lazy, flyer WebP −85%, NΞON diferido), seguridad
+(cabeceras + purga de código muerto), y **APK compilado** (web + escritorio + móvil listos).
+Detalle y pendientes del propietario → [PT-IMPLEMENTACION.md](./pt-v1.2-p1/PT-IMPLEMENTACION.md)
+· `CHANGELOG.md` (entradas l–u).
+**2026-07-06 — Rebrand a "Glitch AQP"** ✅.
 **v1.1** (tag, en prod): kit glitch + tema Glitch + gestor de videos de fondo por página
 (admin sube y elige dónde: 1, varias o todas) + eventos completos en la home + perfil
 social (portada+avatar, amigos, foto de perfil, alias únicos) + "Mi estilo" por usuario.
