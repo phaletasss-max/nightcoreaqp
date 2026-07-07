@@ -26,6 +26,9 @@ Versión semántica: MAYOR.MENOR.PATCH (la app web no tiene número de versión 
   tras la hidratación en su propio chunk; el botón aparece un instante después.
 - Verificado en preview: video 206 parcial, imgs lazy, chunk de NΞON separado, sin errores
   de consola. `tsc`/build verdes.
+- **perf(img): flyer default a WebP.** `nightcorefest2.0.png` (1.22 MB) → `.webp`
+  (190 KB, **−85%**) con sharp. Actualizadas las 4 referencias (Hero + demo-data) y
+  borrado el PNG. Verificado: sirve el `.webp` y renderiza (720px).
 
 ### 2026-07-07 (t) — NΞON explica cómo hacer cada tarea admin + match robusto
 

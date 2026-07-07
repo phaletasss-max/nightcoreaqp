@@ -23,7 +23,7 @@ export const DEMO_EVENTS: EventItem[] = [
     available_tickets: 200,
     status: 'confirmed',
     comments_enabled: true,
-    flyer_url: '/nightcorefest2.0.png',
+    flyer_url: '/nightcorefest2.0.webp',
     themes: 'Cyberpunk, Nightcore, Eurobeat',
     details: 'Shots gratis a los primeros en llegar, Cóctel gratis si vienes con cosplay, 1 sellada al grupo más grande, 10 horas de música Nightcore, Pedidos musicales a los DJs por WhatsApp',
     google_maps_url: 'https://maps.app.goo.gl/3NxsEokKjU8ZfBfW6',

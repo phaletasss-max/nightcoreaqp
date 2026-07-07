@@ -120,7 +120,7 @@ export default function Hero({ nextEvent, onCta }: { nextEvent?: EventItem; onCt
             {nextEvent && (
               <div className="lg:hidden mt-8 space-y-3">
                 <div className="relative rounded-2xl overflow-hidden border-2 border-neon-magenta shadow-[0_0_30px_rgba(255,0,255,0.25)] w-full max-w-sm mx-auto glitch-hover">
-                  <FlyerMedia url={nextEvent.flyer_url || "/nightcorefest2.0.png"} alt="Event Flyer" />
+                  <FlyerMedia url={nextEvent.flyer_url || "/nightcorefest2.0.webp"} alt="Event Flyer" />
                 </div>
                 <button onClick={() => setShowModal(true)} className="btn btn-ghost w-full max-w-sm mx-auto flex border-neon-cyan text-neon-cyan hover:bg-neon-cyan/10">
                   <Info className="h-4 w-4" /> Conoce los detalles
@@ -142,7 +142,7 @@ export default function Hero({ nextEvent, onCta }: { nextEvent?: EventItem; onCt
           {/* Right column: Flyer */}
           <div className="hidden lg:flex flex-col items-center justify-center space-y-5">
             <div className="relative rounded-2xl overflow-hidden border-2 border-neon-magenta shadow-[0_0_30px_rgba(255,0,255,0.25)] transform md:rotate-2 hover:rotate-0 transition-all duration-300 w-full max-w-sm glitch-hover">
-              <FlyerMedia url={nextEvent?.flyer_url || "/nightcorefest2.0.png"} alt="Event Flyer" />
+              <FlyerMedia url={nextEvent?.flyer_url || "/nightcorefest2.0.webp"} alt="Event Flyer" />
             </div>
             {nextEvent && (
               <button onClick={() => setShowModal(true)} className="btn btn-ghost border-neon-cyan text-neon-cyan hover:bg-neon-cyan/10">
@@ -170,7 +170,7 @@ export default function Hero({ nextEvent, onCta }: { nextEvent?: EventItem; onCt
             {/* Modal Body */}
             <div className="p-6 grid md:grid-cols-2 gap-8 items-start">
               <div>
-                <FlyerMedia url={nextEvent.flyer_url || "/nightcorefest2.0.png"} alt="Flyer" className="rounded-xl border border-border shadow-lg" />
+                <FlyerMedia url={nextEvent.flyer_url || "/nightcorefest2.0.webp"} alt="Flyer" className="rounded-xl border border-border shadow-lg" />
               </div>
               <div className="space-y-6">
                 <div>
