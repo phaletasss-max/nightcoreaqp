@@ -18,15 +18,26 @@ cd mobile-app
 # 1. Instalar dependencias (solo la primera vez, tarda unos minutos)
 npm install
 
-# 2. Iniciar sesión en Expo (te pedirá tu usuario/clave de expo.dev)
-npx eas login
+# 2. Instalar el CLI de EAS (una sola vez, global). OJO: es "eas-cli", NO "eas".
+npm install -g eas-cli
 
-# 3. Vincular el proyecto a tu cuenta (crea el projectId; acepta con Enter)
-npx eas init
+# 3. Iniciar sesión en Expo (te pedirá tu usuario/clave de expo.dev)
+eas login
 
-# 4. Compilar el APK (esto sube el código a la nube de Expo y compila ~10-20 min)
-npx eas build -p android --profile preview
+# 4. Vincular el proyecto a tu cuenta (crea el projectId; acepta con Enter)
+eas init
+
+# 5. Compilar el APK (sube el código a la nube de Expo y compila ~10-20 min)
+eas build -p android --profile preview
 ```
+
+> Si prefieres no instalar nada global, usa `npx eas-cli@latest login` / `init` /
+> `build …` (con el sufijo **`-cli`**). El error "could not determine executable to
+> run" aparece justamente por escribir `npx eas` (sin `-cli`).
+
+> Las advertencias de `npm install` (peer deps, "10 moderate vulnerabilities") son
+> normales en Expo y NO rompen el build. **No** corras `npm audit fix --force`
+> (cambiaría versiones y sí rompería la app).
 
 Al terminar, la terminal te da un **enlace** para descargar el `NightcoreAQP.apk`
 (o `Glitch AQP.apk`). Descárgalo.
