@@ -130,6 +130,20 @@ els.download.addEventListener('click', async () => {
   }
 })
 
+// Exportar herramientas (yt-dlp/ffmpeg/deno) a una carpeta — sin canciones.
+$('export-tools').addEventListener('click', async () => {
+  const r = await window.api.exportTools()
+  if (r.canceled) return
+  if (r.ok) {
+    logLine({ type: 'ok', text: `Herramientas exportadas (${r.copied.join(', ')}) a: ${r.dest}` })
+    setStatus('Herramientas exportadas.', 'ok')
+    window.api.openFolder(r.dest)
+  } else {
+    logLine({ type: 'error', text: r.error || 'No se pudo exportar.' })
+    setStatus('No se pudo exportar — revisa el registro.', 'error')
+  }
+})
+
 // Pre-instala yt-dlp/ffmpeg al abrir (no bloquea la UI).
 setStatus('Preparando herramientas…', 'busy')
 window.api.ensureTools().then((r) => {

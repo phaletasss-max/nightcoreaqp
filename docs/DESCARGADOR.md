@@ -108,6 +108,30 @@ descargas (un link).
 
 ---
 
+## 6.5 Pendientes P4 — UX para usuarios no técnicos (2026-07-07)
+
+Objetivo del dueño: que la gente **no vea el `.bat`** (los confunde) y entienda que es un
+**descargador de YouTube/TikTok/Instagram/Facebook**.
+
+1. **El `.exe` es el camino principal** (ya es así en `DownloadInstructionsModal`: el botón
+   grande es el `.exe`; el `.bat` es un enlace secundario "¿sin instalar?"). El copy del modal
+   ahora explica qué hace el instalador y de qué plataformas descarga. ✅ (hecho en la web)
+2. **Lanzador `.bat` que instala/abre el `.exe`** ✅ HECHO (2026-07-07):
+   [`public/downloads/Instalar_Descargador.bat`](../public/downloads/Instalar_Descargador.bat).
+   Detecta el `.exe` en `%LOCALAPPDATA%\Programs\Nightcore AQP Downloader\`; si está lo abre,
+   si no baja el Setup **solo del release oficial** de GitHub y lo lanza, explicando cada paso
+   (incluido el aviso de SmartScreen). NO descarga canciones (eso es el crate `.bat`). Solo
+   ASCII en los `echo` (los acentos se rompen con el codepage de cmd).
+3. **Exportar herramientas (sin canciones)** ✅ HECHO (2026-07-07) en el `desktop-app`:
+   botón **"🧰 Exportar herramientas"** (topbar) → IPC `export-tools` (main) copia
+   `yt-dlp.exe`, `ffmpeg.exe`, `ffprobe.exe`, `deno.exe` de `userData/bin` a
+   `<carpeta elegida>\GlitchAQP_Herramientas\` + `LEEME.txt`, **excluyendo canciones**.
+   Sin zip (sin dependencias nuevas: copia directa). Sale en la próxima release del `.exe`
+   (v0.1.8; el CI lo compila al publicar).
+4. **APK**: la app Android sigue el mismo enfoque (descarga local a la galería vía la nube);
+   documentación en `docs/pt/pt-11-app-movil-descargas.md` (marcada como desactualizada — al
+   retomar el APK, reescribir alineada con este doc).
+
 ## 6. Checklist para no romper la estructura/idea
 
 1. **Descargas = locales** (`.bat`/`.exe`), nunca server-side.

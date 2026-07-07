@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('api', {
   pickCookies: () => ipcRenderer.invoke('pick-cookies'),
   openFolder: (path) => ipcRenderer.invoke('open-folder', path),
   ensureTools: () => ipcRenderer.invoke('ensure-tools'),
+  exportTools: () => ipcRenderer.invoke('export-tools'),
   download: (payload) => ipcRenderer.invoke('download', payload),
   // Suscripción a los logs en vivo del proceso principal.
   onLog: (cb) => {

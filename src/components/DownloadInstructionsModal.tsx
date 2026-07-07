@@ -17,6 +17,7 @@ export default function DownloadInstructionsModal({ onClose }: { onClose: () => 
         
         <div className="p-5 space-y-5">
           <p className="text-sm text-muted">
+            Descarga música y videos de <strong>YouTube, TikTok, Instagram y Facebook</strong> en MP3 o MP4.
             Para no depender de servidores que YouTube bloquea, la descarga ocurre <strong>en tu propio dispositivo</strong>,
             a máxima velocidad y sin restricciones.
           </p>
@@ -28,7 +29,7 @@ export default function DownloadInstructionsModal({ onClose }: { onClose: () => 
                 <h4 className="font-bold text-white text-sm">Para PC (Windows) — recomendado</h4>
               </div>
               <p className="text-xs text-muted-2 mb-3">
-                Instala la <strong>app de escritorio</strong>: pega tus enlaces, elige MP3/MP4 y descarga con botones (sin terminal). Se instala en 2 clics, pregunta la carpeta y crea el acceso directo. Se actualiza sola.
+                Instala la <strong>app de escritorio</strong>: pega un enlace de YouTube/TikTok/IG/Facebook, elige MP3 o MP4 y descarga con botones (sin terminal). El instalador prepara solo todo lo que necesita (yt-dlp y ffmpeg) — tú no instalas nada a mano. Se instala en 2 clics, pregunta la carpeta y crea el acceso directo. Se actualiza sola.
               </p>
               <a
                 href="https://github.com/phaletasss-max/nightcoreaqp/releases/latest/download/NightcoreAQP-Downloader-Setup.exe"

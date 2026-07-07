@@ -1,7 +1,7 @@
 // ── Proceso principal de Electron ────────────────────────────────────────────
 import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
 import { join } from 'node:path'
-import { appendFileSync } from 'node:fs'
+import { appendFileSync, existsSync, mkdirSync, copyFileSync, writeFileSync } from 'node:fs'
 import electronUpdater from 'electron-updater'
 import { ensureTools, downloadAll, defaultDownloadDir } from './tools.js'
 
@@ -107,6 +107,42 @@ ipcMain.handle('ensure-tools', async () => {
   const log = (entry) => win?.webContents.send('log', entry)
   try { await ensureTools(log); return { ok: true } }
   catch (e) { log({ type: 'error', text: e.message }); return { ok: false, error: e.message } }
+})
+
+// Exporta las HERRAMIENTAS (yt-dlp/ffmpeg/ffprobe/deno de userData/bin) a una
+// carpeta que elige el usuario — SIN las canciones descargadas. Sirve para
+// respaldar/compartir el toolset sin volver a bajarlo de internet.
+ipcMain.handle('export-tools', async () => {
+  const r = await dialog.showOpenDialog(win, {
+    title: 'Elige dónde exportar las herramientas',
+    properties: ['openDirectory', 'createDirectory'],
+  })
+  if (r.canceled) return { ok: false, canceled: true }
+  try {
+    const bin = join(app.getPath('userData'), 'bin')
+    const dest = join(r.filePaths[0], 'GlitchAQP_Herramientas')
+    mkdirSync(dest, { recursive: true })
+    const files = ['yt-dlp.exe', 'ffmpeg.exe', 'ffprobe.exe', 'deno.exe']
+    const copied = []
+    for (const f of files) {
+      const src = join(bin, f)
+      if (existsSync(src)) { copyFileSync(src, join(dest, f)); copied.push(f) }
+    }
+    if (!copied.length) return { ok: false, error: 'No hay herramientas instaladas todavía (abre la app y espera a que se preparen).' }
+    writeFileSync(join(dest, 'LEEME.txt'), [
+      'Glitch AQP - Herramientas del descargador (respaldo)',
+      '',
+      'Contenido: ' + copied.join(', '),
+      'Son las herramientas libres que usa la app (yt-dlp, ffmpeg, deno).',
+      'NO incluye canciones descargadas.',
+      '',
+      'Para reutilizarlas sin internet: copia estos archivos a la carpeta',
+      'de herramientas de la app (%APPDATA%\\nightcore-downloader\\bin).',
+    ].join('\r\n'))
+    return { ok: true, dest, copied }
+  } catch (e) {
+    return { ok: false, error: e.message }
+  }
 })
 
 // Versión instalada (para mostrarla en la UI).
