@@ -112,7 +112,9 @@ begin
 end;
 $$;
 
-revoke execute on function admin_set_role(uuid, user_role, text) from anon;
+-- Por defecto Postgres da EXECUTE a PUBLIC (que incluye anon). Revocamos de
+-- PUBLIC y concedemos solo a authenticated → anon no puede ni invocarla.
+revoke execute on function admin_set_role(uuid, user_role, text) from public;
 grant  execute on function admin_set_role(uuid, user_role, text) to authenticated;
 
 -- ── 5. (SOLO EL PROPIETARIO) Fijar la credencial de administrador ────────────
