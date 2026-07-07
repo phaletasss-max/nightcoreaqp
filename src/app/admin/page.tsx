@@ -560,7 +560,7 @@ export default function AdminPage() {
 
       <div className="flex overflow-x-auto scrollbar-hide gap-1 border-b border-border -mx-1 px-1 pb-px">
         {visibleTabs.map((t) => (
-          <button key={t.id} onClick={() => setTab(t.id)}
+          <button key={t.id} data-neon-target={`tab-${t.id}`} onClick={() => setTab(t.id)}
             className={`whitespace-nowrap px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 -mb-px transition-colors flex items-center gap-1.5 shrink-0 ${
               tab === t.id ? 'border-neon-pink text-neon-pink' : 'border-transparent text-muted hover:text-white'
             }`}>

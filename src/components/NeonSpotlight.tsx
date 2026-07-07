@@ -14,9 +14,20 @@ export default function NeonSpotlight() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const target = sessionStorage.getItem('nq_neon_spotlight');
-    if (!target) return;
+    const raw = sessionStorage.getItem('nq_neon_spotlight');
+    if (!raw) return;
     sessionStorage.removeItem('nq_neon_spotlight');
+
+    // Formato nuevo: JSON { target, click }. Retrocompatible con string plano.
+    let target = raw;
+    let doClick = false;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object' && parsed.target) {
+        target = parsed.target;
+        doClick = !!parsed.click;
+      }
+    } catch { /* string plano */ }
 
     let tries = 0;
     let retry: ReturnType<typeof setTimeout> | undefined;
@@ -26,6 +37,7 @@ export default function NeonSpotlight() {
       const el = document.querySelector<HTMLElement>(`[data-neon-target="${target}"]`);
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (doClick) el.click();   // ej. abrir la pestaña del panel
         el.classList.add('nq-spotlight');
         clear = setTimeout(() => el.classList.remove('nq-spotlight'), 4500);
         return;

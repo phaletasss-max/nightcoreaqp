@@ -10,6 +10,7 @@ export interface NeonButton {
   label: string;
   route: string;
   target?: string;   // data-neon-target a resaltar tras navegar (opcional)
+  click?: boolean;   // además de resaltar, hacer clic (ej. abrir una pestaña del panel)
 }
 
 export interface NeonActionResult {
@@ -84,7 +85,7 @@ const ACTIONS: Rule[] = [
     button: { label: 'Ir al Buzón →', route: '/sugerencias' },
   },
   {
-    keys: ['consola dj', 'panel dj', 'ir a dj', 'cabina', 'setlist', 'crate'],
+    keys: ['consola dj', 'panel dj', 'ir a dj', 'gestion de dj', 'gestión de dj', 'gestionar dj', 'gestion dj', 'cabina', 'setlist', 'crate'],
     requires: 'staff',
     reply: 'Consola DJ lista 🎛️ ahí tienes el setlist más votado y el crate de descarga.',
     blocked: 'La Consola DJ es solo para DJs, y yo no puedo darte ese acceso. Un administrador debe asignarte el rol DJ desde el panel.',
@@ -97,6 +98,22 @@ const ACTIONS: Rule[] = [
     blocked: 'El panel de administración es solo para administradores. No puedo darte acceso ni llevarte ahí; esa zona la controla el dueño del proyecto.',
     button: { label: 'Ir al Panel →', route: '/admin' },
   },
+];
+
+// Secciones (pestañas) del panel /admin. Solo se ofrecen si el usuario ES admin.
+// El botón navega a /admin, RESALTA la pestaña y la ABRE (click).
+interface AdminTab { keys: string[]; tab: string; label: string; reply: string }
+const ADMIN_TABS: AdminTab[] = [
+  { keys: ['metrica', 'métrica', 'kpi', 'estadistica', 'estadística', 'analitica', 'analítica'], tab: 'kpi', label: 'Ver Métricas →', reply: 'Panel → Métricas 📊 asistentes, eventos, temas y votos en vivo.' },
+  { keys: ['usuario', 'miembros', 'cuentas', 'lista de usuario', 'ver usuario', 'cambiar rol', 'gestionar rol', 'asignar rol', 'dar dj', 'dar admin', 'promover'], tab: 'users', label: 'Ver Usuarios →', reply: 'Panel → Usuarios 👥 ahí ves a todos, cambias roles (DJ/Admin) y gestionas cuentas.' },
+  { keys: ['evento', 'crear evento', 'editar evento', 'gestionar evento', 'nuevo evento', 'agenda'], tab: 'events', label: 'Gestionar Eventos →', reply: 'Panel → Eventos 🎟️ crea, edita y publica los eventos del club.' },
+  { keys: ['gestionar encuesta', 'crear encuesta', 'lanzar encuesta', 'administrar encuesta', 'nueva encuesta'], tab: 'survey', label: 'Gestionar Encuestas →', reply: 'Panel → Encuestas 🗳️ lanza y administra las encuestas de la comunidad.' },
+  { keys: ['gestionar disfra', 'moderar disfra', 'administrar disfra', 'disfraces del panel'], tab: 'posts', label: 'Moderar Disfraces →', reply: 'Panel → Disfraces 👗 revisa y modera los cosplays subidos.' },
+  { keys: ['comentario', 'moderar comentario', 'gestionar comentario'], tab: 'comments', label: 'Moderar Comentarios →', reply: 'Panel → Comentarios 💬 revisa, aprueba o elimina comentarios.' },
+  { keys: ['insignia', 'prueba de asistencia', 'aprobar asistencia', 'validar asistencia', 'constancia'], tab: 'proofs', label: 'Ver Insignias →', reply: 'Panel → Insignias 🏅 aprueba las pruebas de asistencia de los usuarios.' },
+  { keys: ['buzon', 'buzón', 'bandeja', 'sugerencias recibidas', 'reportes recibidos'], tab: 'buzon', label: 'Abrir Buzón →', reply: 'Panel → Buzón 📩 lee las sugerencias y reportes que envía la gente.' },
+  { keys: ['bloque', 'contenido personalizado', 'anuncio', 'banner', 'sets del dj', 'set del dj'], tab: 'bloques', label: 'Editar Bloques →', reply: 'Panel → Bloques 🧩 crea anuncios, enlaces, imágenes y sets del DJ para la home.' },
+  { keys: ['diseño', 'diseno', 'apariencia', 'tema del sitio', 'fondos', 'personalizar el sitio', 'colores del sitio', 'video de fondo'], tab: 'design', label: 'Ir a Diseño →', reply: 'Panel → Diseño 🎨 tema, colores, fuentes y videos de fondo del sitio.' },
 ];
 
 function hasKey(text: string, keys: string[]): boolean {
@@ -113,6 +130,16 @@ export function matchNeonAction(
   // 1) Intenciones de rol (no dan acceso).
   for (const r of ROLE_INTENTS) {
     if (hasKey(text, r.keys)) return { reply: r.reply };
+  }
+
+  // 1.5) Secciones del panel admin — SOLO si el usuario es admin. Navega a
+  // /admin, resalta la pestaña y la abre. Evita que la IA invente rutas.
+  if (opts.isAdmin) {
+    for (const t of ADMIN_TABS) {
+      if (hasKey(text, t.keys)) {
+        return { reply: t.reply, button: { label: t.label, route: '/admin', target: `tab-${t.tab}`, click: true } };
+      }
+    }
   }
 
   // 2) Acciones con navegación (respetando permisos).

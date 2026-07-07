@@ -11,6 +11,20 @@ Versión semántica: MAYOR.MENOR.PATCH (la app web no tiene número de versión 
 > + funciones admin (tag `v1.1`, entradas (a)–(e) de abajo). Lo siguiente es la **v1.2**:
 > identidad "Internet 2010 + Nightcore + Windows XP + Winamp + neón + anime + Arequipa".
 
+### 2026-07-07 (s) — NΞON guía a los admins por el panel + anti-alucinación
+
+- **feat(neon): guía por el panel admin.** Si eres admin y preguntas por Métricas,
+  Usuarios, Eventos, Encuestas, Disfraces, Comentarios, Insignias, Buzón, Bloques o
+  Diseño, NΞON te da un botón que **navega a /admin, ABRE la pestaña** (click real) y la
+  resalta. Nuevo `ADMIN_TABS` en `neonActions.ts`; `data-neon-target="tab-<id>"` en las
+  pestañas; NeonSpotlight ahora puede hacer clic además de resaltar.
+- **fix(neon): la IA ya no inventa rutas.** Gemini alucinaba secciones falsas
+  ("Configuración → DJ Dashboard"). El system prompt ahora incluye la estructura REAL
+  del panel (pestañas exactas, roles en Usuarios, DJ también en /dj) y una regla estricta
+  de no inventar rutas. "gestión de dj" ahora abre la Consola DJ real.
+- Verificado en preview (como admin): "donde veo los usuarios" → botón → /admin con la
+  pestaña Usuarios abierta y resaltada; "gestión de dj" → botón Consola DJ. tsc/build ok.
+
 ### 2026-07-07 (r) — NΞON guía con botones + conciencia de permisos
 
 - **feat(neon): acciones guiadas con botones.** Si pides algo ("quiero subir mi disfraz",

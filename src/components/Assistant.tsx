@@ -86,7 +86,7 @@ export default function Assistant() {
   // para que NeonSpotlight lo resalte al llegar. Cierra el chat para ver la página.
   const runAction = (btn: NeonButton) => {
     if (btn.target && typeof window !== 'undefined') {
-      sessionStorage.setItem('nq_neon_spotlight', btn.target);
+      sessionStorage.setItem('nq_neon_spotlight', JSON.stringify({ target: btn.target, click: !!btn.click }));
     }
     setOpen(false);
     router.push(btn.route);
