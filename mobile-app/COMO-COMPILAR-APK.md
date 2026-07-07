@@ -18,22 +18,22 @@ cd mobile-app
 # 1. Instalar dependencias (solo la primera vez, tarda unos minutos)
 npm install
 
-# 2. Instalar el CLI de EAS (una sola vez, global). OJO: es "eas-cli", NO "eas".
-npm install -g eas-cli
+# 2. Iniciar sesión en Expo (te pedirá tu usuario/clave de expo.dev)
+npx eas-cli@latest login
 
-# 3. Iniciar sesión en Expo (te pedirá tu usuario/clave de expo.dev)
-eas login
+# 3. Vincular el proyecto a tu cuenta (crea el projectId; acepta con Enter)
+npx eas-cli@latest init
 
-# 4. Vincular el proyecto a tu cuenta (crea el projectId; acepta con Enter)
-eas init
-
-# 5. Compilar el APK (sube el código a la nube de Expo y compila ~10-20 min)
-eas build -p android --profile preview
+# 4. Compilar el APK (sube el código a la nube de Expo y compila ~10-20 min)
+npx eas-cli@latest build -p android --profile preview
 ```
 
-> Si prefieres no instalar nada global, usa `npx eas-cli@latest login` / `init` /
-> `build …` (con el sufijo **`-cli`**). El error "could not determine executable to
-> run" aparece justamente por escribir `npx eas` (sin `-cli`).
+> **Importante (Windows):** usa siempre `npx eas-cli@latest …` (con el sufijo
+> **`-cli`**). Dos errores comunes:
+> - `npx eas …` (sin `-cli`) → "could not determine executable to run".
+> - `npm install -g eas-cli` + `eas …` → "'eas' no se reconoce como comando":
+>   el binario global no está en el PATH hasta **cerrar y reabrir** la terminal.
+>   Con `npx eas-cli@latest` te ahorras ese problema.
 
 > Las advertencias de `npm install` (peer deps, "10 moderate vulnerabilities") son
 > normales en Expo y NO rompen el build. **No** corras `npm audit fix --force`
