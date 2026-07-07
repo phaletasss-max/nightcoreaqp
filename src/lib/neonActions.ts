@@ -40,22 +40,26 @@ const ROLE_INTENTS: Rule[] = [
 // Acciones con navegación. El orden importa (primero las más específicas).
 const ACTIONS: Rule[] = [
   {
-    keys: ['subir disfraz', 'subir mi disfraz', 'disfraz', 'cosplay', 'concurso'],
+    // 'disfra' cubre disfraz/disfraces/disfrazar (en español el plural cambia z→c).
+    keys: ['disfra', 'cosplay', 'concurso'],
     reply: 'Te llevo a Disfraces 📸 Pulsa «Subir disfraz» (te lo dejo resaltado) y sube tu foto de cosplay.',
     button: { label: 'Ir a Disfraces →', route: '/disfraces', target: 'subir-disfraz' },
   },
   {
-    keys: ['sugerir cancion', 'sugerir canción', 'subir cancion', 'subir canción', 'agregar cancion', 'pedir cancion', 'pedir canción', 'playlist'],
-    reply: 'A la Playlist 🎧 Toca «Sugerir canción» (te lo resalto) y pega el link de YouTube.',
-    button: { label: 'Ir a Playlist →', route: '/playlist', target: 'sugerir-cancion' },
-  },
-  {
-    keys: ['descargar', 'descarga', 'bajar cancion', 'bajar canción', 'bajar musica', 'mp3', 'mp4'],
+    // 'descarg' cubre descargar/descarga/descargas/descargador. Va antes que
+    // Playlist para que "descargar canción" mande a Descargas, no a Playlist.
+    keys: ['descarg', 'mp3', 'mp4', 'bajar cancion', 'bajar canción', 'bajar musica', 'bajar música'],
     reply: 'Zona de descargas ⬇️ Pega el link, elige MP3 o MP4 y descarga a tu equipo.',
     button: { label: 'Ir a Descargas →', route: '/perfil/descargas' },
   },
   {
-    keys: ['reservar', 'entrada', 'asistir', 'confirmar asistencia', 'rsvp', 'boleto', 'ticket'],
+    // 'cancion'/'cancione' cubre canción/canciones; 'sugeri' cubre sugerir/sugiere.
+    keys: ['cancion', 'canción', 'cancione', 'playlist', 'sugeri una', 'sugeri can', 'tema musical'],
+    reply: 'A la Playlist 🎧 Toca «Sugerir canción» (te lo resalto) y pega el link de YouTube.',
+    button: { label: 'Ir a Playlist →', route: '/playlist', target: 'sugerir-cancion' },
+  },
+  {
+    keys: ['reserv', 'entrada', 'asistir', 'rsvp', 'boleto', 'ticket'],
     reply: 'Al inicio 🎟️ Reserva tu entrada para el próximo evento (te resalto el botón).',
     button: { label: 'Ir al evento →', route: '/', target: 'reservar' },
   },
