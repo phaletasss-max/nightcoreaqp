@@ -9,7 +9,7 @@ import {
   DEMO_EVENTS, DEMO_SONGS, DEMO_SURVEY, DEMO_COSTUMES, DEMO_COMMENTS, DEMO_THEMES,
 } from './demo-data';
 import type {
-  EventItem, Song, Survey, Costume, CostumeComment, EventComment, Attendee, VoteType, Theme, Profile, AttendanceProof, ProofStatus, ChatMessage, ProfilePhoto, Suggestion, CustomBlock, ProfileGuestbook, ProfileReaction
+  EventItem, Song, Survey, Costume, CostumeComment, EventComment, Attendee, VoteType, Theme, Profile, AttendanceProof, ProofStatus, ChatMessage, ProfilePhoto, Suggestion, CustomBlock, ProfileGuestbook, ProfileReaction, UserRole
 } from './types';
 
 const cfg = () => isSupabaseConfigured();
@@ -742,10 +742,27 @@ export async function getProfiles(): Promise<Profile[]> {
   ]);
 }
 
-export async function updateProfileRole(id: string, role: 'user' | 'dj' | 'admin'): Promise<void> {
+// Cambia el rol de un usuario. La autorización vive en el backend: el RPC
+// admin_set_role (security definer) valida que el llamante sea admin, exige la
+// credencial-hash para promover a ADMIN y registra la acción en admin_logs.
+// Devuelve { ok, error } — el UPDATE directo anterior fallaba en silencio (RLS
+// filtraba la fila → 0 filas, sin error) y el rol volvía a USER al recargar.
+export async function updateProfileRole(
+  id: string,
+  role: UserRole,
+  credential?: string,
+): Promise<{ ok: boolean; error: string | null }> {
   if (cfg()) {
-    await supabase.from('profiles').update({ role }).eq('id', id);
-    return;
+    const { error } = await supabase.rpc('admin_set_role', {
+      p_target_id: id,
+      p_new_role: role,
+      p_credential: credential ?? null,
+    });
+    if (error) {
+      logError('updateProfileRole', error, { id, role });
+      return { ok: false, error: error.message };
+    }
+    return { ok: true, error: null };
   }
   const all = lsGet<Profile[]>('nq_profiles', []);
   const idx = all.findIndex(p => p.id === id);
@@ -753,6 +770,7 @@ export async function updateProfileRole(id: string, role: 'user' | 'dj' | 'admin
     all[idx].role = role;
     lsSet('nq_profiles', all);
   }
+  return { ok: true, error: null };
 }
 
 export async function deleteProfile(id: string): Promise<void> {

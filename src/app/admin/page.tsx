@@ -30,6 +30,10 @@ import { PAGE_VIDEO_KEY } from '@/lib/pageVideos';
 
 type Tab = 'kpi' | 'dj' | 'survey' | 'events' | 'users' | 'posts' | 'comments' | 'design' | 'proofs' | 'buzon' | 'bloques';
 
+// Tabs que un DJ puede ver. El admin ve todas. (ROLES.md: DJ solo Consola DJ,
+// Métricas y Encuestas — sin gestión de usuarios, eventos, diseño ni auditoría.)
+const DJ_TABS: Tab[] = ['kpi', 'dj', 'survey'];
+
 // Hosts que yt-dlp puede descargar (Spotify no: DRM). Spotify solo sirve de pedido.
 const DOWNLOADABLE_HOSTS = /(youtube\.com|youtu\.be|tiktok\.com|instagram\.com|facebook\.com|fb\.watch|twitter\.com|x\.com)/i;
 
@@ -150,6 +154,14 @@ export default function AdminPage() {
   // RLS). En demo basta con isStaff del contexto.
   const roleIsStaff = profile?.role === 'admin' || profile?.role === 'dj';
   const canAccess = configured ? roleIsStaff : isStaff;
+  // Un DJ NO es admin: solo accede a Métricas, Consola DJ y Encuestas (ROLES.md).
+  // En demo (sin Supabase) el perfil es admin para poder revisar todo el panel.
+  const isAdmin = configured ? profile?.role === 'admin' : isStaff;
+
+  // Si un DJ tiene seleccionada una pestaña restringida, lo devolvemos a Métricas.
+  useEffect(() => {
+    if (!isAdmin && !DJ_TABS.includes(tab)) setTab('kpi');
+  }, [isAdmin, tab]);
 
   const PRESET_DJS = [
     { name: 'DJ Lobito', tel: '946 388 627', color: 'neon-magenta', bg_url: '/fondoscenecoe.mp4' },
@@ -194,18 +206,25 @@ export default function AdminPage() {
   // da acceso total al panel). La escritura pasa por updateProfileRole (RLS).
   const handleRoleChange = async (p: Profile, newRole: 'user' | 'dj' | 'admin') => {
     if (newRole === p.role) return;
-    if (newRole === 'admin' && !confirm(`¿Promover a ${p.username || p.email || 'este usuario'} a ADMINISTRADOR?\n\nTendrá control total del panel (eventos, usuarios, diseño).`)) {
-      return;
+    // Promover a ADMIN pide la credencial especial (se valida SOLO en el backend).
+    let credential: string | undefined;
+    if (newRole === 'admin') {
+      if (!confirm(`¿Promover a ${p.username || p.email || 'este usuario'} a ADMINISTRADOR?\n\nTendrá control total del panel (eventos, usuarios, diseño).`)) {
+        return;
+      }
+      const cred = prompt('Introduce la credencial de administrador para autorizar esta promoción:');
+      if (!cred) return;
+      credential = cred;
     }
     setSavingRoleId(p.id);
-    try {
-      await updateProfileRole(p.id, newRole);
+    const { ok, error } = await updateProfileRole(p.id, newRole, credential);
+    if (ok) {
+      // El <select> es controlado (value={p.role}); si falla, revierte solo.
       setProfiles((prev) => prev.map((x) => x.id === p.id ? { ...x, role: newRole } : x));
-    } catch {
-      alert('No se pudo cambiar el rol. ¿Tienes permisos de admin?');
-    } finally {
-      setSavingRoleId(null);
+    } else {
+      alert(error || 'No se pudo cambiar el rol. ¿Tienes permisos de admin?');
     }
+    setSavingRoleId(null);
   };
 
   // Guarda un ajuste de diseño y lo aplica en vivo (DesignLoader escucha el evento).
@@ -507,6 +526,7 @@ export default function AdminPage() {
     { id: 'bloques', label: 'Bloques' },
     { id: 'design', label: 'Diseño' },
   ];
+  const visibleTabs = isAdmin ? tabs : tabs.filter((t) => DJ_TABS.includes(t.id));
 
   const cardOpacity = parseFloat(design.design_card_opacity || '0.75');
   const overlay = parseFloat(design.design_overlay || '0');
@@ -539,7 +559,7 @@ export default function AdminPage() {
       </div>
 
       <div className="flex overflow-x-auto scrollbar-hide gap-1 border-b border-border -mx-1 px-1 pb-px">
-        {tabs.map((t) => (
+        {visibleTabs.map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`whitespace-nowrap px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 -mb-px transition-colors flex items-center gap-1.5 shrink-0 ${
               tab === t.id ? 'border-neon-pink text-neon-pink' : 'border-transparent text-muted hover:text-white'
