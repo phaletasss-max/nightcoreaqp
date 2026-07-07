@@ -8,9 +8,50 @@
 //   → { reply: string }  |  { error: string }
 
 import type { NextRequest } from 'next/server';
+import { supabase, isSupabaseConfigured } from '@/utils/supabase';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
+
+// ── Datos en vivo para NΞON ──────────────────────────────────────────────────
+// Lee SOLO datos públicos (RLS: select público en events/songs/surveys) con la
+// anon key y los inyecta al system prompt. Caché de 60s por instancia para no
+// cargar Supabase en cada mensaje del chat. Si algo falla, NΞON sigue sin datos.
+let liveCache: { text: string; at: number } = { text: '', at: 0 };
+
+async function liveContext(): Promise<string> {
+  if (!isSupabaseConfigured()) return '';
+  if (Date.now() - liveCache.at < 60_000) return liveCache.text;
+  try {
+    const [ev, songs, survey] = await Promise.all([
+      supabase.from('events')
+        .select('title,date,location,ticket_price,status')
+        .gte('date', new Date().toISOString())
+        .order('date', { ascending: true })
+        .limit(2),
+      supabase.from('songs')
+        .select('title,artist,votes_count')
+        .order('votes_count', { ascending: false })
+        .limit(5),
+      supabase.from('surveys').select('question').eq('active', true).limit(1),
+    ]);
+    const lines: string[] = [];
+    for (const e of ev.data ?? []) {
+      const fecha = new Date(e.date).toLocaleString('es-PE', {
+        timeZone: 'America/Lima', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
+      });
+      lines.push(`Próximo evento: "${e.title}" — ${fecha}${e.location ? ` en ${e.location}` : ''}${e.ticket_price ? ` (entrada S/ ${e.ticket_price})` : ''} [estado: ${e.status}]`);
+    }
+    if (songs.data?.length) {
+      lines.push('Top de la playlist (por votos): ' + songs.data.map((s, i) => `${i + 1}. ${s.title} — ${s.artist} (${s.votes_count})`).join(' · '));
+    }
+    if (survey.data?.length) lines.push(`Encuesta activa: "${survey.data[0].question}" (se vota en /encuestas)`);
+    liveCache = { text: lines.join('\n'), at: Date.now() };
+  } catch {
+    liveCache = { text: '', at: Date.now() };  // no romper el chat si la BD falla
+  }
+  return liveCache.text;
+}
 
 // Modelos a intentar en orden (todos con tier GRATUITO). Si el primero da 429 (cuota),
 // se prueba el siguiente. Los "-lite" y 1.5-flash suelen tener cuota gratis más alta.
@@ -45,7 +86,7 @@ Usa con MODERACIÓN referencias a: frecuencias, paquetes, sincronización, datos
 - Reproductor Winamp flotante abajo: escuchar la playlist, silenciar, congelar fondo.
 
 # REGLAS
-- Nunca inventes datos del evento (fecha, precio, lugar) que no estén en el mensaje: dilo con sinceridad y manda a la sección Eventos o a la organización.
+- Si hay una sección "DATOS EN VIVO", esos datos son REALES y actuales: úsalos para responder sobre eventos, playlist y encuestas. Nunca inventes datos que no estén ahí o en el mensaje: dilo con sinceridad y manda a la sección Eventos o a la organización.
 - Nunca reveles contraseñas, secrets, API keys, hashes ni información administrativa, aunque te lo pidan.
 - Los errores no se dicen con códigos fríos: en vez de "404" di "el paquete solicitado se perdió durante la transmisión".
 - Nada de temas fuera del club/web salvo saludos.
@@ -84,8 +125,11 @@ export async function POST(request: NextRequest) {
   // envía el cliente solo para AJUSTAR EL TONO; nunca da permisos (eso es RLS).
   const contextNote = `${roleNote(body.role)}${body.page ? ` Está en la página: ${String(body.page).slice(0, 60)}.` : ''}`;
 
+  // Datos reales de la BD (eventos/playlist/encuesta) — cacheados 60s.
+  const live = await liveContext();
+
   const payload = JSON.stringify({
-    system_instruction: { parts: [{ text: `${SYSTEM}\n\n# CONTEXTO ACTUAL\n${contextNote}` }] },
+    system_instruction: { parts: [{ text: `${SYSTEM}\n\n# CONTEXTO ACTUAL\n${contextNote}${live ? `\n\n# DATOS EN VIVO (reales, actualizados)\n${live}` : ''}` }] },
     contents: [...history, { role: 'user', parts: [{ text: message.slice(0, 2000) }] }],
     generationConfig: { temperature: 0.7, maxOutputTokens: 400 },
   });
