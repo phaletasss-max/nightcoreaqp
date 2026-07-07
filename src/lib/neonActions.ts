@@ -116,15 +116,70 @@ const ADMIN_TABS: AdminTab[] = [
   { keys: ['diseño', 'diseno', 'apariencia', 'tema del sitio', 'fondos', 'personalizar el sitio', 'colores del sitio', 'video de fondo'], tab: 'design', label: 'Ir a Diseño →', reply: 'Panel → Diseño 🎨 tema, colores, fuentes y videos de fondo del sitio.' },
 ];
 
+// Guías "cómo hago X" del panel (pasos reales, sin inventar). Se revisan ANTES
+// que ADMIN_TABS porque son más específicas. Cada una lleva a la pestaña correcta.
+interface AdminHowto { keys: string[]; reply: string; button: NeonButton }
+const TAB = (tab: string, label: string): NeonButton => ({ label, route: '/admin', target: `tab-${tab}`, click: true });
+const ADMIN_HOWTO: AdminHowto[] = [
+  {
+    keys: ['como cambiar rol', 'cómo cambiar rol', 'como cambiar el rol', 'como dar dj', 'como dar admin', 'como hacer admin', 'como hacer dj', 'como promover', 'como asignar rol', 'como dar rol'],
+    reply: 'En Usuarios: busca la fila de la persona y usa el selector de rol (Usuario / DJ / Admin).\n• DJ es directo.\n• ADMIN te pedirá la credencial especial.\nTodo cambio queda registrado en la auditoría.',
+    button: TAB('users', 'Ver Usuarios →'),
+  },
+  {
+    keys: ['como crear evento', 'cómo crear evento', 'como hacer un evento', 'como publicar evento', 'como editar evento', 'crear un evento', 'nuevo evento'],
+    reply: 'En Eventos: pulsa «Nuevo evento», completa título, fecha, lugar y entradas, y guarda.\nCambia el estado a «Confirmado» para que aparezca en la home con su cuenta regresiva.',
+    button: TAB('events', 'Gestionar Eventos →'),
+  },
+  {
+    keys: ['como lanzar encuesta', 'como crear encuesta', 'cómo crear encuesta', 'como hacer encuesta', 'nueva encuesta'],
+    reply: 'En Encuestas: escribe la pregunta y las opciones y pulsa «Lanzar».\nLa nueva encuesta reemplaza a la que estaba activa.',
+    button: TAB('survey', 'Gestionar Encuestas →'),
+  },
+  {
+    keys: ['como aprobar asistencia', 'como validar asistencia', 'como dar insignia', 'como aprobar insignia', 'como validar insignia', 'aprobar prueba'],
+    reply: 'En Insignias: cada usuario sube su prueba de asistencia. Revísala y pulsa «Aprobar» o «Rechazar».\nAl aprobar, se le otorga la insignia del evento.',
+    button: TAB('proofs', 'Ver Insignias →'),
+  },
+  {
+    keys: ['como moderar comentario', 'como borrar comentario', 'como aprobar comentario', 'como eliminar comentario', 'moderar comentarios'],
+    reply: 'En Comentarios: los marcados salen censurados hasta que los revises.\nPulsa «Aprobar» para mostrarlos, o «Eliminar» para borrarlos.',
+    button: TAB('comments', 'Moderar Comentarios →'),
+  },
+  {
+    keys: ['como crear bloque', 'como publicar set', 'como poner anuncio', 'como hacer un bloque', 'como añadir bloque', 'como agregar bloque', 'set del dj'],
+    reply: 'En Bloques: pulsa «Nuevo bloque», elige el tipo (anuncio / enlace / imagen / video) y la sección (Home o «Sets del DJ»), y guárdalo. Puedes reordenarlos y ocultarlos.',
+    button: TAB('bloques', 'Editar Bloques →'),
+  },
+  {
+    keys: ['como cambiar el fondo', 'como cambiar diseño', 'como cambiar diseno', 'como poner video de fondo', 'como cambiar el tema', 'como cambiar colores', 'como personalizar el sitio'],
+    reply: 'En Diseño: elige tema, colores y fuentes.\nEn «Videos de fondo por página» subes o pegas un video y eliges dónde se ve (una página, varias o todas).',
+    button: TAB('design', 'Ir a Diseño →'),
+  },
+  {
+    keys: ['como publicar la playlist', 'como marcar cancion', 'como marcar canción', 'como limpiar la cola', 'como vaciar la cola', 'marcar tocada'],
+    reply: 'En la Consola DJ: tienes el setlist más votado. Marca canciones como «tocadas», descarga el crate (.bat) o vacía la cola cuando termines.',
+    button: { label: 'Ir a Consola DJ →', route: '/dj' },
+  },
+];
+
+// Normaliza: minúsculas + quita artículos/preposiciones que la gente intercala
+// ("cambiar UN rol", "ver LOS usuarios", "gestión DE dj") para que el match sea
+// robusto. Se aplica al texto Y a cada clave, así ambas quedan consistentes.
+const STOPWORDS = new Set(['un', 'una', 'unos', 'unas', 'el', 'la', 'los', 'las', 'de', 'del', 'al', 'mi', 'mis', 'tu', 'tus']);
+function normalize(s: string): string {
+  return s.toLowerCase().trim().split(/\s+/).filter((w) => !STOPWORDS.has(w)).join(' ');
+}
+
 function hasKey(text: string, keys: string[]): boolean {
-  return keys.some((k) => text.includes(k));
+  return keys.some((k) => text.includes(normalize(k)));
 }
 
 export function matchNeonAction(
   raw: string,
   opts: { isStaff: boolean; isAdmin: boolean },
 ): NeonActionResult | null {
-  const text = raw.toLowerCase().trim();
+  const text = normalize(raw);
   if (!text) return null;
 
   // 1) Intenciones de rol (no dan acceso).
@@ -132,9 +187,12 @@ export function matchNeonAction(
     if (hasKey(text, r.keys)) return { reply: r.reply };
   }
 
-  // 1.5) Secciones del panel admin — SOLO si el usuario es admin. Navega a
-  // /admin, resalta la pestaña y la abre. Evita que la IA invente rutas.
+  // 1.5) Panel admin — SOLO si el usuario es admin. Primero las guías "cómo hago
+  // X" (pasos), luego las secciones. Navegan a /admin, abren y resaltan la pestaña.
   if (opts.isAdmin) {
+    for (const h of ADMIN_HOWTO) {
+      if (hasKey(text, h.keys)) return { reply: h.reply, button: h.button };
+    }
     for (const t of ADMIN_TABS) {
       if (hasKey(text, t.keys)) {
         return { reply: t.reply, button: { label: t.label, route: '/admin', target: `tab-${t.tab}`, click: true } };

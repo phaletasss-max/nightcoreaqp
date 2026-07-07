@@ -11,6 +11,17 @@ Versión semántica: MAYOR.MENOR.PATCH (la app web no tiene número de versión 
 > + funciones admin (tag `v1.1`, entradas (a)–(e) de abajo). Lo siguiente es la **v1.2**:
 > identidad "Internet 2010 + Nightcore + Windows XP + Winamp + neón + anime + Arequipa".
 
+### 2026-07-07 (t) — NΞON explica cómo hacer cada tarea admin + match robusto
+
+- **feat(neon): guías "cómo hago X" del panel.** Preguntas "cómo cambio un rol", "cómo
+  creo un evento", "cómo apruebo una asistencia", "cómo modero comentarios", "cómo cambio
+  el fondo"… y NΞON responde con los **pasos reales** + botón que abre la pestaña correcta
+  (`ADMIN_HOWTO` en neonActions.ts). Sin inventar nada.
+- **fix(neon): match robusto ante palabras intercaladas.** Normalización que quita
+  artículos/preposiciones ("cambiar UN rol", "ver LOS usuarios", "gestión DE dj") del
+  texto y de las claves, así frases naturales sí disparan la acción. Verificado:
+  "como cambiar un rol" → pasos completos; antes caía a la IA.
+
 ### 2026-07-07 (s) — NΞON guía a los admins por el panel + anti-alucinación
 
 - **feat(neon): guía por el panel admin.** Si eres admin y preguntas por Métricas,
