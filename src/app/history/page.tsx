@@ -101,7 +101,7 @@ export default function HistoryPage() {
             {topCostumes.map((costume, i) => (
               <div key={costume.id} className="group relative h-28 rounded-xl overflow-hidden border border-border flex items-end">
                 { }
-                <img src={costume.photo_url} alt={costume.char_name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                <img loading="lazy" decoding="async" src={costume.photo_url} alt={costume.char_name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
                 <div className="relative z-10 p-3 w-full flex items-center justify-between">
                   <div>

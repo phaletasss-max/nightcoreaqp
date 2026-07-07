@@ -1212,7 +1212,7 @@ export default function AdminPage() {
                 </div>
                 
                 <div className="aspect-square w-full bg-black flex items-center justify-center overflow-hidden">
-                  <img src={p.photo_url} alt="Prueba" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                  <img loading="lazy" decoding="async" src={p.photo_url} alt="Prueba" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
                 </div>
                 
                 <div className="p-4 space-y-3">

@@ -193,7 +193,7 @@ export default function PublicProfilePage() {
         {/* Portada */}
         <div className="relative h-40 sm:h-56 w-full bg-gradient-to-r from-neon-magenta/25 via-surface-2 to-neon-cyan/25">
           {profile.bg_url && (
-            <img src={profile.bg_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+            <img loading="lazy" decoding="async" src={profile.bg_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
         </div>
@@ -206,7 +206,7 @@ export default function PublicProfilePage() {
               style={accent ? { boxShadow: `0 0 18px color-mix(in srgb, ${accent} 45%, transparent)` } : undefined}
             >
               {profile.avatar_url
-                ? <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
+                ? <img loading="lazy" decoding="async" src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
                 : <User className="h-12 w-12 text-neon-pink" />}
             </div>
             <div className="flex-1 text-center sm:text-left">
@@ -321,7 +321,7 @@ export default function PublicProfilePage() {
               <div className={styles.gallery}>
                 {photos.map((ph) => (
                   <a key={ph.id} href={ph.url} target="_blank" rel="noopener noreferrer" className={styles.thumb} title={ph.caption ?? undefined}>
-                    <img src={ph.url} alt={ph.caption ?? 'foto'} />
+                    <img loading="lazy" decoding="async" src={ph.url} alt={ph.caption ?? 'foto'} />
                   </a>
                 ))}
               </div>
@@ -363,7 +363,7 @@ export default function PublicProfilePage() {
               <h2 className="section-title text-base flex items-center gap-2"><Camera className="h-5 w-5 text-neon-cyan" /> Disfraces</h2>
               <div className="flex gap-3 overflow-x-auto pb-1">
                 {activity.costumes.map((c) => (
-                  <img key={c.id} src={c.photo_url} alt={c.char_name} title={c.char_name} className="h-28 w-24 rounded-lg object-cover border border-border shrink-0" />
+                  <img loading="lazy" decoding="async" key={c.id} src={c.photo_url} alt={c.char_name} title={c.char_name} className="h-28 w-24 rounded-lg object-cover border border-border shrink-0" />
                 ))}
               </div>
             </div>
@@ -439,7 +439,7 @@ export default function PublicProfilePage() {
                       {/* Avatar */}
                       <div className="h-10 w-10 rounded-full bg-neon-pink/15 border border-neon-pink/30 flex items-center justify-center overflow-hidden shrink-0">
                         {entry.author?.avatar_url ? (
-                          <img
+                          <img loading="lazy" decoding="async"
                             src={entry.author.avatar_url}
                             alt={entry.author_name}
                             className="w-full h-full object-cover"

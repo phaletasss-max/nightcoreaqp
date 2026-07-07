@@ -245,7 +245,7 @@ export default function PerfilPage() {
     return (
       <div className="card p-10 text-center max-w-md mx-auto relative overflow-hidden">
         {localBg && (
-          <img src={localBg} className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ opacity: localBgOpacity }} alt="bg" />
+          <img loading="lazy" decoding="async" src={localBg} className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ opacity: localBgOpacity }} alt="bg" />
         )}
         <div className="relative z-10">
           <User className="h-10 w-10 text-neon-pink mx-auto mb-3" />
@@ -330,7 +330,7 @@ export default function PerfilPage() {
                 la banda de arriba, y el avatar va montado sobre ella. */}
             <div className="relative h-28 sm:h-32 w-full bg-gradient-to-r from-neon-magenta/25 via-surface-2 to-neon-cyan/25">
               {localBg && (
-                <img src={localBg} className="absolute inset-0 w-full h-full object-cover" style={{ opacity: Math.max(localBgOpacity, 0.35) }} alt="Portada" />
+                <img loading="lazy" decoding="async" src={localBg} className="absolute inset-0 w-full h-full object-cover" style={{ opacity: Math.max(localBgOpacity, 0.35) }} alt="Portada" />
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
             </div>
@@ -338,7 +338,7 @@ export default function PerfilPage() {
               <label className="relative h-24 w-24 rounded-full bg-surface border-4 border-background flex items-center justify-center overflow-hidden cursor-pointer group/avatar shadow-[0_0_20px_rgba(0,0,0,0.6)]" title="Cambiar foto de perfil">
                 {avatarUrl ? (
                    
-                  <img src={avatarUrl} alt="avatar" className="absolute inset-0 w-full h-full object-cover" />
+                  <img loading="lazy" decoding="async" src={avatarUrl} alt="avatar" className="absolute inset-0 w-full h-full object-cover" />
                 ) : (
                   <User className="h-9 w-9 text-neon-pink" />
                 )}
@@ -392,7 +392,7 @@ export default function PerfilPage() {
                   <label className="label text-[10px]">Foto de perfil (el círculo)</label>
                   <div className="flex items-center gap-3">
                     {avatarUrl ? (
-                      <img src={avatarUrl} alt="Foto de perfil actual" className="h-11 w-11 rounded-full object-cover border-2 border-neon-pink/50 shrink-0" />
+                      <img loading="lazy" decoding="async" src={avatarUrl} alt="Foto de perfil actual" className="h-11 w-11 rounded-full object-cover border-2 border-neon-pink/50 shrink-0" />
                     ) : (
                       <div className="h-11 w-11 rounded-full bg-neon-pink/15 border border-neon-pink/30 flex items-center justify-center shrink-0">
                         <User className="h-5 w-5 text-neon-pink" />
@@ -639,7 +639,7 @@ export default function PerfilPage() {
                   <div className="flex gap-2 overflow-x-auto pb-1">
                     {activity.costumes.map((c) => (
                        
-                      <img key={c.id} src={c.photo_url} alt={c.char_name} title={c.char_name} className="h-20 w-16 rounded-lg object-cover border border-border shrink-0" />
+                      <img loading="lazy" decoding="async" key={c.id} src={c.photo_url} alt={c.char_name} title={c.char_name} className="h-20 w-16 rounded-lg object-cover border border-border shrink-0" />
                     ))}
                   </div>
                 </div>
@@ -717,7 +717,7 @@ export default function PerfilPage() {
                         <div key={t.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-white/[0.02] border border-border hover:border-neon-cyan/40 transition-colors">
                           {t.image ? (
                              
-                            <img src={t.image} alt="" className="h-10 w-10 rounded object-cover shrink-0" />
+                            <img loading="lazy" decoding="async" src={t.image} alt="" className="h-10 w-10 rounded object-cover shrink-0" />
                           ) : (
                             <div className="h-10 w-10 rounded bg-white/5 shrink-0 flex items-center justify-center"><Music className="h-4 w-4 text-muted-2" /></div>
                           )}

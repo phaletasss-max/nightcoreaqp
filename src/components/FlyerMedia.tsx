@@ -41,5 +41,5 @@ export default function FlyerMedia({ url, alt = 'Flyer del evento', className = 
       </div>
     );
   }
-  return <img src={url} alt={alt} className={`w-full h-auto object-cover bg-black ${className}`} />;
+  return <img loading="lazy" decoding="async" src={url} alt={alt} className={`w-full h-auto object-cover bg-black ${className}`} />;
 }

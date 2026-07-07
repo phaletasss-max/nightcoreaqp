@@ -373,7 +373,7 @@ export default function PlaylistPage() {
                   return (
                     <div key={t.url} className="flex items-center gap-3 p-2 rounded-lg border border-border bg-white/[0.02]">
                       { }
-                      {t.thumbnail && <img src={t.thumbnail} alt="" className="h-10 w-16 rounded object-cover shrink-0" />}
+                      {t.thumbnail && <img loading="lazy" decoding="async" src={t.thumbnail} alt="" className="h-10 w-16 rounded object-cover shrink-0" />}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-white truncate">{t.title}</p>
                         <p className="text-xs text-muted truncate">{t.author}{t.duration ? ` · ${Math.floor(t.duration / 60)}:${String(Math.floor(t.duration % 60)).padStart(2, '0')}` : ''}</p>
@@ -636,7 +636,7 @@ export default function PlaylistPage() {
                     {/* Miniatura del Video */}
                     {yt && (
                       <div className="hidden sm:block ml-2 w-20 h-12 rounded overflow-hidden border border-border shrink-0 relative group bg-black">
-                        <img src={`https://i.ytimg.com/vi/${yt}/mqdefault.jpg`} alt="thumbnail" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                        <img loading="lazy" decoding="async" src={`https://i.ytimg.com/vi/${yt}/mqdefault.jpg`} alt="thumbnail" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
                       </div>
                     )}
                   </div>

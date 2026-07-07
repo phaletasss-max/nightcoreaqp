@@ -141,7 +141,7 @@ export default function LiveFeed({ eventId }: { eventId: string }) {
               <div key={`streak-${profile.id}`} className="card p-4 bg-white/[0.02] border border-border flex items-center gap-4">
                 <div className="h-12 w-12 rounded-full bg-neon-pink/20 flex items-center justify-center shrink-0">
                   {profile.avatar_url ? (
-                    <img src={profile.avatar_url} alt={profile.username} className="w-full h-full rounded-full object-cover" />
+                    <img loading="lazy" decoding="async" src={profile.avatar_url} alt={profile.username} className="w-full h-full rounded-full object-cover" />
                   ) : (
                     <Flame className="h-6 w-6 text-neon-pink" />
                   )}
@@ -181,7 +181,7 @@ export default function LiveFeed({ eventId }: { eventId: string }) {
             return (
               <div key={`costume-${costume.id}`} className="p-4 rounded-xl bg-white/[0.03] border border-border flex gap-4">
                 <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-black">
-                  <img src={costume.photo_url} alt={costume.char_name} className="w-full h-full object-cover" />
+                  <img loading="lazy" decoding="async" src={costume.photo_url} alt={costume.char_name} className="w-full h-full object-cover" />
                 </div>
                 <div className="flex flex-col justify-center">
                   <div className="flex items-center gap-1.5 text-xs text-neon-cyan font-bold mb-1">

@@ -1,7 +1,7 @@
 'use client';
 
 // ── Fondo de sección (imagen o video) con opacidad configurable ──────────────
-// Reemplaza el patrón repetido en la home: <img bg> + <BgEditor>. La opacidad se
+// Reemplaza el patrón repetido en la home: <img loading="lazy" decoding="async" bg> + <BgEditor>. La opacidad se
 // guarda por sección (clave bg_opacity_<key> en site_settings) y el admin la ajusta
 // con el slider del BgEditor. Soporta MP4/WebM además de imágenes.
 
@@ -32,7 +32,7 @@ export default function SectionBg({ sectionKey, bgs, onChange, isStaff, defaultO
         />
       ) : (
          
-        <img
+        <img loading="lazy" decoding="async"
           src={url} alt=""
           className={`absolute inset-0 w-full h-full object-cover z-0 pointer-events-none ${blend ? 'mix-blend-screen' : ''}`}
           style={{ opacity }}

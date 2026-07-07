@@ -11,6 +11,22 @@ Versión semántica: MAYOR.MENOR.PATCH (la app web no tiene número de versión 
 > + funciones admin (tag `v1.1`, entradas (a)–(e) de abajo). Lo siguiente es la **v1.2**:
 > identidad "Internet 2010 + Nightcore + Windows XP + Winamp + neón + anime + Arequipa".
 
+### 2026-07-07 (u) — Ligereza: carga inicial más liviana (P2)
+
+- **perf(video): `preload="metadata"` en el fondo** (`fondoscenecoe.mp4`, 2.7 MB) y en
+  `PageVideoBg`. El navegador ya no descarga el mp4 completo al inicio: pide solo un rango
+  parcial (verificado: `206 Partial Content`) y lo va cargando mientras reproduce. Gran
+  ahorro de carga inicial en redes lentas / equipos modestos.
+- **perf(img): `loading="lazy" decoding="async"` en las 28 `<img>`** del sitio. Las
+  imágenes fuera del viewport (grids de disfraces, playlist, perfiles, avatares) ya no se
+  descargan hasta acercarse. El flyer del evento (1.2 MB) y demás dejan de competir por el
+  ancho de banda inicial.
+- **perf(bundle): NΞON diferido** (`DeferredAssistant` con `next/dynamic ssr:false`). El
+  código del asistente (lógica + catálogo de acciones) sale del bundle crítico y se carga
+  tras la hidratación en su propio chunk; el botón aparece un instante después.
+- Verificado en preview: video 206 parcial, imgs lazy, chunk de NΞON separado, sin errores
+  de consola. `tsc`/build verdes.
+
 ### 2026-07-07 (t) — NΞON explica cómo hacer cada tarea admin + match robusto
 
 - **feat(neon): guías "cómo hago X" del panel.** Preguntas "cómo cambio un rol", "cómo

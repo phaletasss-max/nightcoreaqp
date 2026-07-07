@@ -21,7 +21,7 @@ export default function PageVideoBg({ src, opacity = 0.3 }: { src: string; opaci
       muted
       loop
       playsInline
-      preload="auto"
+      preload="metadata"
       onError={() => setFailed(true)}
       className="fixed inset-0 w-full h-full object-cover pointer-events-none"
       style={{ zIndex: -17, opacity }}

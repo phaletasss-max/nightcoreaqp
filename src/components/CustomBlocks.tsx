@@ -78,11 +78,10 @@ function BlockRenderer({ b }: { b: CustomBlock }) {
     if (!b.img_url) return null;
     return (
       <div className="card p-3 space-y-2">
-        <img
+        <img loading="lazy" decoding="async"
           src={b.img_url}
           alt={b.title ?? 'Imagen'}
           className="w-full rounded-xl object-cover max-h-80"
-          loading="lazy"
         />
         {(b.title || b.content) && (
           <p className="text-xs text-muted px-1">{b.title}{b.title && b.content ? ' — ' : ''}{b.content}</p>

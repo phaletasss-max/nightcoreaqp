@@ -61,7 +61,7 @@ export default function AttendanceProofModal({ eventId, userId, onClose }: { eve
         <div className="p-6 text-center space-y-6">
           {/* Miku Animation / GIF Placeholder */}
           <div className="mx-auto w-32 h-32 rounded-full overflow-hidden border-4 border-neon-cyan shadow-[0_0_15px_#00ffff] bg-black">
-            <img 
+            <img loading="lazy" decoding="async" 
               src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExc29wMW42eTRwbmlqa3Z1ajg4eWgxaHNkZWVxbHB1cTBwYXYxZXp0aiZlcD12MV9naWZzX3NlYXJjaCZjdD1n/MhAih0q6uGoZa/giphy.gif" 
               alt="Miku animando" 
               className="w-full h-full object-cover"

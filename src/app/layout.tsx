@@ -8,7 +8,7 @@ import GlobalPlayer from "@/components/GlobalPlayer";
 import DesignLoader from "@/components/DesignLoader";
 import PageVideoManager from "@/components/PageVideoManager";
 import CRTBoot from "@/components/CRTBoot";
-import Assistant from "@/components/Assistant";
+import DeferredAssistant from "@/components/DeferredAssistant";
 import NeonSpotlight from "@/components/NeonSpotlight";
 import PWARegister from "@/components/PWARegister";
 
@@ -79,7 +79,7 @@ export default function RootLayout({
             <PageVideoManager />
             <CRTBoot />
             <GlobalPlayer />
-            <Assistant />
+            <DeferredAssistant />
             <NeonSpotlight />
             <Navbar />
 

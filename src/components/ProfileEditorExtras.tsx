@@ -162,7 +162,7 @@ export default function ProfileEditorExtras() {
           {photos.map((ph) => (
             <div key={ph.id} className="relative group aspect-square rounded-lg overflow-hidden border border-border">
               { }
-              <img src={ph.url} alt={ph.caption ?? 'foto'} className="w-full h-full object-cover" />
+              <img loading="lazy" decoding="async" src={ph.url} alt={ph.caption ?? 'foto'} className="w-full h-full object-cover" />
               <button
                 onClick={() => handleDeletePhoto(ph.id)}
                 className="absolute top-1 right-1 p-1 rounded-md bg-black/70 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-300"

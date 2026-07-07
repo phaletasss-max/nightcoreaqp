@@ -189,6 +189,7 @@ export default function GlobalPlayer() {
             muted={playingItem?.type === 'default' ? true : isMuted}
             loop={playingItem?.type === 'default'}
             playsInline
+            preload="metadata"
             onEnded={() => { if (playingItem?.type === 'stream' && hasQueue) playNext(); }}
             className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${bgFrozen ? 'opacity-0' : 'opacity-40'}`}
           />
@@ -196,7 +197,7 @@ export default function GlobalPlayer() {
         {/* Fondo estático cuando está congelado (la música sigue sonando) */}
         {bgFrozen && isYt && playingItem?.id && (
            
-          <img src={`https://i.ytimg.com/vi/${playingItem.id}/hqdefault.jpg`} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30 blur-sm" />
+          <img loading="lazy" decoding="async" src={`https://i.ytimg.com/vi/${playingItem.id}/hqdefault.jpg`} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30 blur-sm" />
         )}
         <div className="absolute inset-0 bg-black/70" />
       </div>

@@ -198,7 +198,7 @@ export default function DisfracesPage() {
           
           <div className="hidden md:flex flex-col items-center justify-center max-w-xs text-center space-y-4 mt-6">
             <div className="relative rounded-2xl overflow-hidden border-2 border-neon-magenta shadow-[0_0_25px_rgba(255,0,255,0.3)] transform rotate-3 hover:rotate-0 transition-transform w-full max-w-[200px]">
-              <img src="/mikualentadora.jpg" alt="Miku alentadora" className="w-full h-auto object-cover" />
+              <img loading="lazy" decoding="async" src="/mikualentadora.jpg" alt="Miku alentadora" className="w-full h-auto object-cover" />
             </div>
             <div className="card p-4 accent-magenta relative">
               <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-surface border-t border-l border-border rotate-45" />
@@ -214,7 +214,7 @@ export default function DisfracesPage() {
         {entries.map((entry) => (
           <div key={entry.id} className="card card-hover overflow-hidden flex flex-col">
             <div className="relative aspect-[4/5] bg-black overflow-hidden">
-              <img src={entry.photo_url?.startsWith('blob:') ? PLACEHOLDER_IMG : entry.photo_url} alt={entry.char_name} className="w-full h-full object-cover" />
+              <img loading="lazy" decoding="async" src={entry.photo_url?.startsWith('blob:') ? PLACEHOLDER_IMG : entry.photo_url} alt={entry.char_name} className="w-full h-full object-cover" />
               <div className="absolute top-3 left-3 badge badge-cyan bg-black/70 backdrop-blur">
                 <Award className="h-3.5 w-3.5" /> {entry.char_name}
               </div>
