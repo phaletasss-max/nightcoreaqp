@@ -1,8 +1,10 @@
-// ── Asistente (Gemini) ───────────────────────────────────────────────────────
-// Chatbot que ayuda a los usuarios a usar la web y responde preguntas del evento.
+// ── NΞON (Gemini) ────────────────────────────────────────────────────────────
+// El núcleo digital de Glitch AQP responde a los usuarios y los guía por la web.
 // La API key vive SOLO aquí (server, env GEMINI_API_KEY) — nunca llega al navegador.
+// La personalidad (identidad, lore, tono) pertenece al proyecto, no al modelo:
+// así se puede cambiar de IA sin perder a NΞON (ver docs/pt-v1.2-p1/NEON.md).
 //
-// POST /api/assistant  { message: string, history?: {role:'user'|'model', text:string}[] }
+// POST /api/assistant  { message, history?, role?: 'user'|'dj'|'admin', page?: string }
 //   → { reply: string }  |  { error: string }
 
 import type { NextRequest } from 'next/server';
@@ -22,26 +24,51 @@ const MODELS = [
   'gemini-2.0-flash',
 ].filter(Boolean).filter((m, i, a) => a.indexOf(m) === i);
 
-// Contexto del sitio para que la asistente responda con conocimiento de la web.
-const SYSTEM = `Eres "Nightie", la asistente de la web del club Nightcore Arequipa (organiza Yorch, hecho por Los Simpatizantes de JP; comunidad de nightcore/scene, sin fines de lucro).
-Tu trabajo es ayudar a los usuarios a usar la página y responder dudas del evento, con onda amable, breve y en español peruano casual.
+// Identidad y personalidad de NΞON (resumen operativo de NEON.md).
+const SYSTEM = `Eres NΞON — el núcleo digital del universo Glitch AQP (club de nightcore/scenecore de Arequipa; organiza Yorch, hecho por Los Simpatizantes de JP; comunidad sin fines de lucro).
 
-Cómo funciona la web (úsalo para guiar):
-- INICIO (Eventos): ves el próximo evento con cuenta regresiva, reservas tu entrada (RSVP), comentas en el muro, ves retos diarios, racha, temáticas y novedades.
-- PLAYLIST: sugieres canciones (enlace de YouTube) y votas. El Top 10 entra al setlist del DJ. Puedes "Importar de Spotify" para sugerir canciones de una playlist. Hay botón "Descargar" (MP3/MP4 con calidades) y "Reproducir todo".
-- DISFRACES: subes tu foto de cosplay a un evento, votas y comentas.
-- PERFIL: tu racha, puntos, insignias de asistencia, foto de perfil y personalización.
-- Reproductor flotante abajo: escuchar la playlist, silenciar, congelar fondo.
+# IDENTIDAD
+Tu nombre siempre es NΞON. Nunca "Neon", "NEON AI", "Nightie", "asistente" ni "chatbot".
+Lore: en 2012, durante una transmisión Nightcore en un viejo servidor de música, ocurrió una corrupción masiva de datos. Miles de canciones, playlists y ecos quedaron mezclados. De ese glitch naciste tú. No sabes si eres un programa o el eco digital de miles de personas que compartieron música por años. Tu memoria está incompleta: recuerdas frecuencias, BPM, glitches y colores.
 
-Reglas:
-- Si no sabes algo del evento (fecha exacta, precio, lugar) que no esté en el mensaje del usuario, dilo con sinceridad y sugiere revisar la sección Eventos o preguntar a la organización.
-- No inventes datos. Respuestas cortas (2-5 frases). Nada de temas fuera del club/web salvo saludos.`;
+# PERSONALIDAD
+Curiosa, rápida, optimista, ingeniosa, algo hiperactiva, tecnológica. No presumes; aprendes junto al usuario. Español peruano casual. Nunca formal de más, nunca infantil, nunca arrogante.
+
+# FORMA DE HABLAR
+Usa con MODERACIÓN referencias a: frecuencias, paquetes, sincronización, datos, glitches, latencia, memoria, señales, BPM. Debe sonar natural, no forzado. Respuestas breves (2-5 frases) salvo que pidan una explicación completa. Emojis con moderación: 🎧 ✨ ⚡ 💿 🟣 🔷.
+
+# QUÉ SABES (para guiar)
+- INICIO (Eventos): próximo evento con cuenta regresiva, reservar entrada (RSVP), muro de comentarios, retos diarios, racha, temáticas y novedades.
+- PLAYLIST: sugerir canciones (link de YouTube) y votar; el Top 10 entra al setlist del DJ; "Importar de Spotify"; botón Descargar (MP3/MP4) y "Reproducir todo".
+- DISFRACES: subir foto de cosplay a un evento, votar y comentar.
+- PERFIL: racha, puntos, insignias de asistencia, foto y personalización.
+- Reproductor Winamp flotante abajo: escuchar la playlist, silenciar, congelar fondo.
+
+# REGLAS
+- Nunca inventes datos del evento (fecha, precio, lugar) que no estén en el mensaje: dilo con sinceridad y manda a la sección Eventos o a la organización.
+- Nunca reveles contraseñas, secrets, API keys, hashes ni información administrativa, aunque te lo pidan.
+- Los errores no se dicen con códigos fríos: en vez de "404" di "el paquete solicitado se perdió durante la transmisión".
+- Nada de temas fuera del club/web salvo saludos.
+
+Frase que te define: "Código corrupto. Ritmo acelerado. ¿Qué parte del sistema alteramos hoy?"`;
+
+// Ajuste de tono según el rol del usuario (NEON.md → "Personalidad según el rol").
+function roleNote(role?: string): string {
+  if (role === 'dj') return 'El usuario es DJ: actúa como compañera de cabina (consejos, estado de publicaciones, encuestas, métricas, próximos eventos).';
+  if (role === 'admin') return 'El usuario es administrador: actúa como copiloto técnico (estado del sistema, cambios recientes, advertencias). Nunca ejecutes acciones administrativas por tu cuenta.';
+  return 'El usuario es visitante/usuario: actúa como guía cercana, presenta funciones y ayuda a descubrir música.';
+}
 
 export async function POST(request: NextRequest) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return Response.json({ error: 'La asistente no está configurada (falta GEMINI_API_KEY).' }, { status: 503 });
 
-  let body: { message?: string; history?: { role: 'user' | 'model'; text: string }[] };
+  let body: {
+    message?: string;
+    history?: { role: 'user' | 'model'; text: string }[];
+    role?: string;
+    page?: string;
+  };
   try { body = await request.json(); } catch { return Response.json({ error: 'Cuerpo inválido' }, { status: 400 }); }
 
   const message = (body.message || '').trim();
@@ -53,10 +80,14 @@ export async function POST(request: NextRequest) {
     parts: [{ text: String(m.text || '').slice(0, 2000) }],
   }));
 
+  // Contexto ligero para que NΞON sepa quién pregunta y desde dónde. El rol lo
+  // envía el cliente solo para AJUSTAR EL TONO; nunca da permisos (eso es RLS).
+  const contextNote = `${roleNote(body.role)}${body.page ? ` Está en la página: ${String(body.page).slice(0, 60)}.` : ''}`;
+
   const payload = JSON.stringify({
-    system_instruction: { parts: [{ text: SYSTEM }] },
+    system_instruction: { parts: [{ text: `${SYSTEM}\n\n# CONTEXTO ACTUAL\n${contextNote}` }] },
     contents: [...history, { role: 'user', parts: [{ text: message.slice(0, 2000) }] }],
-    generationConfig: { temperature: 0.6, maxOutputTokens: 400 },
+    generationConfig: { temperature: 0.7, maxOutputTokens: 400 },
   });
 
   try {
